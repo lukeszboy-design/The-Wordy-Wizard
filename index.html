@@ -177,6 +177,48 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .sq-key{font-size:18px}
 }
 @media (prefers-reduced-motion: reduce){ .sq-worried .sq-arm-l,.sq-worried .sq-arm-r,.sq-hop,.sq-flag{animation:none} #sqKnight{transition:none} }
+/* --- Potion Mix-Up (word scramble) --- */
+.px{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,41fr) minmax(0,59fr);gap:2.2cqw;color:var(--parch-ink)}
+.px-scene{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.px-scene svg{width:100%;height:100%;max-height:100%;border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#221a33}
+.px-side{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1.2cqw}
+.px-top{display:flex;justify-content:space-between;align-items:center;gap:1cqw;font:700 max(12px,1.25cqw) var(--font-read);color:#6b4a26;font-variant-numeric:tabular-nums}
+.px-status{margin:0;min-height:2.8em;font:700 max(14px,1.45cqw)/1.4 var(--font-read);text-align:center;text-wrap:balance}
+.px-shelf{position:relative;padding:1cqw 1cqw 0;border-bottom:1.4cqw solid #7a4a22;border-radius:.4cqw;box-shadow:0 .9cqw 0 #4a2c14, inset 0 -.3cqw 0 rgba(0,0,0,.1);background:linear-gradient(rgba(122,74,34,0),rgba(122,74,34,.12))}
+.px-jars{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:.7cqw;touch-action:none;min-height:7cqw}
+.px-jar{position:relative;width:5.8cqw;height:7.9cqw;min-width:42px;min-height:57px;padding:0;border:none;background:none;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:1cqw;transition:transform .2s ease, filter .2s}
+.px-jar svg{width:100%;height:100%;display:block;pointer-events:none;overflow:visible}
+.px-jar .px-l{position:absolute;left:0;right:0;top:50%;text-align:center;font:700 max(18px,2.9cqw)/1 var(--font-read);color:#2a1a10;pointer-events:none;text-transform:lowercase}
+.px-jar:hover:not(.locked){filter:brightness(1.08)}
+.px-jar:focus-visible{outline:3px solid #a3401f;outline-offset:3px}
+.px-jar.dragging{z-index:5;cursor:grabbing;transition:none;filter:drop-shadow(0 .8cqw .6cqw rgba(0,0,0,.35))}
+.px-jar.selected{outline:4px solid #f2c35b;outline-offset:2px}
+.px-jar.right::after{content:"";position:absolute;inset:-4px;border-radius:1.2cqw;box-shadow:0 0 0 3px #2f9e57, 0 0 14px 4px rgba(64,200,110,.6);pointer-events:none}
+.px-jar.locked{cursor:default}
+.px-jar.locked::before{content:"";position:absolute;top:-6px;right:-4px;width:14px;height:14px;border-radius:50%;background:#f2c35b;border:2px solid #3b2412;z-index:2}
+.px-jar.hop{animation:pxhop .45s ease-in-out infinite alternate}
+@keyframes pxhop{from{transform:translateY(0)}to{transform:translateY(-10px) rotate(-4deg)}}
+.px-jar .bub{animation:pxbub 2.2s linear infinite}
+@keyframes pxbub{0%{transform:translateY(0);opacity:0}20%{opacity:.9}100%{transform:translateY(-22px);opacity:0}}
+.px-actions{display:flex;justify-content:center;align-items:center;gap:1cqw;flex-wrap:wrap}
+.px-hint{margin:0;font:italic max(12px,1.1cqw) var(--font-read);color:#7a5a30;text-align:center}
+/* scene motion */
+.px-flame{transform-box:fill-box;transform-origin:50% 100%;animation:pxflame .35s ease-in-out infinite alternate}
+.px-flame:nth-child(2){animation-duration:.45s}.px-flame:nth-child(3){animation-duration:.3s}
+@keyframes pxflame{from{transform:scaleY(.85) skewX(-4deg)}to{transform:scaleY(1.1) skewX(4deg)}}
+.px-sbub{animation:pxsbub 1.6s ease-in infinite}
+@keyframes pxsbub{0%{transform:scale(.3);opacity:0}30%{opacity:1}100%{transform:scale(1.2) translateY(-6px);opacity:0}}
+.px-steam{animation:pxsteam 3.5s ease-in-out infinite}
+@keyframes pxsteam{0%{transform:translateY(8px);opacity:0}40%{opacity:.35}100%{transform:translateY(-40px);opacity:0}}
+.px-shake{animation:pxshake .5s ease-in-out}
+@keyframes pxshake{20%{transform:translateX(-4px) rotate(-1.5deg)}45%{transform:translateX(4px) rotate(1.5deg)}70%{transform:translateX(-2px)}}
+@media (max-width:760px){
+  .px{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .px-scene svg{height:auto;max-height:34vh;width:auto;max-width:100%}
+  .px-shelf{padding:10px 8px 0;border-bottom-width:12px}
+  .px-jars{gap:8px}
+}
+@media (prefers-reduced-motion: reduce){ .px-flame,.px-sbub,.px-steam,.px-jar .bub,.px-jar.hop{animation:none} }
 </style>
 
 </head>
@@ -304,7 +346,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const GAMES = {
   wordsearch: { name: 'Word Search', desc: 'Find the hidden words', say: "Word Search! Your words are hiding in a grid of letters. This spell is still brewing in my cauldron. Check back soon!" },
   hangman:    { name: 'Save the Squire', desc: 'Guess letters, build the ladder', say: "Hangman! Guess the letters one at a time before the picture is done. This spell is still brewing. Check back soon!" },
-  scramble:   { name: 'Word Scramble', desc: 'Unjumble the letters', say: "Word Scramble! I've jumbled up your letters. Can you put them back in order? This spell is still brewing!" },
+  scramble:   { name: 'Potion Mix-Up', desc: 'Put the jars in order to brew', say: "Word Scramble! I've jumbled up your letters. Can you put them back in order? This spell is still brewing!" },
   missing:    { name: 'Missing Letter', desc: 'Fill in the blank', say: "Missing Letter! A sneaky imp stole a letter from each word. This spell is still brewing. Check back soon!" },
   listen:     { name: 'Listen & Spell', desc: 'Hear it, then spell it', say: "Listen & Spell! I'll say a word out loud, and you spell it. This spell is still brewing!" },
   spot:       { name: 'Spot the Mistake', desc: 'Find the right spelling', say: "Spot the Mistake! Only one spelling is correct. Can you find it? This spell is still brewing!" },
@@ -950,7 +992,7 @@ const potionAnims = [];
 const BOOK = { w: 3.3, h: 2.06, cw: 2048, ch: 1278 };
 let LECT; const LEAF = {};
 const leafFrontTex = canvasTex(1024, 1278, () => {}), leafBackTex = canvasTex(1024, 1278, () => {});
-const podium = new THREE.Group(); podium.position.set(2.8, 0, -.75); scene.add(podium);
+const podium = new THREE.Group(); podium.position.set(2.62, 0, -.75); scene.add(podium);
 let pagesMesh;
 const bookTex = canvasTex(BOOK.cw, BOOK.ch, () => {});
 {
@@ -958,7 +1000,7 @@ const bookTex = canvasTex(BOOK.cw, BOOK.ch, () => {});
   mesh(new THREE.CylinderGeometry(.55, .68, .16, 32), woodD, { parent: podium, pos: [0, .08, 0], outline: .012 });
   const prof = [[.34, 0], [.34, .05], [.24, .1], [.19, .25], [.2, .5], [.26, .62], [.2, .74], [.18, 1.05], [.22, 1.2], [.3, 1.28], [.3, 1.34]].map(([r, y]) => new THREE.Vector2(r, y));
   mesh(new THREE.LatheGeometry(prof, 32), wood, { parent: podium, pos: [0, .16, 0], outline: .012 });
-  const lectern = new THREE.Group(); lectern.position.set(0, 1.56, 0); lectern.rotation.order = 'YXZ'; lectern.rotation.set(.5, -.4, 0); podium.add(lectern);
+  const lectern = new THREE.Group(); lectern.position.set(0, 1.56, 0); lectern.rotation.order = 'YXZ'; lectern.rotation.set(.6, -.48, 0); lectern.scale.setScalar(1.13); podium.add(lectern);
   mesh(new THREE.BoxGeometry(3.55, .07, 2.3), wood, { parent: lectern, outline: .012, receive: true });
   mesh(new THREE.BoxGeometry(3.6, .1, .08), woodD, { parent: lectern, pos: [0, .07, 1.14], outline: .01 });
   // book
@@ -995,8 +1037,8 @@ const bookTex = canvasTex(BOOK.cw, BOOK.ch, () => {});
 }
 
 /* ----- Book canvas: spreads, page turning, hit regions ----- */
-const ROWS = [395, 715], ENTRY_W = 815, ENTRY_H = 270;
-const entryRect = (slot) => ({ x: (slot >> 1) * 1024 + 105, y: ROWS[slot & 1], w: ENTRY_W, h: ENTRY_H });
+const ROWS = [392, 712], ENTRY_W = 855, ENTRY_H = 280;
+const entryRect = (slot) => ({ x: (slot >> 1) * 1024 + 85, y: ROWS[slot & 1], w: ENTRY_W, h: ENTRY_H });
 const ADD_RECT = { x: 1024 + 170, y: 92, w: 684, h: 92 };
 const BACK_RECT = { x: 85, y: 1025, w: 210, h: 210 };
 const NEXT_RECT = { x: 2048 - 295, y: 1025, w: 210, h: 210 };
@@ -1019,12 +1061,11 @@ const ICONS = {
     g.strokeStyle = '#c0392b'; g.lineWidth = 2; g.stroke(new Path2D('M7.5 32 H13 M9.5 26 H15 M11.5 20 H16.7'));
   },
   scramble(g) {
-    g.font = '700 9.5px Andika, sans-serif'; g.textAlign = 'center';
-    [['T', 3, 18, -10], ['A', 15, 14, 8], ['C', 27, 19, -6]].forEach(([l, x, y, r]) => {
-      g.save(); g.translate(x + 6, y + 7.5); g.rotate(r * Math.PI / 180); g.fillStyle = '#fff'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
-      g.beginPath(); g.rect(-6, -7.5, 12, 15); g.fill(); g.stroke(); g.fillStyle = '#3b2412'; g.fillText(l, 0, 3.5); g.restore();
-    });
-    g.strokeStyle = '#c0392b'; g.lineWidth = 2; g.stroke(new Path2D('M9 11 Q21 2 33 11 M30 7 L33 11 L28 12'));
+    const jar = (x, y, col, l, r) => { g.save(); g.translate(x, y); g.rotate(r); g.fillStyle = 'rgba(207,233,255,.6)'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.6;
+      g.beginPath(); g.rect(-6, -9, 12, 18); g.fill(); g.stroke(); g.fillStyle = col; g.fillRect(-5.2, 1, 10.4, 7.2); g.fillStyle = '#a0704a'; g.fillRect(-3.5, -12.5, 7, 3.5);
+      g.fillStyle = '#3b2412'; g.font = '700 8px Andika, sans-serif'; g.textAlign = 'center'; g.fillText(l, 0, -1); g.restore(); };
+    jar(9, 26, '#46d46e', 't', -.18); jar(21, 22, '#a14be8', 'o', .1); jar(33, 27, '#ff5f9e', 'p', -.08);
+    g.strokeStyle = '#c0392b'; g.lineWidth = 2; g.lineCap = 'round'; g.stroke(new Path2D('M8 7 Q21 0 34 7 M31 3 L34 7 L29 8'));
   },
   missing(g) {
     g.fillStyle = '#3b2412'; g.font = '700 15px Andika, sans-serif'; g.textAlign = 'center'; g.fillText('C', 9, 27); g.fillText('T', 33, 27);
@@ -1092,10 +1133,10 @@ function paintSpread(g, idx, hover) {
   g.lineWidth = 1.5; rr(g, 76, 76, 872, h - 152, 14); g.stroke(); rr(g, 1100, 76, 872, h - 152, 14); g.stroke();
   // top band: week (left) and add-words link (right)
   g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-  g.fillStyle = '#7a5a30'; g.font = 'italic 50px Andika, "Trebuchet MS", sans-serif'; g.fillText('Week of ' + weekText(), 512, 155);
+  g.fillStyle = '#7a5a30'; g.font = 'italic 58px Andika, "Trebuchet MS", sans-serif'; g.fillText('Week of ' + weekText(), 512, 155);
   const ah = hover === 'add';
   if (ah) { g.fillStyle = 'rgba(255,244,200,.85)'; rr(g, ADD_RECT.x, ADD_RECT.y, ADD_RECT.w, ADD_RECT.h, 22); g.fill(); }
-  g.fillStyle = ah ? '#8a2a12' : '#7a5a30'; g.fillText(bookWordsLabel(), 1560, 155);
+  g.fillStyle = ah ? '#8a2a12' : '#7a5a30'; g.fillText(bookWordsLabel(), 1572, 155);
   g.fill(new Path2D('M1215 165 L1250 112 L1261 121 L1226 172 Z'));
   // headings
   g.fillStyle = '#5a2414'; g.font = '128px "Uncial Antiqua", Georgia, serif';
@@ -1106,14 +1147,16 @@ function paintSpread(g, idx, hover) {
   sp.games.forEach((key, slot) => {
     const e = entryRect(slot), G = GAMES[key], hov = hover === key;
     if (hov) { g.fillStyle = 'rgba(255,244,200,.85)'; rr(g, e.x, e.y, e.w, e.h, 30); g.fill(); g.strokeStyle = '#a3401f'; g.lineWidth = 6; g.stroke(); }
-    const ix = e.x + 30, iy = e.y + 55, s = 160;
+    const ix = e.x + 18, iy = e.y + 58, s = 150;
     g.fillStyle = '#f6e7bd'; g.strokeStyle = '#3b2412'; g.lineWidth = 9; rr(g, ix, iy, s, s, 22); g.fill(); g.stroke();
     g.save(); g.translate(ix, iy); g.scale(s / 42, s / 42); ICONS[key](g); g.restore();
     g.textAlign = 'left'; g.fillStyle = hov ? '#8a2a12' : '#3b2412';
-    let fs = 84; g.font = `700 ${fs}px Andika, "Trebuchet MS", sans-serif`;
-    while (g.measureText(G.name).width > e.w - 250 && fs > 50) { fs -= 2; g.font = `700 ${fs}px Andika, "Trebuchet MS", sans-serif`; }
-    g.fillText(G.name, e.x + 225, e.y + 140);
-    g.fillStyle = '#6b4a26'; g.font = 'italic 52px Andika, "Trebuchet MS", sans-serif'; g.fillText(G.desc, e.x + 225, e.y + 205);
+    let fs = 104; g.font = `700 ${fs}px Andika, "Trebuchet MS", sans-serif`;
+    while (g.measureText(G.name).width > e.w - 195 && fs > 64) { fs -= 2; g.font = `700 ${fs}px Andika, "Trebuchet MS", sans-serif`; }
+    g.fillText(G.name, e.x + 188, e.y + 140);
+    let ds = 70; g.font = `italic ${ds}px Andika, "Trebuchet MS", sans-serif`;
+    while (g.measureText(G.desc).width > e.w - 190 && ds > 50) { ds -= 2; g.font = `italic ${ds}px Andika, "Trebuchet MS", sans-serif`; }
+    g.fillStyle = '#5a3a1a'; g.fillText(G.desc, e.x + 188, e.y + 215);
   });
   // page numbers
   g.textAlign = 'center'; g.fillStyle = '#8a6a3a'; g.font = '46px "Uncial Antiqua", Georgia, serif';
@@ -1187,7 +1230,7 @@ function updateTurn(dt) {
 }
 
 /* ================= The Wizard ================= */
-const wiz = new THREE.Group(); wiz.position.set(-.15, 0, -.35); wiz.scale.setScalar(1.28); wiz.rotation.y = .2; scene.add(wiz);
+const wiz = new THREE.Group(); wiz.position.set(-.8, 0, -.35); wiz.scale.setScalar(1.28); wiz.rotation.y = .2; scene.add(wiz);
 const WZ = {};
 {
   const robe = toon('#2f62c4'), robeD = toon('#22489a'), skin = toon('#f3c39c'), skinD = toon('#de9f7e'), white = toon('#efebe4'), whiteD = toon('#d6d1c8');
@@ -1757,7 +1800,286 @@ const SquireGame = (() => {
   }
   return { mount, unmount };
 })();
-const GAME_MODULES = { hangman: SquireGame };
+/* ================= Game: Potion Mix-Up (word scramble) ================= */
+const PotionGame = (() => {
+  const JAR_COLORS = ['#46d46e', '#a14be8', '#ff5f9e', '#3fb8ff', '#ffb347', '#ff6b5b', '#2fd3c4', '#f2d64b'];
+  const SMOKE = ['#ff6fb5', '#9b6bff', '#4fd1ff', '#5ef08a', '#ffd166', '#ff8a5b'];
+  const NS = 'http://www.w3.org/2000/svg';
+  let root, st, words, practice, keyHandler, drag = null;
+  const q = sel => root.querySelector(sel);
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  function sceneSVG() {
+    return `<svg viewBox="0 0 420 460" role="img" aria-label="An apprentice stands beside a bubbling cauldron in a messy potion workshop">
+      <defs>
+        <linearGradient id="pxWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d2342"/><stop offset="1" stop-color="#1b1428"/></linearGradient>
+        <radialGradient id="pxGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb347" stop-opacity=".55"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient>
+        <clipPath id="pxClip"><rect width="420" height="460" rx="14"/></clipPath>
+      </defs>
+      <g clip-path="url(#pxClip)">
+      <rect width="420" height="460" fill="url(#pxWall)"/>
+      <g stroke="#3b2f52" stroke-width="2" fill="none" opacity=".8">
+        <path d="M0 60 H420 M0 180 H420 M0 300 H420"/><path d="M70 0 V60 M210 0 V60 M350 0 V60 M140 60 V180 M280 60 V180 M70 180 V300 M210 180 V300 M350 180 V300"/>
+      </g>
+      <g stroke="#5a7a3a" stroke-width="2" stroke-linecap="round"><path d="M40 0 V46 M60 0 V36 M380 0 V40"/></g>
+      <g fill="#6aa84f"><ellipse cx="36" cy="40" rx="6" ry="3"/><ellipse cx="44" cy="48" rx="6" ry="3"/><ellipse cx="56" cy="32" rx="6" ry="3"/><ellipse cx="64" cy="38" rx="6" ry="3"/><ellipse cx="376" cy="36" rx="6" ry="3"/><ellipse cx="384" cy="42" rx="6" ry="3"/></g>
+      <!-- shelf with the knocked-over jars -->
+      <rect x="20" y="128" width="380" height="12" rx="3" fill="#7a4a22" stroke="#2a1a10" stroke-width="2.5"/>
+      <path d="M50 140 L50 160 L70 140 M370 140 L370 160 L350 140" stroke="#2a1a10" stroke-width="3" fill="none"/>
+      <g stroke="#2a1a10" stroke-width="2">
+        <g transform="translate(90 116) rotate(90)"><rect x="-10" y="-14" width="20" height="28" rx="6" fill="#bfe4ff" fill-opacity=".5"/><rect x="-10" y="0" width="20" height="14" rx="5" fill="#ff5f9e"/><rect x="-6" y="-20" width="12" height="7" rx="2" fill="#a0704a"/></g>
+        <g transform="translate(170 118) rotate(-80)"><rect x="-9" y="-12" width="18" height="24" rx="5" fill="#bfe4ff" fill-opacity=".5"/><rect x="-9" y="2" width="18" height="10" rx="4" fill="#46d46e"/></g>
+        <g transform="translate(250 106)"><rect x="-10" y="-14" width="20" height="36" rx="6" fill="#bfe4ff" fill-opacity=".5"/><rect x="-10" y="6" width="20" height="16" rx="5" fill="#3fb8ff"/><rect x="-6" y="-20" width="12" height="7" rx="2" fill="#a0704a"/></g>
+        <g transform="translate(330 118) rotate(95)"><rect x="-9" y="-12" width="18" height="24" rx="5" fill="#bfe4ff" fill-opacity=".5"/><rect x="-9" y="2" width="18" height="10" rx="4" fill="#ffb347"/></g>
+      </g>
+      <g opacity=".9"><path d="M100 140 q4 14 0 26 q-3 6 -6 0 q-2 -12 0 -26 Z" fill="#ff5f9e"/><path d="M178 140 q3 10 0 18 q-3 4 -5 0 q-1 -9 0 -18 Z" fill="#46d46e"/><path d="M340 140 q4 16 0 30 q-3 6 -6 0 q-2 -14 0 -30 Z" fill="#ffb347"/></g>
+      <!-- floor -->
+      <rect y="408" width="420" height="52" fill="#1a1322"/><path d="M0 408 H420" stroke="#3b2f52" stroke-width="3"/>
+      <ellipse cx="236" cy="420" rx="120" ry="14" fill="#000" opacity=".35"/>
+      <!-- fire -->
+      <ellipse cx="236" cy="395" rx="90" ry="40" fill="url(#pxGlow)"/>
+      <g transform="translate(236 410)">
+        <path d="M-50 0 L50 -10 M-46 -10 L48 2" stroke="#5e3a1a" stroke-width="10" stroke-linecap="round"/>
+        <g><path class="px-flame" d="M-30 -6 Q-36 -30 -22 -44 Q-20 -28 -10 -24 Q-8 -40 2 -50 Q4 -30 14 -26 Q18 -40 26 -42 Q34 -24 26 -6 Z" fill="#ff8a2e"/><path class="px-flame" d="M-18 -6 Q-22 -22 -12 -32 Q-8 -20 0 -18 Q4 -30 10 -34 Q16 -18 12 -6 Z" fill="#ffd166"/><path class="px-flame" d="M-6 -6 Q-8 -16 -2 -22 Q2 -14 6 -12 Q8 -6 4 -6 Z" fill="#fff3c4"/></g>
+      </g>
+      <!-- cauldron -->
+      <g id="pxCauldron">
+        <path d="M150 382 l-10 24 M322 382 l10 24" stroke="#14111a" stroke-width="9" stroke-linecap="round"/>
+        <path d="M140 300 Q136 400 236 400 Q336 400 332 300 Z" fill="#1d1a26" stroke="#0d0a12" stroke-width="3"/>
+        <path d="M160 320 Q164 370 200 384" stroke="#4a4560" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/>
+        <ellipse cx="236" cy="300" rx="100" ry="20" fill="#2b2738" stroke="#0d0a12" stroke-width="3"/>
+        <ellipse id="pxLiquid" cx="236" cy="301" rx="86" ry="13" fill="#46d46e"/>
+        <g id="pxSurf" fill="#ffffff" opacity=".7">
+          <circle class="px-sbub" cx="200" cy="300" r="5" style="animation-delay:0s"/><circle class="px-sbub" cx="250" cy="303" r="4" style="animation-delay:.5s"/>
+          <circle class="px-sbub" cx="276" cy="299" r="6" style="animation-delay:1s"/><circle class="px-sbub" cx="222" cy="304" r="3.5" style="animation-delay:1.3s"/>
+        </g>
+        <g fill="#e8e0ff"><circle class="px-steam" cx="210" cy="270" r="12" style="animation-delay:0s"/><circle class="px-steam" cx="250" cy="266" r="14" style="animation-delay:1.2s"/><circle class="px-steam" cx="232" cy="262" r="10" style="animation-delay:2.3s"/></g>
+      </g>
+      <!-- apprentice -->
+      <g id="pxApp" transform="translate(70 408)">
+        <path d="M-20 0 V-14 M8 0 V-14" stroke="#3b2412" stroke-width="7" stroke-linecap="round"/>
+        <path d="M-28 -12 Q-30 -60 -6 -66 Q18 -60 20 -12 Z" fill="#8a5a2b" stroke="#2a1a10" stroke-width="2.5"/>
+        <path d="M-27 -30 H19" stroke="#c99a3e" stroke-width="3"/>
+        <g id="pxAppArm"><path d="M16 -50 L36 -66" stroke="#8a5a2b" stroke-width="8" stroke-linecap="round"/><circle cx="38" cy="-68" r="5" fill="#f3c39c" stroke="#2a1a10" stroke-width="2"/><path d="M40 -72 L62 -110" stroke="#a0704a" stroke-width="4" stroke-linecap="round"/><ellipse cx="64" cy="-114" rx="7" ry="5" fill="#a0704a" stroke="#2a1a10" stroke-width="1.5"/></g>
+        <path d="M-24 -48 L-38 -34" stroke="#8a5a2b" stroke-width="8" stroke-linecap="round"/><circle cx="-39" cy="-33" r="5" fill="#f3c39c" stroke="#2a1a10" stroke-width="2"/>
+        <circle cx="-4" cy="-80" r="16" fill="#f3c39c" stroke="#2a1a10" stroke-width="2.5"/>
+        <path d="M-26 -88 Q-4 -84 18 -90 L0 -138 Q-6 -136 -10 -128 Z" fill="#3c8a5a" stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M-28 -89 Q-4 -80 20 -91" stroke="#2a1a10" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <circle cx="-10" cy="-79" r="2" fill="#2a1a10"/><circle cx="3" cy="-79" r="2" fill="#2a1a10"/>
+        <circle cx="-15" cy="-73" r="3" fill="#f2a294" opacity=".8"/><circle cx="8" cy="-73" r="3" fill="#f2a294" opacity=".8"/>
+        <path id="pxAppBrows" d="M-14 -86 L-7 -84 M7 -86 L0 -84" stroke="#2a1a10" stroke-width="1.8" stroke-linecap="round"/>
+        <path id="pxAppMouth" d="M-8 -71 Q-3 -74 2 -71" fill="none" stroke="#2a1a10" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <g id="pxFx"></g>
+      </g>
+    </svg>`;
+  }
+  function jarSVG(color, n) {
+    return `<svg viewBox="0 0 60 80" aria-hidden="true">
+      <rect x="21" y="2" width="18" height="10" rx="2.5" fill="#a0704a" stroke="#2a1a10" stroke-width="2"/>
+      <path d="M22 12 H38 V20 Q54 26 54 42 V68 Q54 78 44 78 H16 Q6 78 6 68 V42 Q6 26 22 20 Z" fill="#cfe9ff" fill-opacity=".45" stroke="#2a1a10" stroke-width="2.5"/>
+      <path d="M7.5 46 Q30 40 52.5 46 V68 Q52.5 76.5 44 76.5 H16 Q7.5 76.5 7.5 68 Z" fill="${color}"/>
+      <circle class="bub" cx="16" cy="70" r="2.4" fill="#fff" style="animation-delay:${(n * .37 % 2).toFixed(2)}s"/>
+      <circle class="bub" cx="44" cy="72" r="1.8" fill="#fff" style="animation-delay:${(n * .61 % 2 + .6).toFixed(2)}s"/>
+      <path d="M12 34 Q14 28 20 25" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" opacity=".7"/>
+      <rect x="13" y="38" width="34" height="26" rx="4" fill="#f6e7bd" stroke="#3b2412" stroke-width="2"/>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    practice = !wordList.length;
+    words = shuffle(practice ? ['potion', 'magic', 'spell', 'castle', 'wizard', 'dragon'] : wordList);
+    st = { idx: 0, brewed: 0 };
+    root = document.createElement('div'); root.className = 'px';
+    root.innerHTML = `
+      <div class="px-scene">${sceneSVG()}</div>
+      <div class="px-side">
+        <div class="px-top"><span id="pxCount"></span><span id="pxBrewed"></span></div>
+        <p class="px-status" id="pxStatus" aria-live="polite"></p>
+        <div class="px-shelf"><div class="px-jars" id="pxJars" role="list" aria-label="Letter jars"></div></div>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="pxHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+          <button type="button" class="sq-btn" id="pxHintBtn">Hint</button>
+          <button type="button" class="sq-btn primary" id="pxBrew">Brew!</button>
+          <button type="button" class="sq-btn primary" id="pxNext" hidden>Next potion</button>
+        </div>
+        <p class="px-hint">Drag a jar onto another to swap them. You can also tap two jars, or use the arrow keys.</p>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    q('#pxHear').addEventListener('click', () => speak(st.word));
+    if (!('speechSynthesis' in window)) q('#pxHear').hidden = true;
+    q('#pxBrew').addEventListener('click', brew);
+    q('#pxHintBtn').addEventListener('click', hint);
+    q('#pxNext').addEventListener('click', next);
+    const jars = q('#pxJars');
+    jars.addEventListener('pointerdown', onDown);
+    jars.addEventListener('pointermove', onMove);
+    jars.addEventListener('pointerup', onUp);
+    jars.addEventListener('pointercancel', onUp);
+    jars.addEventListener('keydown', onKey);
+    keyHandler = e => { if (e.key === 'Enter' && !q('#pxNext').hidden && !e.target.closest('.px-jar')) { e.preventDefault(); next(); } };
+    document.addEventListener('keydown', keyHandler);
+    newWord();
+  }
+  function unmount() {
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    try { speechSynthesis.cancel(); } catch (e) {}
+    if (root) root.remove(); root = null; drag = null;
+  }
+  function speak(w) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(w); u.rate = .8; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
+  function status(t) { q('#pxStatus').textContent = t; }
+  function setMood(m) {
+    q('#pxAppMouth').setAttribute('d', { worried: 'M-8 -71 Q-3 -74 2 -71', happy: 'M-10 -73 Q-3 -64 4 -73', oops: 'M-6 -70 Q-3 -73 0 -70 Q-3 -67 -6 -70' }[m]);
+    q('#pxAppBrows').setAttribute('d', { worried: 'M-14 -86 L-7 -88 M7 -86 L0 -88', happy: 'M-14 -88 Q-10 -91 -7 -88 M7 -88 Q3 -91 0 -88', oops: 'M-14 -89 L-7 -86 M7 -89 L0 -86' }[m]);
+  }
+
+  function newWord() {
+    const word = words[st.idx], letters = word.toLowerCase().replace(/[^a-z]/g, '').split('');
+    let order = letters.slice();
+    if (new Set(letters).size > 1) { let tries = 0; do { order = shuffle(letters); tries++; } while (order.join('') === letters.join('') && tries < 20); }
+    Object.assign(st, { word, answer: letters.join(''), over: false, misses: 0, sel: null });
+    q('#pxCount').textContent = `Potion ${st.idx + 1} of ${words.length}`;
+    q('#pxBrewed').textContent = `Potions brewed: ${st.brewed}`;
+    const jars = q('#pxJars'); jars.innerHTML = '';
+    order.forEach((l, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'px-jar'; b.dataset.l = l; b.setAttribute('role', 'listitem');
+      b.innerHTML = jarSVG(JAR_COLORS[(i + st.idx) % JAR_COLORS.length], i) + `<span class="px-l">${l}</span>`;
+      jars.appendChild(b);
+    });
+    labelJars();
+    q('#pxBrew').hidden = false; q('#pxBrew').disabled = false; q('#pxHintBtn').hidden = false; q('#pxNext').hidden = true;
+    q('#pxFx').innerHTML = ''; q('#pxLiquid').setAttribute('fill', '#46d46e');
+    setMood('worried');
+    status(`Oh no! The apprentice knocked over the jars. Put the ${letters.length} jars in order to spell the potion's word, then press Brew!`);
+  }
+  const jarList = () => [...q('#pxJars').children];
+  function labelJars() { const js = jarList(); js.forEach((j, i) => j.setAttribute('aria-label', `Jar ${i + 1} of ${js.length}: letter ${j.dataset.l}${j.classList.contains('locked') ? ', locked in place' : ''}`)); }
+  function clearMarks() { jarList().forEach(j => j.classList.remove('right')); }
+  function swap(a, b) {
+    if (a === b) return;
+    const before = new Map(jarList().map(j => [j, j.getBoundingClientRect()]));
+    const t = document.createElement('span'); a.before(t); b.before(a); t.replaceWith(b);
+    [a, b].forEach(j => {
+      if (drag && drag.j === j) return;
+      const r0 = before.get(j), r1 = j.getBoundingClientRect();
+      j.animate([{ transform: `translate(${r0.left - r1.left}px,${r0.top - r1.top}px)` }, { transform: 'none' }], { duration: 180, easing: 'ease-out' });
+    });
+    clearMarks(); labelJars();
+  }
+
+  // dragging (mouse, touch, pen)
+  function onDown(e) {
+    const j = e.target.closest('.px-jar'); if (!j || st.over || j.classList.contains('locked')) return;
+    e.preventDefault(); j.setPointerCapture(e.pointerId);
+    const r = j.getBoundingClientRect();
+    drag = { j, id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: e.clientX - r.left - r.width / 2, oy: e.clientY - r.top - r.height / 2, moved: false };
+  }
+  function onMove(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const { j } = drag;
+    if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 7) return;
+    if (!drag.moved) { drag.moved = true; j.classList.add('dragging'); if (st.sel) { st.sel.classList.remove('selected'); st.sel = null; } }
+    for (const o of jarList()) {
+      if (o === j || o.classList.contains('locked')) continue;
+      const r = o.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      if (Math.abs(e.clientX - cx) < r.width * .38 && Math.abs(e.clientY - cy) < r.height * .45) { swap(j, o); break; }
+    }
+    j.style.transform = 'none';
+    const base = j.getBoundingClientRect();
+    j.style.transform = `translate(${e.clientX - drag.ox - (base.left + base.width / 2)}px, ${e.clientY - drag.oy - (base.top + base.height / 2)}px) scale(1.1)`;
+  }
+  function onUp(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const { j, moved } = drag; drag = null;
+    if (moved) { j.classList.remove('dragging'); j.style.transform = ''; return; }
+    // tap: select, then tap another to swap
+    if (!st.sel) { st.sel = j; j.classList.add('selected'); }
+    else if (st.sel === j) { j.classList.remove('selected'); st.sel = null; }
+    else { const a = st.sel; a.classList.remove('selected'); st.sel = null; swap(a, j); }
+  }
+  function onKey(e) {
+    const j = e.target.closest('.px-jar'); if (!j || st.over) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault(); e.stopPropagation();
+      if (j.classList.contains('locked')) return;
+      const js = jarList(); let i = js.indexOf(j), d = e.key === 'ArrowLeft' ? -1 : 1, k = i + d;
+      while (js[k] && js[k].classList.contains('locked')) k += d;
+      if (js[k]) { swap(j, js[k]); j.focus(); }
+    }
+  }
+
+  function hint() {
+    if (st.over) return;
+    const js = jarList();
+    for (let i = 0; i < js.length; i++) {
+      if (js[i].dataset.l === st.answer[i]) { if (!js[i].classList.contains('locked')) { js[i].classList.add('locked'); labelJars(); status(`Hint: the "${st.answer[i]}" jar is already in the right spot, so it's locked in place.`); return; } continue; }
+      const src = js.slice(i + 1).find(x => !x.classList.contains('locked') && x.dataset.l === st.answer[i]);
+      if (src) { swap(src, js[i]); src.classList.add('locked'); labelJars(); status(`Hint: the "${st.answer[i]}" jar goes in spot ${i + 1}. It's locked in place now.`); return; }
+    }
+    status('Every jar is in the right place. Press Brew!');
+  }
+  function brew() {
+    if (st.over) return;
+    if (st.sel) { st.sel.classList.remove('selected'); st.sel = null; }
+    const js = jarList(), guess = js.map(j => j.dataset.l).join('');
+    if (guess === st.answer) return win();
+    st.misses++;
+    let right = 0; js.forEach((j, i) => { const ok = j.dataset.l === st.answer[i]; j.classList.toggle('right', ok); if (ok) right++; });
+    fizzle(); setMood('oops');
+    status(`Fizzle! Not quite. ${right ? `${right} jar${right > 1 ? 's glow' : ' glows'} green because ${right > 1 ? 'they are' : 'it is'} in the right spot.` : 'None of the jars are in the right spot yet.'}${st.misses >= 2 ? ' Try the Hint button!' : ''}`);
+    setTimeout(() => { if (root && !st.over) setMood('worried'); }, 1600);
+  }
+  function win() {
+    st.over = true; st.brewed++;
+    q('#pxBrewed').textContent = `Potions brewed: ${st.brewed}`;
+    jarList().forEach((j, i) => { j.classList.remove('right', 'selected'); j.classList.add('locked'); setTimeout(() => j.classList.add('hop'), i * 60); });
+    setMood('happy'); smoke(); speak(st.word);
+    status(`Poof! You brewed "${st.word}"!`);
+    const last = st.idx >= words.length - 1;
+    q('#pxBrew').hidden = true; q('#pxHintBtn').hidden = true;
+    const nb = q('#pxNext'); nb.textContent = last ? 'Brew them all again' : 'Next potion'; nb.hidden = false;
+    setTimeout(() => { if (root) { jarList().forEach(j => j.classList.remove('hop')); nb.focus(); } }, 2200);
+  }
+  function next() {
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.brewed = 0; } else st.idx++;
+    newWord(); const f = jarList()[0]; if (f) f.focus();
+  }
+
+  // effects
+  function puff(fx, x, y, r, color, dur, dx, dy, s1, delay = 0) {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', r); c.setAttribute('fill', color); c.setAttribute('opacity', 0);
+    fx.appendChild(c);
+    c.animate([{ transform: 'translate(0,0) scale(.4)', opacity: .95 }, { transform: `translate(${dx}px,${dy}px) scale(${s1})`, opacity: 0 }], { duration: dur, delay, easing: 'ease-out', fill: 'forwards' });
+  }
+  function smoke() {
+    const fx = q('#pxFx'), col = SMOKE[(Math.random() * SMOKE.length) | 0];
+    q('#pxLiquid').setAttribute('fill', col);
+    for (let i = 0; i < 16; i++) {
+      const c = SMOKE[i % SMOKE.length];
+      puff(fx, 236 + (Math.random() - .5) * 120, 292, 16 + Math.random() * 14, c, 1600 + Math.random() * 700, (Math.random() - .5) * 120, -170 - Math.random() * 90, 2.6, i * 60);
+    }
+    for (let i = 0; i < 14; i++) {
+      const s = document.createElementNS(NS, 'path'), a = Math.random() * Math.PI * 2, r = 60 + Math.random() * 90;
+      s.setAttribute('d', 'M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8 Z'); s.setAttribute('fill', i % 2 ? '#fff6c8' : '#f2c35b');
+      fx.appendChild(s);
+      s.animate([{ transform: 'translate(236px,280px) scale(.2)', opacity: 1 }, { transform: `translate(${236 + Math.cos(a) * r}px,${200 + Math.sin(a) * r * .6}px) scale(1.3) rotate(120deg)`, opacity: 0 }], { duration: 1200 + Math.random() * 500, delay: 200, easing: 'ease-out', fill: 'forwards' });
+    }
+  }
+  function fizzle() {
+    const fx = q('#pxFx'), liq = q('#pxLiquid'), was = liq.getAttribute('fill');
+    liq.setAttribute('fill', '#7a7a5a'); setTimeout(() => { if (root) liq.setAttribute('fill', was); }, 900);
+    for (let i = 0; i < 8; i++) puff(fx, 236 + (Math.random() - .5) * 120, 298, 5 + Math.random() * 5, '#9a9aa8', 700 + Math.random() * 400, (Math.random() - .5) * 30, -30 - Math.random() * 30, 1.4, i * 70);
+    const t = document.createElementNS(NS, 'text'); t.setAttribute('x', 236); t.setAttribute('y', 262); t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-family', 'Andika, sans-serif'); t.setAttribute('font-weight', '700'); t.setAttribute('font-size', '26'); t.setAttribute('fill', '#c9c9d6'); t.textContent = 'fizzzz…';
+    fx.appendChild(t);
+    t.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)', offset: .2 }, { opacity: 0, transform: 'translateY(-18px)' }], { duration: 1300, fill: 'forwards' });
+    const c = q('#pxCauldron'); c.classList.remove('px-shake'); void c.getBBox(); c.classList.add('px-shake');
+  }
+  return { mount, unmount };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
@@ -1927,7 +2249,7 @@ function renderFrame() {
 /* ================= Animation loop ================= */
 const clock = new THREE.Clock();
 let blinkAt = 2.8, blinkT = -1, glanceAt = 3, curiousAt = 7, t0 = performance.now();
-const anchor = V(-.8, 2.6, -.35), proj = new THREE.Vector3();
+const anchor = V(-1.45, 2.6, -.35), proj = new THREE.Vector3();
 const lookNow = LOOK_START.clone();
 function easeOut(x) { return 1 - Math.pow(1 - x, 3); }
 
