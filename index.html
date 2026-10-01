@@ -316,6 +316,57 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .tc-diff span{min-width:28px;min-height:34px}
 }
 @media (prefers-reduced-motion: reduce){ .tc-plume,.tc-ringing .tc-bell,.tc-ringing .tc-waves,.tc-hop,.tc-notice.posted{animation:none} }
+/* --- Broken Castle Wall (missing letter) --- */
+.bw{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,36fr) minmax(0,64fr);gap:2cqw;color:var(--parch-ink)}
+.bw-scene{min-width:0;min-height:0;display:flex;flex-direction:column;gap:.8cqw;justify-content:center}
+.bw-scene svg{width:100%;height:auto;max-height:calc(100% - 4cqw);border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#a8d8ff}
+.bw-meter{height:1.4cqw;min-height:10px;border-radius:999px;border:2px solid #3b2412;background:#fffaf0;overflow:hidden}
+.bw-meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#f2c35b,#e8743b,#c0392b);transition:width .25s linear}
+.bw-meter-label{font:700 max(11px,1.05cqw) var(--font-read);color:#6b4a26;text-align:center}
+.bw-side{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1cqw}
+.bw-top{display:flex;justify-content:space-between;align-items:center;gap:1cqw;flex-wrap:wrap;font:700 max(12px,1.2cqw) var(--font-read);color:#6b4a26;font-variant-numeric:tabular-nums}
+.bw-levels{display:flex;gap:.4cqw}
+.bw-levels button{font:700 max(11px,1.1cqw) var(--font-read);padding:.3cqw .9cqw;border:2px solid #3b2412;border-radius:999px;background:#fffaf0;color:#3b2412;cursor:pointer}
+.bw-levels button[aria-pressed="true"]{background:#3b2412;color:#f5e7bf}
+.bw-status{margin:0;min-height:2.8em;font:700 max(13px,1.4cqw)/1.4 var(--font-read);text-align:center;text-wrap:balance}
+.bw-wall{position:relative;padding:2.2cqw 1.2cqw 1.2cqw;border-radius:.6cqw;border:3px solid #2a2433;
+  background:linear-gradient(#8f8aa3,#7d7891);box-shadow:0 .6cqw 0 #4a4560, inset 0 0 0 .3cqw rgba(255,255,255,.08)}
+.bw-wall::before{content:"";position:absolute;left:-3px;right:-3px;top:-2.4cqw;height:2.4cqw;
+  background:repeating-linear-gradient(90deg,#8f8aa3 0 3.2cqw,transparent 3.2cqw 5.2cqw);border-top:3px solid #2a2433;clip-path:inset(0 0 0 0)}
+.bw-row{display:grid;gap:.45cqw;justify-content:center}
+.bw-deco{opacity:.55;margin:.45cqw 0}
+.bw-deco span{height:2.2cqw;border-radius:.4cqw;background:#9792ab;border:2px solid #2a2433}
+.bw-word span,.bw-word button{aspect-ratio:1/1.05;border-radius:.5cqw;display:grid;place-items:center;font:700 max(18px,2.8cqw)/1 var(--font-read);text-transform:lowercase;padding:0;min-width:0}
+.bw-word .stone{background:linear-gradient(#b3aec4,#9792ab);border:2px solid #2a2433;color:#3a3450;text-shadow:0 1px 0 rgba(255,255,255,.45), 0 -1px 0 rgba(0,0,0,.35)}
+.bw-word .gap{background:#1d1826;border:3px dashed #8f8aa3;color:transparent;cursor:pointer;box-shadow:inset 0 .4cqw .6cqw rgba(0,0,0,.6)}
+.bw-word .gap.target{border-color:#f2c35b;box-shadow:inset 0 .4cqw .6cqw rgba(0,0,0,.6), 0 0 0 .2cqw #f2c35b}
+.bw-word .gap.over{border-color:#fff;background:#2d2640}
+.bw-word .placed{background:linear-gradient(#d9cfa8,#bfb38a);border:2px solid #2a2433;color:#3b2412;animation:bwclunk .3s ease-out}
+.bw-word .missed{background:linear-gradient(#f1c9c9,#d9a5a5);border:2px solid #a3262f;color:#a3262f}
+.bw-word .gap:focus-visible,.bw-rock:focus-visible{outline:3px solid #fff;outline-offset:2px}
+@keyframes bwclunk{0%{transform:translateY(-14px) scale(1.08)}70%{transform:translateY(2px)}100%{transform:none}}
+.bw-wall.fixed{box-shadow:0 .6cqw 0 #4a4560, 0 0 1.4cqw .4cqw rgba(242,195,91,.8)}
+.bw-wall.shake{animation:bwshake .4s ease-in-out}
+@keyframes bwshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bw-tray{display:flex;flex-wrap:wrap;justify-content:center;gap:.8cqw;min-height:5.4cqw;padding:.8cqw;border-radius:1cqw;background:rgba(122,74,34,.12);border:2px dashed #b89a62;touch-action:none}
+.bw-rock{width:4.8cqw;height:4.6cqw;min-width:42px;min-height:40px;border-radius:42% 48% 40% 50% / 50% 44% 52% 46%;border:2px solid #2a2433;background:radial-gradient(circle at 35% 30%,#d6d1e2,#9792ab 60%,#6e6987);font:700 max(18px,2.5cqw)/1 var(--font-read);color:#2a2433;text-transform:lowercase;cursor:grab;touch-action:none;user-select:none;box-shadow:0 .3cqw 0 rgba(0,0,0,.25);transition:transform .15s}
+.bw-rock:hover{transform:translateY(-2px)}
+.bw-rock.dragging{position:relative;z-index:8;cursor:grabbing;transition:none;box-shadow:0 1cqw 1cqw rgba(0,0,0,.35)}
+.bw-rock.bounce{animation:bwbounce .45s ease-out}
+@keyframes bwbounce{0%{transform:translateY(-30px) rotate(-12deg)}50%{transform:translateY(4px) rotate(6deg)}100%{transform:none}}
+.bw-rock.used{visibility:hidden}
+.bw-shot{position:absolute;left:0;top:0;width:3cqw;height:3cqw;min-width:22px;min-height:22px;border-radius:50%;z-index:9;pointer-events:none}
+.bw-bonk{position:absolute;z-index:10;font:700 max(16px,2.2cqw) var(--font-display);color:#7b2d3f;pointer-events:none;text-shadow:0 2px 0 #fff}
+#bwArm{transform-box:fill-box;transform-origin:100% 50%;transition:transform .3s linear}
+#bwFlag{transform-box:fill-box;transform-origin:0% 100%;transform:scaleY(0);transition:transform .6s cubic-bezier(.3,1.5,.5,1)}
+.bw-won #bwFlag{transform:none}
+@media (max-width:760px){
+  .bw{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .bw-scene svg{max-height:30vh;width:auto;max-width:100%;align-self:center}
+  .bw-wall{padding:22px 10px 10px}.bw-wall::before{top:-20px;height:20px;background:repeating-linear-gradient(90deg,#8f8aa3 0 26px,transparent 26px 42px)}
+  .bw-deco span{height:16px}
+}
+@media (prefers-reduced-motion: reduce){ .bw-word .placed,.bw-rock.bounce,.bw-wall.shake{animation:none} }
 </style>
 
 </head>
@@ -444,7 +495,7 @@ const GAMES = {
   wordsearch: { name: "Dragon's Hoard", desc: 'Find words in the gold', say: "Word Search! Your words are hiding in a grid of letters. This spell is still brewing in my cauldron. Check back soon!" },
   hangman:    { name: 'Save the Squire', desc: 'Guess letters, build the ladder', say: "Hangman! Guess the letters one at a time before the picture is done. This spell is still brewing. Check back soon!" },
   scramble:   { name: 'Potion Mix-Up', desc: 'Put the jars in order to brew', say: "Word Scramble! I've jumbled up your letters. Can you put them back in order? This spell is still brewing!" },
-  missing:    { name: 'Missing Letter', desc: 'Fill in the blank', say: "Missing Letter! A sneaky imp stole a letter from each word. This spell is still brewing. Check back soon!" },
+  missing:    { name: 'Broken Castle Wall', desc: 'Fill the missing stones', say: "Missing Letter! A sneaky imp stole a letter from each word. This spell is still brewing. Check back soon!" },
   listen:     { name: 'The Town Crier', desc: 'Hear the word, then write it', say: "Listen & Spell! I'll say a word out loud, and you spell it. This spell is still brewing!" },
   spot:       { name: 'Spot the Mistake', desc: 'Find the right spelling', say: "Spot the Mistake! Only one spelling is correct. Can you find it? This spell is still brewing!" },
   tiles:      { name: 'Letter Tiles', desc: 'Build the word', say: "Letter Tiles! Drag the magic tiles to build each word. This spell is still brewing!" },
@@ -1177,9 +1228,12 @@ const ICONS = {
     g.strokeStyle = '#c0392b'; g.lineWidth = 2; g.lineCap = 'round'; g.stroke(new Path2D('M8 7 Q21 0 34 7 M31 3 L34 7 L29 8'));
   },
   missing(g) {
-    g.fillStyle = '#3b2412'; g.font = '700 15px Andika, sans-serif'; g.textAlign = 'center'; g.fillText('C', 9, 27); g.fillText('T', 33, 27);
-    g.fillStyle = '#fff'; g.strokeStyle = '#c0392b'; g.lineWidth = 1.8; g.setLineDash([3, 2]); g.beginPath(); g.rect(15, 12, 12, 18); g.fill(); g.stroke(); g.setLineDash([]);
-    g.fillStyle = '#c0392b'; g.font = '700 12px Andika, sans-serif'; g.fillText('?', 21, 26);
+    g.strokeStyle = '#2a2433'; g.lineWidth = 1.5;
+    const st = (x, y, l, gap) => { g.fillStyle = gap ? '#1d1826' : '#b3aec4'; g.fillRect(x, y, 11, 11); g.strokeRect(x, y, 11, 11); if (l) { g.fillStyle = '#3a3450'; g.font = '700 8px Andika, sans-serif'; g.textAlign = 'center'; g.fillText(l, x + 5.5, y + 8.5); } };
+    g.fillStyle = '#9792ab'; [4, 16, 28].forEach(x => { g.fillRect(x, 8, 9, 6); g.strokeRect(x, 8, 9, 6); });
+    st(3, 16, 'c', 0); st(15, 16, '', 1); st(27, 16, 't', 0);
+    g.fillStyle = '#9792ab'; g.fillRect(3, 28, 35, 9); g.strokeRect(3, 28, 35, 9);
+    g.fillStyle = '#d6d1e2'; g.beginPath(); g.ellipse(21, 5, 5, 4, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#c0392b'; g.font = '700 6px Andika, sans-serif'; g.fillText('a', 21, 7);
   },
   listen(g) {
     g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
@@ -2729,7 +2783,250 @@ const CrierGame = (() => {
   }
   return { mount, unmount };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame };
+/* ================= Game: Broken Castle Wall (missing letter) ================= */
+const WallGame = (() => {
+  const LEVELS = { easy: { label: 'Easy', frac: 0, min: 1, secs: 45 }, medium: { label: 'Medium', frac: .34, min: 2, secs: 45 }, hard: { label: 'Hard', frac: .5, min: 3, secs: 40 } };
+  const VOWELS = 'aeiou', ABC = 'abcdefghijklmnopqrstuvwxyz';
+  let root, st, words, practice, timers = [], tick = null, drag = null, keyHandler, level = 'easy';
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  try { level = localStorage.getItem('wordy-wizard-wall-level') || 'easy'; if (!LEVELS[level]) level = 'easy'; } catch (e) {}
+
+  function sceneSVG() {
+    return `<svg viewBox="0 0 420 300" role="img" aria-label="A catapult on a hill aims at the castle wall">
+      <defs><linearGradient id="bwSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fcbff"/><stop offset="1" stop-color="#e9f6ff"/></linearGradient></defs>
+      <rect width="420" height="300" fill="url(#bwSky)"/>
+      <g fill="#fff" opacity=".9"><ellipse cx="80" cy="50" rx="34" ry="12"/><ellipse cx="104" cy="44" rx="22" ry="12"/><ellipse cx="300" cy="70" rx="30" ry="10"/></g>
+      <path d="M0 210 Q90 170 190 196 T420 186 V300 H0 Z" fill="#6aa84f"/>
+      <path d="M0 250 Q120 228 240 246 T420 240 V300 H0 Z" fill="#4c7a33"/>
+      <!-- castle tower at the right edge -->
+      <g stroke="#2a2433" stroke-width="2.5">
+        <rect x="350" y="96" width="70" height="160" fill="#9792ab"/>
+        <path d="M350 96 v-14 h14 v14 M378 96 v-14 h14 v14 M406 96 v-14 h14 v14" fill="#9792ab"/>
+        <rect x="374" y="200" width="22" height="56" rx="10" fill="#3b2412"/>
+        <path d="M385 82 V44" stroke="#3b2412" stroke-width="3"/>
+      </g>
+      <path id="bwFlag" d="M386 46 L414 54 L386 64 Z" fill="#c0392b" stroke="#2a1a10" stroke-width="2"/>
+      <!-- catapult -->
+      <g transform="translate(110 222)">
+        <path d="M-60 0 H60 M-50 0 L-10 -46 M50 0 L10 -46" stroke="#5e3a1a" stroke-width="9" stroke-linecap="round"/>
+        <g fill="#6b4226" stroke="#2a1a10" stroke-width="2.5"><circle cx="-44" cy="6" r="14"/><circle cx="44" cy="6" r="14"/></g>
+        <g fill="#c99a3e"><circle cx="-44" cy="6" r="4"/><circle cx="44" cy="6" r="4"/></g>
+        <g id="bwArm" transform="rotate(0)">
+          <path d="M-90 -50 L0 -46" stroke="#7a4f2a" stroke-width="9" stroke-linecap="round"/>
+          <path d="M-104 -60 Q-104 -40 -86 -40 Q-74 -46 -80 -60 Z" fill="#7a4f2a" stroke="#2a1a10" stroke-width="2.5"/>
+          <circle id="bwAmmo" cx="-92" cy="-56" r="9" fill="#e5533d" stroke="#2a1a10" stroke-width="2"/>
+        </g>
+        <circle cx="0" cy="-46" r="6" fill="#c99a3e" stroke="#2a1a10" stroke-width="2"/>
+        <path d="M-6 -42 L-30 -4" stroke="#c9a35a" stroke-width="3" stroke-dasharray="4 3"/>
+      </g>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    practice = !wordList.length;
+    words = shuffle((practice ? ['castle', 'stone', 'tower', 'shield', 'knight', 'gate'] : wordList).filter(w => w.replace(/[^a-z]/gi, '').length >= 2));
+    if (!words.length) words = ['castle'];
+    st = { idx: 0, fixed: 0 };
+    root = document.createElement('div'); root.className = 'bw';
+    root.innerHTML = `
+      <div class="bw-scene"><div id="bwScene">${sceneSVG()}</div>
+        <div class="bw-meter" role="progressbar" aria-label="Catapult winding up" aria-valuemin="0" aria-valuemax="100" id="bwMeter"><i id="bwMeterBar"></i></div>
+        <div class="bw-meter-label" id="bwMeterLabel">The catapult is winding up…</div>
+      </div>
+      <div class="bw-side">
+        <div class="bw-top"><span id="bwCount"></span>
+          <div class="bw-levels" role="group" aria-label="Level">${Object.entries(LEVELS).map(([k, v]) => `<button type="button" data-level="${k}" aria-pressed="${k === level}">${v.label}</button>`).join('')}</div>
+          <span id="bwFixed"></span></div>
+        <p class="bw-status" id="bwStatus" aria-live="polite"></p>
+        <div class="bw-wall" id="bwWall"><div class="bw-row bw-deco" id="bwDecoTop"></div><div class="bw-row bw-word" id="bwWord" aria-label="The castle wall"></div><div class="bw-row bw-deco" id="bwDecoBot"></div></div>
+        <div class="bw-tray" id="bwTray" aria-label="Letter stones"></div>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="bwHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+          <button type="button" class="sq-btn primary" id="bwNext" hidden>Next wall</button>
+        </div>
+        <p class="px-hint">Drag a letter stone into a hole, or tap a stone to drop it in the glowing hole. You can type letters too.</p>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', () => {
+      level = b.dataset.level; try { localStorage.setItem('wordy-wizard-wall-level', level); } catch (e) {}
+      root.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-pressed', x === b)); newWord();
+    }));
+    q('#bwHear').addEventListener('click', () => speak(st.word));
+    if (!('speechSynthesis' in window)) q('#bwHear').hidden = true;
+    q('#bwNext').addEventListener('click', next);
+    const tray = q('#bwTray');
+    tray.addEventListener('pointerdown', onDown); tray.addEventListener('pointermove', onMove);
+    tray.addEventListener('pointerup', onUp); tray.addEventListener('pointercancel', onUp);
+    keyHandler = e => {
+      if (!root || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (/^[a-z]$/i.test(e.key) && !st.over) {
+        const r = [...q('#bwTray').children].find(x => !x.classList.contains('used') && x.dataset.l === e.key.toLowerCase());
+        if (r) { e.preventDefault(); place(r, targetGap()); }
+      } else if (e.key === 'Enter' && !q('#bwNext').hidden && !e.target.closest('button')) { e.preventDefault(); next(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    newWord();
+  }
+  function unmount() { stopTimer(); timers.forEach(clearTimeout); timers = []; if (keyHandler) document.removeEventListener('keydown', keyHandler); try { speechSynthesis.cancel(); } catch (e) {} if (root) root.remove(); root = null; drag = null; }
+  function speak(w) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(w); u.rate = .8; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
+  function status(t) { q('#bwStatus').textContent = t; }
+
+  function newWord() {
+    stopTimer();
+    const word = words[st.idx], chars = [...word.toLowerCase()];
+    const letterIdx = chars.map((c, i) => /[a-z]/.test(c) ? i : -1).filter(i => i >= 0);
+    const L = LEVELS[level];
+    let n = Math.max(L.min, Math.round(letterIdx.length * L.frac)); n = Math.min(n, Math.max(1, letterIdx.length - 1));
+    const missing = new Set(shuffle(letterIdx).slice(0, n));
+    Object.assign(st, { word, chars, missing, over: false, misses: 0, t0: 0, secs: L.secs });
+    q('#bwCount').textContent = `Wall ${st.idx + 1} of ${words.length}`;
+    q('#bwFixed').textContent = `Walls fixed: ${st.fixed}`;
+    const cols = `repeat(${chars.length}, minmax(0, min(5.2cqw, 68px)))`;
+    const wordRow = q('#bwWord'); wordRow.style.gridTemplateColumns = cols; wordRow.innerHTML = '';
+    chars.forEach((c, i) => {
+      if (missing.has(i)) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'gap'; b.dataset.i = i; b.setAttribute('aria-label', `Missing stone ${[...missing].sort((a, b) => a - b).indexOf(i) + 1}`);
+        b.addEventListener('click', () => { if (!st.over) setTarget(b); }); wordRow.appendChild(b);
+      } else { const s = document.createElement('span'); s.className = 'stone'; s.textContent = c === ' ' ? '' : c; if (c === ' ') s.style.visibility = 'hidden'; wordRow.appendChild(s); }
+    });
+    ['#bwDecoTop', '#bwDecoBot'].forEach((id, k) => {
+      const row = q(id); const m = Math.max(3, Math.ceil(chars.length * .6)); row.style.gridTemplateColumns = `repeat(${m}, minmax(0, min(${(chars.length * 5.65 / m).toFixed(2)}cqw, 120px)))`; row.innerHTML = '<span></span>'.repeat(m);
+    });
+    const need = [...missing].map(i => chars[i]);
+    const decoyCount = Math.min(8, need.length + (level === 'easy' ? 3 : 2)) - need.length;
+    const decoys = []; const pool = shuffle([...VOWELS, ...ABC]).filter(c => !need.includes(c));
+    for (const c of pool) { if (decoys.length >= decoyCount) break; if (!decoys.includes(c)) decoys.push(c); }
+    const tray = q('#bwTray'); tray.innerHTML = '';
+    shuffle([...need, ...decoys]).forEach(c => { const r = document.createElement('button'); r.type = 'button'; r.className = 'bw-rock'; r.textContent = c; r.dataset.l = c; r.setAttribute('aria-label', `Letter stone ${c}`); tray.appendChild(r); });
+    q('#bwWall').classList.remove('fixed'); q('#bwScene').classList.remove('bw-won');
+    q('#bwAmmo').setAttribute('fill', '#e5533d');
+    q('#bwNext').hidden = true;
+    setTarget(gaps()[0]);
+    status(n === 1 ? 'A stone fell out of the wall! Find the missing letter before the catapult fires.' : `${n} stones fell out of the wall! Fix them before the catapult fires.`);
+    startTimer();
+  }
+  const gaps = () => [...q('#bwWord').querySelectorAll('.gap')];
+  function targetGap() { return q('#bwWord .gap.target') || gaps()[0]; }
+  function setTarget(g) { gaps().forEach(x => x.classList.toggle('target', x === g)); }
+
+  function startTimer() {
+    st.t0 = performance.now();
+    const bar = q('#bwMeterBar'), meter = q('#bwMeter'), arm = q('#bwArm'), label = q('#bwMeterLabel');
+    tick = setInterval(() => {
+      if (!root) return stopTimer();
+      const k = Math.min(1, (performance.now() - st.t0) / (st.secs * 1000));
+      bar.style.width = (k * 100).toFixed(1) + '%'; meter.setAttribute('aria-valuenow', Math.round(k * 100));
+      arm.setAttribute('transform', `rotate(${(-k * 22).toFixed(1)})`);
+      const left = Math.ceil(st.secs * (1 - k));
+      label.textContent = left <= 10 ? `Hurry! The catapult fires in ${left}…` : 'The catapult is winding up…';
+      if (k >= 1) { stopTimer(); timeUp(); }
+    }, 250);
+  }
+  function stopTimer() { if (tick) clearInterval(tick); tick = null; }
+
+  // dragging letter stones
+  function onDown(e) {
+    const r = e.target.closest('.bw-rock'); if (!r || st.over || r.classList.contains('used')) return;
+    e.preventDefault(); r.setPointerCapture(e.pointerId);
+    drag = { r, id: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false, over: null };
+  }
+  function onMove(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.moved && Math.hypot(dx, dy) < 7) return;
+    drag.moved = true; drag.r.classList.add('dragging');
+    drag.r.style.transform = `translate(${dx}px, ${dy}px) scale(1.1)`;
+    drag.r.style.pointerEvents = 'none';
+    const el = document.elementFromPoint(e.clientX, e.clientY), g = el && el.closest && el.closest('.bw-word .gap');
+    if (drag.over && drag.over !== g) drag.over.classList.remove('over');
+    if (g) g.classList.add('over'); drag.over = g || null;
+  }
+  function onUp(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null;
+    d.r.style.pointerEvents = ''; d.r.classList.remove('dragging'); d.r.style.transform = '';
+    if (d.over) d.over.classList.remove('over');
+    if (!d.moved) return place(d.r, targetGap());
+    if (d.over) place(d.r, d.over);
+  }
+
+  function place(rock, gap) {
+    if (!gap || st.over || rock.classList.contains('used')) return;
+    const i = +gap.dataset.i, want = st.chars[i], l = rock.dataset.l;
+    if (l === want) {
+      const s = document.createElement('span'); s.className = 'placed'; s.textContent = l;
+      gap.replaceWith(s); rock.classList.add('used');
+      const left = gaps();
+      if (!left.length) return win();
+      setTarget(left.find(g => +g.dataset.i > i) || left[0]);
+      status(`Clunk! "${l}" fits. ${left.length} more stone${left.length > 1 ? 's' : ''} to go.`);
+    } else {
+      st.misses++;
+      rock.classList.remove('bounce'); void rock.offsetWidth; rock.classList.add('bounce');
+      const w = q('#bwWall'); w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake');
+      status(`"${l}" doesn't fit there. Say the word slowly and listen for the missing sound.${st.misses >= 2 ? ' Tap "Hear the word" for help!' : ''}`);
+    }
+  }
+  function flyShot(color, onHit, bounce) {
+    const rr = root.getBoundingClientRect(), sc = q('#bwScene svg').getBoundingClientRect(), wall = q('#bwWord').getBoundingClientRect();
+    const sx = sc.left - rr.left + sc.width * .04, sy = sc.top - rr.top + sc.height * .5;
+    const tx = wall.left - rr.left + wall.width * (.3 + Math.random() * .4), ty = wall.top - rr.top + wall.height * .3;
+    const shot = document.createElement('div'); shot.className = 'bw-shot'; shot.style.background = `radial-gradient(circle at 35% 30%, #fff8, ${color} 45%)`; shot.style.border = '2px solid #2a1a10';
+    root.appendChild(shot);
+    const mx = (sx + tx) / 2, my = Math.min(sy, ty) - rr.height * .35;
+    const kf = []; for (let k = 0; k <= 12; k++) { const u = k / 12, x = (1 - u) * (1 - u) * sx + 2 * (1 - u) * u * mx + u * u * tx, y = (1 - u) * (1 - u) * sy + 2 * (1 - u) * u * my + u * u * ty; kf.push({ transform: `translate(${x}px,${y}px) rotate(${u * 540}deg)` }); }
+    q('#bwAmmo').setAttribute('fill', 'none');
+    q('#bwArm').setAttribute('transform', 'rotate(80)');
+    shot.animate(kf, { duration: 900, easing: 'linear', fill: 'forwards' }).onfinish = () => {
+      if (!root) return;
+      onHit(tx, ty);
+      if (bounce) shot.animate([{ transform: `translate(${tx}px,${ty}px)` }, { transform: `translate(${tx - 60}px,${ty - 50}px) rotate(200deg)` }, { transform: `translate(${tx - 110}px,${ty + 140}px) rotate(400deg)`, opacity: 0 }], { duration: 800, easing: 'ease-in', fill: 'forwards' }).onfinish = () => shot.remove();
+      else { shot.animate([{ transform: `translate(${tx}px,${ty}px) scale(1)` }, { transform: `translate(${tx}px,${ty}px) scale(2.4,1.2)`, opacity: .9, offset: .2 }, { transform: `translate(${tx}px,${ty + 30}px) scale(2.2,1.4)`, opacity: 0 }], { duration: 1400, fill: 'forwards' }).onfinish = () => shot.remove(); }
+    };
+  }
+  function bonk(x, y, text) {
+    const b = document.createElement('div'); b.className = 'bw-bonk'; b.textContent = text; b.style.left = x + 'px'; b.style.top = (y - 30) + 'px'; root.appendChild(b);
+    b.animate([{ transform: 'translate(-50%,0) scale(.5)', opacity: 0 }, { transform: 'translate(-50%,-10px) scale(1.2)', opacity: 1, offset: .3 }, { transform: 'translate(-50%,-30px) scale(1)', opacity: 0 }], { duration: 1300, fill: 'forwards' }).onfinish = () => b.remove();
+  }
+  function win() {
+    st.over = true; stopTimer(); st.fixed++;
+    q('#bwFixed').textContent = `Walls fixed: ${st.fixed}`;
+    q('#bwWall').classList.add('fixed'); q('#bwScene').classList.add('bw-won');
+    q('#bwMeterLabel').textContent = 'The wall is strong again!';
+    status(`You fixed the wall! The word is "${st.word}". Here comes the catapult… BONK!`);
+    speak(st.word);
+    q('#bwAmmo').setAttribute('fill', '#8f8aa3');
+    later(() => flyShot('#8f8aa3', (x, y) => bonk(x, y, 'BONK!'), true), 700);
+    endRound();
+  }
+  function timeUp() {
+    if (st.over) return;
+    st.over = true;
+    status(`Splat! The catapult flung a tomato. No harm done! The word is "${st.word}". Here are the missing stones.`);
+    q('#bwMeterLabel').textContent = 'Splat!';
+    flyShot('#e5533d', (x, y) => {
+      bonk(x, y, 'SPLAT!');
+      gaps().forEach(g => { const s = document.createElement('span'); s.className = 'missed'; s.textContent = st.chars[+g.dataset.i]; g.replaceWith(s); });
+      speak(st.word);
+    }, false);
+    endRound();
+  }
+  function endRound() {
+    root.querySelectorAll('.bw-rock').forEach(r => r.disabled = true);
+    const last = st.idx >= words.length - 1, nb = q('#bwNext');
+    nb.textContent = last ? 'Build them all again' : 'Next wall'; nb.hidden = false;
+    later(() => nb.focus(), 1800);
+  }
+  function next() {
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.fixed = 0; } else st.idx++;
+    newWord();
+  }
+  return { mount, unmount };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
