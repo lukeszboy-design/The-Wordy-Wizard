@@ -219,6 +219,58 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .px-jars{gap:8px}
 }
 @media (prefers-reduced-motion: reduce){ .px-flame,.px-sbub,.px-steam,.px-jar .bub,.px-jar.hop{animation:none} }
+/* --- Dragon's Hoard (word search) --- */
+.dh{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,56fr) minmax(0,44fr);gap:2.2cqw;color:var(--parch-ink)}
+.dh-boardwrap{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.dh-board{position:relative;height:100%;max-width:100%;aspect-ratio:1/1;box-sizing:border-box;display:grid;gap:.3cqw;padding:1cqw;border-radius:1.4cqw;border:3px solid var(--ink);background:radial-gradient(ellipse at 50% 35%,#5a3a22,#2a1a10 80%);box-shadow:0 .5cqw 0 rgba(59,36,18,.25), inset 0 0 2cqw rgba(0,0,0,.5);touch-action:none;user-select:none;-webkit-user-select:none}
+.dh-coin{position:relative;display:grid;place-items:center;aspect-ratio:1/1;min-width:0;border-radius:50%;border:2px solid #7a5210;cursor:pointer;padding:0;
+  background:radial-gradient(circle at 34% 30%,#fff6c2 0 7%,#f7d154 28%,#e0ad2a 62%,#a8740f 100%);
+  box-shadow:inset 0 0 0 .32cqw rgba(255,240,180,.5), inset 0 -.25cqw .3cqw rgba(120,70,0,.35), 0 .2cqw 0 #5e3c0c;
+  font:700 max(13px,1.85cqw)/1 var(--font-read);color:#6b4510;text-shadow:0 1px 0 rgba(255,250,220,.75);text-transform:lowercase;transform:rotate(var(--r,0deg));transition:transform .15s, filter .15s, box-shadow .2s}
+.dh-coin:focus-visible{outline:3px solid #fff;outline-offset:1px}
+.dh-coin.sel{filter:brightness(1.18) saturate(1.1);transform:rotate(var(--r,0deg)) scale(1.1);box-shadow:inset 0 0 0 .32cqw rgba(255,255,255,.7), 0 0 0 .25cqw #fff, 0 0 1cqw .3cqw rgba(255,240,170,.8)}
+.dh-coin.anchor{box-shadow:0 0 0 .3cqw #fff, 0 0 1.2cqw .4cqw rgba(255,255,255,.7)}
+.dh-coin.found{filter:brightness(1.12);color:#3b2000;box-shadow:inset 0 0 0 .32cqw rgba(255,255,255,.6), 0 0 0 .22cqw var(--glow), 0 0 1.2cqw .35cqw var(--glow)}
+.dh-coin.nope{animation:dhnope .35s ease-in-out}
+@keyframes dhnope{25%{transform:rotate(var(--r,0deg)) translateX(-3px)}75%{transform:rotate(var(--r,0deg)) translateX(3px)}}
+.dh-coin.hint{animation:dhhint .6s ease-in-out 3}
+@keyframes dhhint{50%{transform:rotate(var(--r,0deg)) scale(1.25);filter:brightness(1.4)}}
+.dh-side{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1cqw}
+.dh-scene svg{display:block;width:100%;height:auto;max-height:17cqw;border-radius:1.2cqw;border:3px solid var(--ink);background:#1d1426}
+.dh-top{display:flex;justify-content:space-between;gap:1cqw;font:700 max(12px,1.2cqw) var(--font-read);color:#6b4a26;font-variant-numeric:tabular-nums}
+.dh-status{margin:0;min-height:2.8em;font:700 max(13px,1.35cqw)/1.4 var(--font-read);text-align:center;text-wrap:balance}
+.dh-words{display:flex;flex-wrap:wrap;justify-content:center;gap:.6cqw;margin:0;padding:0;list-style:none}
+.dh-word{display:flex;align-items:center;gap:.5cqw;padding:.45cqw 1.1cqw .45cqw .6cqw;border-radius:999px;border:2px solid #3b2412;background:#fffaf0;font:700 max(14px,1.55cqw) var(--font-read);color:#3b2412;cursor:pointer}
+.dh-word i{width:1.3cqw;height:1.3cqw;min-width:12px;min-height:12px;border-radius:50%;background:#d9cfb6;border:2px solid #8a7d6a}
+.dh-word.done{background:#fff1b8;border-color:#a3401f;text-decoration:line-through;text-decoration-thickness:2px}
+.dh-word.done i{background:radial-gradient(circle at 35% 30%,#fff6c2,#f2c35b 40%,#a8740f);border-color:#7a5210}
+.dh-word:focus-visible{outline:3px solid #a3401f;outline-offset:2px}
+.dh-baby{position:absolute;left:0;top:0;width:6cqw;min-width:54px;pointer-events:none;z-index:6}
+.dh-baby .wing{transform-box:fill-box;transform-origin:50% 100%;animation:dhflap .18s ease-in-out infinite alternate}
+@keyframes dhflap{from{transform:scaleY(1)}to{transform:scaleY(.35)}}
+.dh-carry{position:absolute;left:0;top:0;z-index:5;pointer-events:none;padding:.3cqw 1cqw;border-radius:999px;background:linear-gradient(#fff3b0,#f2c35b);border:2px solid #7a5210;font:700 max(13px,1.5cqw) var(--font-read);color:#4a2c00;box-shadow:0 0 1cqw .3cqw rgba(255,220,120,.8);white-space:nowrap}
+#dhHead{transform-box:fill-box;transform-origin:90% 80%;transition:transform 1s cubic-bezier(.3,1.4,.5,1)}
+.dh-awake #dhHead{transform:rotate(-16deg) translate(-4px,-22px)}
+#dhEyesOpen{opacity:0;transition:opacity .3s .5s}.dh-awake #dhEyesOpen{opacity:1}
+#dhEyesShut{transition:opacity .3s .5s}.dh-awake #dhEyesShut{opacity:0}
+.dh-zzz text{animation:dhzzz 3s ease-in-out infinite;opacity:0}
+.dh-zzz text:nth-child(2){animation-delay:1s}.dh-zzz text:nth-child(3){animation-delay:2s}
+@keyframes dhzzz{0%{opacity:0;transform:translate(0,0)}30%{opacity:.9}100%{opacity:0;transform:translate(14px,-26px)}}
+.dh-awake .dh-zzz{display:none}
+#dhBreath{transform-box:fill-box;transform-origin:50% 100%;animation:dhbreath 3.2s ease-in-out infinite}
+@keyframes dhbreath{50%{transform:scale(1.025,1.05)}}
+#dhChest{opacity:0;transform:translateY(20px) scale(.6);transform-box:fill-box;transform-origin:50% 100%;transition:opacity .4s 1s, transform .6s 1s cubic-bezier(.3,1.5,.5,1)}
+.dh-awake #dhChest{opacity:1;transform:none}
+#dhLid{transform-box:fill-box;transform-origin:0% 100%;transition:transform .7s 1.9s cubic-bezier(.3,1.4,.5,1)}
+.dh-awake #dhLid{transform:translate(-8px,-24px) rotate(-16deg)}
+#dhChestGlow{opacity:0;transition:opacity .6s 2.1s}.dh-awake #dhChestGlow{opacity:1}
+@media (max-width:760px){
+  .dh{position:static;display:flex;flex-direction:column-reverse;gap:12px;padding:8px 16px 20px}
+  .dh-board{height:auto;width:100%;padding:8px;gap:3px}
+  .dh-coin{font-size:clamp(14px,4.4vw,20px)}
+  .dh-scene svg{max-height:none}
+}
+@media (prefers-reduced-motion: reduce){ .dh-zzz text,#dhBreath,.dh-baby .wing{animation:none} }
 </style>
 
 </head>
@@ -344,7 +396,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ================= Speech & menu logic (works with or without WebGL) ================= */
 const GAMES = {
-  wordsearch: { name: 'Word Search', desc: 'Find the hidden words', say: "Word Search! Your words are hiding in a grid of letters. This spell is still brewing in my cauldron. Check back soon!" },
+  wordsearch: { name: "Dragon's Hoard", desc: 'Find words in the gold', say: "Word Search! Your words are hiding in a grid of letters. This spell is still brewing in my cauldron. Check back soon!" },
   hangman:    { name: 'Save the Squire', desc: 'Guess letters, build the ladder', say: "Hangman! Guess the letters one at a time before the picture is done. This spell is still brewing. Check back soon!" },
   scramble:   { name: 'Potion Mix-Up', desc: 'Put the jars in order to brew', say: "Word Scramble! I've jumbled up your letters. Can you put them back in order? This spell is still brewing!" },
   missing:    { name: 'Missing Letter', desc: 'Fill in the blank', say: "Missing Letter! A sneaky imp stole a letter from each word. This spell is still brewing. Check back soon!" },
@@ -799,28 +851,38 @@ const WIN = { y: 1.75, hw: .95, hs: 1.55 };
 }
 
 /* ----- Title banner ----- */
-const bannerTex = canvasTex(2048, 440, () => {});
+const bannerTex = canvasTex(2560, 560, () => {});
 function drawBanner() {
-  const c = bannerTex.__canvas, g = c.getContext('2d'), w = c.width, h = c.height;
-  g.clearRect(0, 0, w, h);
-  const ribbon = (x0, x1, y0, y1, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2, y0 - 50, x1, y0); g.lineTo(x1, y1); g.quadraticCurveTo((x0 + x1) / 2, y1 - 50, x0, y1); g.closePath(); g.fill(); g.lineWidth = 10; g.strokeStyle = '#1b1424'; g.stroke(); };
-  g.lineJoin = 'round';
-  g.fillStyle = '#4a1622'; g.strokeStyle = '#1b1424'; g.lineWidth = 10;
-  [[200, 1], [1848, -1]].forEach(([x, s]) => { g.beginPath(); g.moveTo(x, 130); g.lineTo(x - 170 * s, 140); g.lineTo(x - 110 * s, 245); g.lineTo(x - 180 * s, 360); g.lineTo(x, 340); g.closePath(); g.fill(); g.stroke(); });
-  ribbon(200, 1848, 100, 340, '#7b2d3f');
-  g.strokeStyle = 'rgba(242,195,91,.7)'; g.lineWidth = 6;
-  g.beginPath(); g.moveTo(240, 130); g.quadraticCurveTo(1024, 80, 1808, 130); g.stroke();
-  g.beginPath(); g.moveTo(240, 312); g.quadraticCurveTo(1024, 262, 1808, 312); g.stroke();
-  g.font = '170px "Uncial Antiqua", Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.lineWidth = 16; g.strokeStyle = '#2a0f18'; g.strokeText('The Wordy Wizard', 1024, 212);
-  g.shadowColor = 'rgba(255,200,90,.8)'; g.shadowBlur = 30; g.fillStyle = '#f5c75e'; g.fillText('The Wordy Wizard', 1024, 212); g.shadowBlur = 0;
+  const c = bannerTex.__canvas, g = c.getContext('2d'), w = c.width;
+  const X0 = 250, X1 = 2310, Y0 = 150, Y1 = 430, SAG = 110, CX = (X0 + X1) / 2, HALF = (X1 - X0) / 2;
+  // the ribbon arches upward: an edge at height y sits SAG/2 higher in the middle than at the ends
+  const lift = x => { const u = (x - CX) / HALF; return -(SAG / 2) * (1 - u * u); };
+  const slope = x => (SAG / 2) * 2 * ((x - CX) / HALF) / HALF;
+  g.clearRect(0, 0, w, c.height); g.lineJoin = 'round';
+  g.fillStyle = '#4a1622'; g.strokeStyle = '#1b1424'; g.lineWidth = 12;
+  [[X0, 1], [X1, -1]].forEach(([x, s]) => { g.beginPath(); g.moveTo(x, Y0 + 30); g.lineTo(x - 210 * s, Y0 + 44); g.lineTo(x - 130 * s, (Y0 + Y1) / 2 + 20); g.lineTo(x - 220 * s, Y1 + 40); g.lineTo(x, Y1 + 10); g.closePath(); g.fill(); g.stroke(); });
+  g.fillStyle = '#7b2d3f'; g.beginPath(); g.moveTo(X0, Y0); g.quadraticCurveTo(CX, Y0 - SAG, X1, Y0); g.lineTo(X1, Y1); g.quadraticCurveTo(CX, Y1 - SAG, X0, Y1); g.closePath(); g.fill(); g.stroke();
+  g.strokeStyle = 'rgba(242,195,91,.75)'; g.lineWidth = 7;
+  [Y0 + 34, Y1 - 32].forEach(y => { g.beginPath(); g.moveTo(X0 + 40, y); g.quadraticCurveTo(CX, y - SAG, X1 - 40, y); g.stroke(); });
+  // lettering set along the same arch, sized to fit inside the ribbon
+  const text = 'The Wordy Wizard';
+  let fs = 190; g.font = `${fs}px "Uncial Antiqua", Georgia, serif`;
+  while (g.measureText(text).width > (X1 - X0) - 260 && fs > 90) { fs -= 4; g.font = `${fs}px "Uncial Antiqua", Georgia, serif`; }
+  const total = g.measureText(text).width, midY = (Y0 + Y1) / 2 + 6;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const glyphs = []; let x = CX - total / 2;
+  for (const ch of text) { const cw = g.measureText(ch).width; glyphs.push([ch, x + cw / 2]); x += cw; }
+  const drawGlyphs = (fn) => glyphs.forEach(([ch, gx]) => { g.save(); g.translate(gx, midY + lift(gx)); g.rotate(Math.atan(slope(gx))); fn(ch); g.restore(); });
+  g.lineWidth = 18; g.strokeStyle = '#2a0f18'; drawGlyphs(ch => g.strokeText(ch, 0, 0));
+  g.shadowColor = 'rgba(255,200,90,.8)'; g.shadowBlur = 30; g.fillStyle = '#f5c75e'; drawGlyphs(ch => g.fillText(ch, 0, 0)); g.shadowBlur = 0;
   bannerTex.needsUpdate = true;
 }
 {
-  const bg = new THREE.PlaneGeometry(4.8, 1.03, 40, 1); const p = bg.attributes.position;
-  for (let i = 0; i < p.count; i++) p.setZ(i, Math.cos(p.getX(i) / 2.4 * Math.PI / 2) * .12);
+  const BW = 5.9, BH = BW * 560 / 2560;
+  const bg = new THREE.PlaneGeometry(BW, BH, 48, 1); const p = bg.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setZ(i, Math.cos(p.getX(i) / (BW / 2) * Math.PI / 2) * .14);
   bg.computeVertexNormals();
-  mesh(bg, new THREE.MeshStandardMaterial({ map: bannerTex, transparent: true, emissive: new THREE.Color(0xffffff), emissiveMap: bannerTex, emissiveIntensity: .45, roughness: .8, side: THREE.DoubleSide, alphaTest: .05 }), { pos: [0, 4.95, -3.9], cast: false });
+  mesh(bg, new THREE.MeshStandardMaterial({ map: bannerTex, transparent: true, emissive: new THREE.Color(0xffffff), emissiveMap: bannerTex, emissiveIntensity: .45, roughness: .8, side: THREE.DoubleSide, alphaTest: .05 }), { pos: [0, 4.97, -3.9], cast: false });
 }
 
 /* ----- Cobwebs ----- */
@@ -884,6 +946,7 @@ function buildLantern(x, y, shadow) {
 buildLantern(-4.3, 3.25, false);
 buildLantern(-1.95, 3.25, true);
 buildLantern(1.95, 3.25, true);
+buildLantern(4.3, 3.25, false);
 
 /* ================= Other lights ================= */
 scene.add(new THREE.HemisphereLight(C('#5a4f8e'), C('#140c18'), .2));
@@ -1049,9 +1112,10 @@ const offB = document.createElement('canvas'); offB.width = BOOK.cw; offB.height
 
 const ICONS = {
   wordsearch(g) {
-    g.strokeStyle = '#c0392b'; g.lineWidth = 2; rr(g, 4, 5, 34, 12, 6); g.stroke();
-    g.fillStyle = '#3b2412'; g.font = '700 9.5px Andika, sans-serif'; g.textAlign = 'center';
-    g.fillText('C A T', 21, 14.5); g.fillText('O X R', 21, 26.5); g.fillText('W E D', 21, 38);
+    const coin = (x, y, l, hi) => { const gr = g.createRadialGradient(x - 2, y - 2, 1, x, y, 7); gr.addColorStop(0, '#fff6c2'); gr.addColorStop(.45, '#f2c35b'); gr.addColorStop(1, '#a8740f');
+      g.fillStyle = gr; g.strokeStyle = hi ? '#c0392b' : '#7a5210'; g.lineWidth = hi ? 2 : 1.3; g.beginPath(); g.arc(x, y, 6.2, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#5e3c0c'; g.font = '700 7.5px Andika, sans-serif'; g.textAlign = 'center'; g.fillText(l, x, y + 2.7); };
+    [['c', 9, 30], ['o', 21, 30, 1], ['g', 33, 30], ['x', 15, 19], ['g', 27, 19, 1], ['b', 21, 8, 1]].forEach(([l, x, y, h]) => coin(x, y, l, h));
   },
   hangman(g) {
     g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 2;
@@ -2079,7 +2143,310 @@ const PotionGame = (() => {
   }
   return { mount, unmount };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame };
+/* ================= Game: Dragon's Hoard (word search) ================= */
+const DragonGame = (() => {
+  const GLOWS = ['#ff6fb5', '#4fd1ff', '#5ef08a', '#c77dff', '#ffd166', '#ff8a5b', '#7af2e6', '#ff5f5f'];
+  const PER_ROUND = 6, NS = 'http://www.w3.org/2000/svg';
+  const DIRS = [[0, 1], [1, 0], [1, 1]];   // across, down, diagonal down-right (no backwards words for young readers)
+  let root, st, rounds, practice, sel = null, timers = [];
+  const q = s => root.querySelector(s);
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+
+  function sceneSVG() {
+    return `<svg viewBox="0 0 420 200" role="img" aria-label="A big dragon sleeps on a pile of gold coins">
+      <defs><radialGradient id="dhCave" cx=".5" cy=".7" r=".8"><stop offset="0" stop-color="#4a3050"/><stop offset="1" stop-color="#140d1a"/></radialGradient>
+        <radialGradient id="dhShine" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2a8" stop-opacity=".9"/><stop offset="1" stop-color="#fff2a8" stop-opacity="0"/></radialGradient></defs>
+      <rect width="420" height="200" fill="url(#dhCave)"/>
+      <path d="M0 0 H420 V40 Q380 20 350 46 Q320 18 280 40 Q240 12 200 36 Q160 10 120 38 Q80 16 40 42 Q20 30 0 44 Z" fill="#0d0811"/>
+      <path d="M40 200 Q90 120 210 118 Q330 120 380 200 Z" fill="#c9922a"/>
+      <g fill="#f2c35b" stroke="#8a5a10" stroke-width="1.5">
+        <ellipse cx="90" cy="186" rx="9" ry="4"/><ellipse cx="120" cy="170" rx="9" ry="4"/><ellipse cx="160" cy="160" rx="9" ry="4"/><ellipse cx="300" cy="166" rx="9" ry="4"/><ellipse cx="335" cy="182" rx="9" ry="4"/><ellipse cx="260" cy="150" rx="9" ry="4"/><ellipse cx="200" cy="146" rx="9" ry="4"/><ellipse cx="230" cy="176" rx="9" ry="4"/>
+      </g>
+      <g id="dhHoard"></g>
+      <g id="dhDragon">
+        <path d="M330 150 Q392 150 388 118 Q384 96 360 104 Q376 112 368 126 Q360 138 330 134 Z" fill="#2f7d55" stroke="#123a26" stroke-width="2.5"/>
+        <g id="dhBreath">
+          <path d="M150 150 Q140 92 230 88 Q320 86 334 140 Q300 160 230 158 Q170 160 150 150 Z" fill="#3f9a6a" stroke="#123a26" stroke-width="3"/>
+          <path d="M190 104 Q220 70 262 92 Q236 92 226 108 Z" fill="#2f7d55" stroke="#123a26" stroke-width="2.5"/>
+          <path d="M180 140 Q230 128 300 140" stroke="#bfe6a8" stroke-width="10" fill="none" stroke-linecap="round" opacity=".8"/>
+          <g fill="#2a6a48"><path d="M210 90 l6 -10 l6 10 Z"/><path d="M240 88 l6 -10 l6 10 Z"/><path d="M270 92 l6 -10 l6 10 Z"/></g>
+        </g>
+        <g id="dhHead">
+          <path d="M96 150 Q84 120 112 112 Q146 104 168 124 Q178 140 166 152 Q130 160 96 150 Z" fill="#46a876" stroke="#123a26" stroke-width="3"/>
+          <path d="M108 112 l-6 -16 l14 10 M132 108 l2 -18 l8 16" fill="#f2e6c2" stroke="#123a26" stroke-width="2"/>
+          <circle cx="102" cy="138" r="2.4" fill="#123a26"/><circle cx="110" cy="141" r="2.4" fill="#123a26"/>
+          <g id="dhEyesShut"><path d="M126 126 q8 6 16 0" stroke="#123a26" stroke-width="3" fill="none" stroke-linecap="round"/></g>
+          <g id="dhEyesOpen"><ellipse cx="134" cy="126" rx="8" ry="9" fill="#fff6c8" stroke="#123a26" stroke-width="2"/><ellipse cx="136" cy="127" rx="3" ry="6" fill="#123a26"/><circle cx="137.5" cy="123" r="1.5" fill="#fff"/></g>
+          <path d="M106 150 Q130 156 150 148" stroke="#123a26" stroke-width="2" fill="none"/>
+        </g>
+        <g class="dh-zzz" fill="#e8e0ff" font-family="Andika, sans-serif" font-weight="700"><text x="90" y="104" font-size="16">z</text><text x="100" y="92" font-size="20">z</text><text x="112" y="78" font-size="24">Z</text></g>
+      </g>
+      <g id="dhChest">
+        <ellipse id="dhChestGlow" cx="226" cy="168" rx="70" ry="40" fill="url(#dhShine)"/>
+        <rect x="196" y="160" width="60" height="34" rx="4" fill="#8a5a2b" stroke="#2a1a10" stroke-width="2.5"/>
+        <path d="M196 172 H256 M214 160 V194 M238 160 V194" stroke="#f2c35b" stroke-width="4"/>
+        <g id="dhLid"><path d="M196 160 Q196 140 226 140 Q256 140 256 160 Z" fill="#9b6a35" stroke="#2a1a10" stroke-width="2.5"/><path d="M214 160 V142 M238 160 V142" stroke="#f2c35b" stroke-width="4"/></g>
+        <rect x="221" y="164" width="10" height="10" rx="2" fill="#f2c35b" stroke="#2a1a10" stroke-width="1.5"/>
+      </g>
+    </svg>`;
+  }
+  function babySVG() {
+    return `<svg viewBox="0 0 70 56" aria-hidden="true">
+      <path class="wing" d="M28 26 Q20 2 4 8 Q14 14 12 24 Z" fill="#c77dff" stroke="#3a1a52" stroke-width="2"/>
+      <path class="wing" d="M38 26 Q46 0 62 6 Q52 12 54 24 Z" fill="#c77dff" stroke="#3a1a52" stroke-width="2"/>
+      <path d="M22 34 Q10 40 4 34 Q10 46 24 42 Z" fill="#9b4fd6" stroke="#3a1a52" stroke-width="2"/>
+      <ellipse cx="34" cy="34" rx="14" ry="11" fill="#9b4fd6" stroke="#3a1a52" stroke-width="2.5"/>
+      <ellipse cx="34" cy="38" rx="8" ry="6" fill="#e2c6ff"/>
+      <circle cx="48" cy="24" r="10" fill="#a95fe0" stroke="#3a1a52" stroke-width="2.5"/>
+      <path d="M44 15 l-2 -7 l6 5 M52 15 l3 -7 l1 8" fill="#f2e6c2" stroke="#3a1a52" stroke-width="1.5"/>
+      <circle cx="51" cy="22" r="2.6" fill="#1d0f2a"/><circle cx="52" cy="21" r=".9" fill="#fff"/>
+      <path d="M50 29 q4 2 7 -1" stroke="#3a1a52" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M28 44 v6 M40 44 v6" stroke="#3a1a52" stroke-width="3" stroke-linecap="round"/>
+    </svg>`;
+  }
+
+  function makePuzzle(list) {
+    const words = list.map(w => w.toLowerCase().replace(/[^a-z]/g, '')).filter(w => w.length >= 2 && w.length <= 12);
+    let n = Math.min(12, Math.max(8, Math.max(...words.map(w => w.length)) + 2));
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const g = Array.from({ length: n }, () => Array(n).fill('')), placed = [];
+      let ok = true;
+      for (const w of [...words].sort((a, b) => b.length - a.length)) {
+        let done = false;
+        for (let t = 0; t < 200 && !done; t++) {
+          const [dr, dc] = DIRS[(Math.random() * DIRS.length) | 0];
+          const r0 = (Math.random() * (n - dr * (w.length - 1))) | 0, c0 = (Math.random() * (n - dc * (w.length - 1))) | 0;
+          let fits = true;
+          for (let k = 0; k < w.length; k++) { const ch = g[r0 + dr * k][c0 + dc * k]; if (ch && ch !== w[k]) { fits = false; break; } }
+          if (!fits) continue;
+          const cells = [];
+          for (let k = 0; k < w.length; k++) { g[r0 + dr * k][c0 + dc * k] = w[k]; cells.push((r0 + dr * k) * n + c0 + dc * k); }
+          placed.push({ word: w, cells }); done = true;
+        }
+        if (!done) { ok = false; break; }
+      }
+      if (ok) {
+        const pool = 'aaabcdeeeefghiiijklmnooopqrssttuuvwy';
+        for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (!g[r][c]) g[r][c] = pool[(Math.random() * pool.length) | 0];
+        return { n, grid: g.flat(), placed };
+      }
+      if (attempt % 8 === 7 && n < 12) n++;
+    }
+    return null;
+  }
+
+  function mount(container, wordList) {
+    practice = !wordList.length;
+    const base = shuffle(practice ? ['gold', 'dragon', 'coin', 'cave', 'wing', 'egg'] : wordList.filter(w => w.replace(/[^a-z]/gi, '').length <= 12));
+    rounds = []; for (let i = 0; i < base.length; i += PER_ROUND) rounds.push(base.slice(i, i + PER_ROUND));
+    if (!rounds.length) rounds = [['gold', 'dragon', 'coin']];
+    st = { round: 0 };
+    root = document.createElement('div'); root.className = 'dh';
+    root.innerHTML = `
+      <div class="dh-boardwrap"><div class="dh-board" id="dhBoard" role="grid" aria-label="Letter coins"></div></div>
+      <div class="dh-side">
+        <div class="dh-scene" id="dhScene">${sceneSVG()}</div>
+        <div class="dh-top"><span id="dhRound"></span><span id="dhFound"></span></div>
+        <p class="dh-status" id="dhStatus" aria-live="polite"></p>
+        <ul class="dh-words" id="dhWords" aria-label="Words to find"></ul>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="dhHint">Hint</button>
+          <button type="button" class="sq-btn primary" id="dhNext" hidden>Next hoard</button>
+        </div>
+        <p class="px-hint">Drag across the coins to find a word, or tap its first and last letter. Tap a word to hear it.</p>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    const board = q('#dhBoard');
+    board.addEventListener('pointerdown', onDown); board.addEventListener('pointermove', onMove);
+    board.addEventListener('pointerup', onUp); board.addEventListener('pointercancel', () => { clearSel(); sel = null; });
+    board.addEventListener('keydown', onKey);
+    q('#dhHint').addEventListener('click', hint);
+    q('#dhNext').addEventListener('click', nextRound);
+    newRound();
+  }
+  function unmount() { timers.forEach(clearTimeout); timers = []; try { speechSynthesis.cancel(); } catch (e) {} if (root) root.remove(); root = null; sel = null; }
+  function speak(w) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(w); u.rate = .8; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
+  function status(t) { q('#dhStatus').textContent = t; }
+
+  function newRound() {
+    const pz = makePuzzle(rounds[st.round]);
+    Object.assign(st, pz, { found: new Set(), done: false, anchor: null });
+    const board = q('#dhBoard'); board.innerHTML = ''; board.style.gridTemplateColumns = `repeat(${pz.n}, minmax(0,1fr))`;
+    pz.grid.forEach((ch, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'dh-coin'; b.textContent = ch; b.dataset.i = i; b.tabIndex = i === 0 ? 0 : -1;
+      b.style.setProperty('--r', `${((Math.random() - .5) * 14).toFixed(1)}deg`);
+      b.setAttribute('aria-label', `${ch}, row ${((i / pz.n) | 0) + 1}, column ${i % pz.n + 1}`);
+      board.appendChild(b);
+    });
+    const ul = q('#dhWords'); ul.innerHTML = '';
+    pz.placed.forEach((p, k) => {
+      const li = document.createElement('li'); const b = document.createElement('button'); b.type = 'button'; b.className = 'dh-word'; b.dataset.w = p.word;
+      b.innerHTML = `<i></i>${p.word}`; b.addEventListener('click', () => speak(p.word)); li.appendChild(b); ul.appendChild(li);
+      p.glow = GLOWS[k % GLOWS.length];
+    });
+    q('#dhScene').classList.remove('dh-awake'); q('#dhHoard').innerHTML = '';
+    q('#dhNext').hidden = true; q('#dhHint').hidden = false;
+    counts();
+    status(`Find the ${pz.placed.length} words hidden in the dragon's gold! Shh, don't wake the big dragon.`);
+  }
+  function counts() {
+    q('#dhRound').textContent = rounds.length > 1 ? `Hoard ${st.round + 1} of ${rounds.length}` : 'Dragon\'s hoard';
+    q('#dhFound').textContent = `Words found: ${st.found.size} of ${st.placed.length}`;
+  }
+  const coins = () => [...q('#dhBoard').children];
+  function cellAt(x, y) {
+    const r = q('#dhBoard').getBoundingClientRect(), pad = parseFloat(getComputedStyle(q('#dhBoard')).paddingLeft) || 0;
+    const w = (r.width - pad * 2) / st.n, h = (r.height - pad * 2) / st.n;
+    const c = Math.floor((x - r.left - pad) / w), rr = Math.floor((y - r.top - pad) / h);
+    if (c < 0 || rr < 0 || c >= st.n || rr >= st.n) return -1;
+    return rr * st.n + c;
+  }
+  function line(a, b) {
+    const n = st.n, r0 = (a / n) | 0, c0 = a % n; let r1 = (b / n) | 0, c1 = b % n;
+    let dr = r1 - r0, dc = c1 - c0;
+    if (dr && dc && Math.abs(dr) !== Math.abs(dc)) {           // snap to the nearest straight line
+      if (Math.abs(dr) > 2 * Math.abs(dc)) dc = 0; else if (Math.abs(dc) > 2 * Math.abs(dr)) dr = 0;
+      else { const m = Math.max(Math.abs(dr), Math.abs(dc)); dr = Math.sign(dr) * m; dc = Math.sign(dc) * m; }
+    }
+    const len = Math.max(Math.abs(dr), Math.abs(dc)), sr = Math.sign(dr), sc = Math.sign(dc), out = [];
+    for (let k = 0; k <= len; k++) { const r = r0 + sr * k, c = c0 + sc * k; if (r < 0 || c < 0 || r >= n || c >= n) break; out.push(r * n + c); }
+    return out;
+  }
+  function clearSel() { coins().forEach(c => c.classList.remove('sel')); }
+  function showSel(cells) { clearSel(); const cs = coins(); cells.forEach(i => cs[i].classList.add('sel')); }
+
+  function onDown(e) {
+    if (st.done) return;
+    const i = cellAt(e.clientX, e.clientY); if (i < 0) return;
+    e.preventDefault(); q('#dhBoard').setPointerCapture(e.pointerId);
+    sel = { start: i, end: i, id: e.pointerId, moved: false };
+    showSel([i]);
+  }
+  function onMove(e) {
+    if (!sel || e.pointerId !== sel.id) return;
+    const i = cellAt(e.clientX, e.clientY); if (i < 0 || i === sel.end) return;
+    sel.end = i; sel.moved = true; showSel(line(sel.start, i));
+  }
+  function onUp(e) {
+    if (!sel || e.pointerId !== sel.id) return;
+    const s = sel; sel = null;
+    if (!s.moved || s.start === s.end) {            // tap: first letter, then last letter
+      const cs = coins();
+      if (st.anchor === null) { st.anchor = s.start; clearSel(); cs[s.start].classList.add('anchor'); status('Now tap the last letter of the word.'); return; }
+      const a = st.anchor; st.anchor = null; cs[a].classList.remove('anchor');
+      if (a === s.start) { clearSel(); return; }
+      return check(line(a, s.start));
+    }
+    check(line(s.start, s.end));
+  }
+  function onKey(e) {
+    const c = e.target.closest('.dh-coin'); if (!c) return;
+    const i = +c.dataset.i, n = st.n; let j = i;
+    if (e.key === 'ArrowRight') j = Math.min(n * n - 1, i + 1); else if (e.key === 'ArrowLeft') j = Math.max(0, i - 1);
+    else if (e.key === 'ArrowDown') j = Math.min(n * n - 1, i + n); else if (e.key === 'ArrowUp') j = Math.max(0, i - n);
+    else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); e.stopPropagation(); if (st.done) return;
+      const cs = coins();
+      if (st.anchor === null) { st.anchor = i; c.classList.add('anchor'); status('Now move to the last letter and press Enter.'); }
+      else { const a = st.anchor; st.anchor = null; cs[a].classList.remove('anchor'); if (a !== i) check(line(a, i)); }
+      return;
+    } else return;
+    e.preventDefault(); e.stopPropagation();
+    const cs = coins(); c.tabIndex = -1; cs[j].tabIndex = 0; cs[j].focus();
+  }
+
+  function check(cells) {
+    const cs = coins(), str = cells.map(i => st.grid[i]).join(''), rev = [...str].reverse().join('');
+    const hit = st.placed.find(p => !st.found.has(p.word) && (p.word === str || p.word === rev) &&
+      (p.cells.join() === cells.join() || p.cells.join() === [...cells].reverse().join()));
+    clearSel();
+    if (!hit) {
+      if (cells.length > 1) { cells.forEach(i => { cs[i].classList.remove('nope'); void cs[i].offsetWidth; cs[i].classList.add('nope'); }); status("That's not one of the hidden words. Keep looking!"); }
+      return;
+    }
+    st.found.add(hit.word);
+    hit.cells.forEach(i => { cs[i].classList.add('found'); cs[i].style.setProperty('--glow', hit.glow); });
+    q(`.dh-word[data-w="${hit.word}"]`).classList.add('done');
+    counts(); speak(hit.word);
+    const left = st.placed.length - st.found.size;
+    status(`You found "${hit.word}"! A baby dragon flies off with it.${left ? ` ${left} more to go.` : ''}`);
+    babyFlight(hit);
+    if (!left) later(finish, 1700);
+  }
+  function babyFlight(hit) {
+    const rr = root.getBoundingClientRect(), cs = coins();
+    const a = cs[hit.cells[0]].getBoundingClientRect(), b = cs[hit.cells[hit.cells.length - 1]].getBoundingClientRect();
+    const wx = (a.left + b.right) / 2 - rr.left, wy = (a.top + b.bottom) / 2 - rr.top;
+    const sc = q('#dhScene svg').getBoundingClientRect();
+    const hx = sc.left - rr.left + sc.width * (.35 + Math.random() * .3), hy = sc.top - rr.top + sc.height * .62;
+    const sx = rr.width + 60, sy = -40;
+    const baby = document.createElement('div'); baby.className = 'dh-baby'; baby.innerHTML = babySVG(); root.appendChild(baby);
+    const bw = baby.getBoundingClientRect().width || 60;
+    const fly = baby.animate([
+      { transform: `translate(${sx}px,${sy}px) scaleX(-1)` },
+      { transform: `translate(${wx - bw / 2}px,${wy - bw * .9}px) scaleX(-1)`, offset: .45 },
+      { transform: `translate(${wx - bw / 2}px,${wy - bw * 1.1}px) scaleX(-1)`, offset: .55 },
+      { transform: `translate(${hx - bw / 2}px,${hy - bw * 1.2}px) scaleX(1)`, offset: .9 },
+      { transform: `translate(${hx - bw / 2}px,${hy - bw * 1.2 - 20}px) scaleX(1)`, opacity: 0 }
+    ], { duration: 2400, easing: 'ease-in-out', fill: 'forwards' });
+    const carry = document.createElement('div'); carry.className = 'dh-carry'; carry.textContent = hit.word; carry.style.opacity = 0; root.appendChild(carry);
+    const cw = () => carry.getBoundingClientRect().width;
+    later(() => {
+      carry.style.opacity = 1;
+      carry.animate([
+        { transform: `translate(${wx - cw() / 2}px,${wy - 12}px) scale(1)` },
+        { transform: `translate(${hx - cw() / 2}px,${hy - 14}px) scale(.7)`, offset: .75 },
+        { transform: `translate(${hx - cw() / 2}px,${hy - 4}px) scale(.4)`, opacity: 0 }
+      ], { duration: 1150, easing: 'ease-in-out', fill: 'forwards' });
+    }, 1250);
+    later(() => { addCoins(); }, 2300);
+    fly.onfinish = () => { baby.remove(); later(() => carry.remove(), 300); };
+  }
+  function addCoins() {
+    const hoard = q('#dhHoard');
+    for (let k = 0; k < 3; k++) {
+      const e = document.createElementNS(NS, 'ellipse');
+      e.setAttribute('cx', 120 + Math.random() * 190); e.setAttribute('cy', 138 + Math.random() * 48); e.setAttribute('rx', 9); e.setAttribute('ry', 4);
+      e.setAttribute('fill', '#ffe07a'); e.setAttribute('stroke', '#8a5a10'); e.setAttribute('stroke-width', 1.5);
+      hoard.appendChild(e);
+      e.animate([{ transform: 'translateY(-30px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 400, delay: k * 90, easing: 'cubic-bezier(.3,1.5,.5,1)', fill: 'backwards' });
+    }
+  }
+  function finish() {
+    st.done = true;
+    q('#dhScene').classList.add('dh-awake');
+    later(() => {   // treasure sparkles and coins spilling from the chest
+      const svg = q('#dhScene svg');
+      for (let k = 0; k < 16; k++) {
+        const a = -Math.PI * (.1 + .8 * Math.random()), r = 40 + Math.random() * 60, s = document.createElementNS(NS, 'path');
+        s.setAttribute('d', 'M0 -6 L1.6 -1.6 L6 0 L1.6 1.6 L0 6 L-1.6 1.6 L-6 0 L-1.6 -1.6 Z'); s.setAttribute('fill', k % 2 ? '#fff6c8' : '#f2c35b');
+        svg.appendChild(s);
+        s.animate([{ transform: 'translate(226px,158px) scale(.2)', opacity: 1 }, { transform: `translate(${226 + Math.cos(a) * r}px,${158 + Math.sin(a) * r}px) scale(1.3) rotate(90deg)`, opacity: 0 }], { duration: 1100 + Math.random() * 600, delay: k * 40, easing: 'ease-out', fill: 'forwards' });
+      }
+    }, 2400);
+    status('You found every word! The big dragon wakes up, smiles, and hands you a treasure chest!');
+    q('#dhHint').hidden = true;
+    const last = st.round >= rounds.length - 1, nb = q('#dhNext');
+    nb.textContent = last ? 'Play again' : 'Next hoard'; nb.hidden = false;
+    later(() => nb.focus(), 2600);
+  }
+  function hint() {
+    if (st.done) return;
+    const left = st.placed.filter(p => !st.found.has(p.word)); if (!left.length) return;
+    const p = left[(Math.random() * left.length) | 0], c = coins()[p.cells[0]];
+    c.classList.remove('hint'); void c.offsetWidth; c.classList.add('hint');
+    status(`Hint: "${p.word}" starts with the flashing coin.`); speak(p.word);
+  }
+  function nextRound() {
+    st.round = st.round >= rounds.length - 1 ? 0 : st.round + 1;
+    if (st.round === 0) rounds = rounds.map(shuffle);
+    newRound(); const f = coins()[0]; if (f) f.focus();
+  }
+  return { mount, unmount };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
