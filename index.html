@@ -1546,10 +1546,12 @@ const WZ = {};
   // bushy eyebrows
   WZ.brows = []; const browMat = toon('#e2ddd4');
   [-1, 1].forEach(s => {
-    const b = new THREE.Group(); b.position.set(s * .132, 1.478, .232); head.add(b); WZ.brows.push(b);
+    const b = new THREE.Group(); b.position.set(s * .132, 1.505, .262); head.add(b); WZ.brows.push(b);
     [[-.075, -.015, .03, .044], [-.035, .008, .035, .058], [.01, .022, .03, .066], [.055, .02, .015, .064], [.1, .006, -.01, .058], [.14, -.018, -.04, .048], [.17, -.045, -.07, .036], [.0, -.012, .055, .04], [.06, -.008, .04, .04]].forEach(([x, y, z, r]) =>
       mesh(new THREE.SphereGeometry(r, 16, 12), r > .045 ? browMat : whiteD, { parent: b, pos: [x * s, y, z], outline: .008, cast: false }));
     [[.03, .07, .02, .35], [.09, .06, 0, .6], [-.02, .06, .03, .1]].forEach(([x, y, z, rz]) => mesh(new THREE.ConeGeometry(.016, .06, 8), browMat, { parent: b, pos: [x * s, y, z], rot: [0, 0, -rz * s], outline: .004, cast: false }));
+    // the brows sit right at the hat brim and always draw in front of it (outlines first, then the fluff)
+    b.traverse(o => { if (!o.isMesh) return; o.material = o.material.clone(); o.material.depthTest = false; o.renderOrder = o.material.isShaderMaterial ? 20 : 21; });
   });
   // mouth
   WZ.mouth = mesh(new THREE.SphereGeometry(.05, 16, 10), toon('#5a1f2a'), { parent: head, pos: [0, 1.075, .3], scale: [1.4, .5, .6], cast: false });
@@ -1606,7 +1608,7 @@ const WZ = {};
   const tipLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(.345, .8, 0), V(.35, .66, 0)]), new THREE.LineBasicMaterial({ color: 0x3b2412 })); hat.add(tipLine);
   WZ.tipStar = mesh(new THREE.ShapeGeometry(starShape(.04, .017)), toon('#f2c35b', { emissive: C('#7a5210'), emissiveIntensity: .6, side: THREE.DoubleSide }), { parent: hat, pos: [.35, .64, 0], cast: false });
   // pivot the head at the neck (not the floor) so nodding and looking up don't push the head back into the cape
-  const NECK = 1.05; head.children.forEach(ch => ch.position.y -= NECK); head.position.y = NECK; WZ.neck = NECK;
+  const NECK = 1.05; head.children.forEach(ch => ch.position.y -= NECK); head.position.y = NECK; WZ.neck = NECK; WZ.browY = WZ.brows[0].position.y;
 }
 
 /* ================= Spider ================= */
@@ -3368,7 +3370,7 @@ function frame() {
   W.curious = Math.max(0, W.curious - dt);
   WZ.brows.forEach((b, i) => {
     const s = i ? 1 : -1;
-    let y = 1.478, rz = 0;
+    let y = WZ.browY, rz = 0;   // rest height is relative to the neck pivot, so the brows stay on his face
     if (W.talking) { const ph = t * 7.5 + i * .5; y += Math.abs(Math.sin(ph)) * .035; rz = Math.sin(ph) * .12 * s; }
     else if (W.curious > 0 || hoveringBook) y += .025;
     b.position.y += (y - b.position.y) * .35; b.rotation.z += (rz - b.rotation.z) * .35;
