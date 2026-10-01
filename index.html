@@ -284,6 +284,19 @@ potion</pre><span>One word per row in the first column. A header row such as “
 <script>
 (() => {
 'use strict';
+/* Maintainer tool: opening the page with #deploy shows the GitHub-ready index.html (site.html) in a box so it can be copied. Kids never see it. */
+if (location.hash === '#deploy') {
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;inset:4%;z-index:99999;background:#fff;color:#000;border:3px solid #000;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;font:14px system-ui';
+  const info = document.createElement('div'); info.id = 'deployInfo'; info.textContent = 'Loading site.html…';
+  const ta = document.createElement('textarea'); ta.id = 'deployText'; ta.spellcheck = false; ta.style.cssText = 'flex:1;font:11px monospace;white-space:pre';
+  box.append(info, ta); document.body.appendChild(box);
+  fetch('site.html', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then(async t => {
+    ta.value = t;
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+    info.textContent = `site.html ready · ${t.length} chars · sha256 ${[...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('')}`;
+  }).catch(e => { info.textContent = 'Could not load site.html: ' + e.message; });
+}
 const stage = document.getElementById('stage');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1266,14 +1279,14 @@ const WZ = {};
     mesh(new THREE.SphereGeometry(.04, 12, 10), skinD, { parent: head, pos: [s * .325, 1.27, .015], scale: [.4, 1, .7], cast: false });
   });
   // big round nose with nostrils and a shine
-  mesh(new THREE.SphereGeometry(.128, 32, 24), toon('#f0a08a'), { parent: head, pos: [0, 1.245, .315], outline: .01 });
-  [-1, 1].forEach(s => mesh(new THREE.SphereGeometry(.022, 10, 8), toon('#7a3a32'), { parent: head, pos: [s * .045, 1.15, .385], scale: [1.2, .55, .8], cast: false }));
-  mesh(new THREE.SphereGeometry(.03, 12, 10), new THREE.MeshBasicMaterial({ color: 0xfff3ea, transparent: true, opacity: .75 }), { parent: head, pos: [-.045, 1.3, .418], scale: [1.3, .8, .4], cast: false });
+  mesh(new THREE.SphereGeometry(.12, 32, 24), toon('#f0a08a'), { parent: head, pos: [0, 1.222, .31], outline: .01 });
+  [-1, 1].forEach(s => mesh(new THREE.SphereGeometry(.022, 10, 8), toon('#7a3a32'), { parent: head, pos: [s * .043, 1.13, .372], scale: [1.2, .55, .8], cast: false }));
+  mesh(new THREE.SphereGeometry(.03, 12, 10), new THREE.MeshBasicMaterial({ color: 0xfff3ea, transparent: true, opacity: .75 }), { parent: head, pos: [-.042, 1.272, .405], scale: [1.3, .8, .4], cast: false });
   [-1, 1].forEach(s => mesh(new THREE.SphereGeometry(.06, 16, 12), toon('#f2a294'), { parent: head, pos: [s * .175, 1.2, .24], scale: [1.1, .6, .4], cast: false }));
   // eyes: whites, blue irises, pupils, highlights, blinking lids, bags and crow's feet
   WZ.pupils = []; WZ.lids = [];
   [-1, 1].forEach(s => {
-    const eye = new THREE.Group(); eye.position.set(s * .105, 1.34, .24); head.add(eye);
+    const eye = new THREE.Group(); eye.position.set(s * .14, 1.372, .222); head.add(eye); (WZ.eyes = WZ.eyes || []).push(eye);
     mesh(new THREE.SphereGeometry(.078, 28, 20), toon('#ffffff'), { parent: eye, outline: .007 });
     const pupil = new THREE.Group(); eye.add(pupil); WZ.pupils.push(pupil);
     mesh(new THREE.SphereGeometry(.036, 20, 14), toon('#3d78c9'), { parent: pupil, pos: [0, -.006, .053], scale: [1.1, 1.1, .55], cast: false });
@@ -1281,13 +1294,13 @@ const WZ = {};
     mesh(new THREE.SphereGeometry(.009, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }), { parent: pupil, pos: [.013, .01, .079], cast: false });
     const lid = mesh(new THREE.SphereGeometry(.085, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), skin, { parent: eye, outline: .006, cast: false });
     lid.rotation.x = -1.25; WZ.lids.push(lid);
-    const bag = mesh(new THREE.TorusGeometry(.058, .011, 8, 18, Math.PI * .9), skinD, { parent: head, pos: [s * .105, 1.315, .262], rot: [.15, s * .25, Math.PI + .15], cast: false });
-    [-.022, 0, .022].forEach((o, k) => mesh(new THREE.TorusGeometry(.028, .0045, 4, 10, 1.1), skinD, { parent: head, pos: [s * .19, 1.34 + o, .2], rot: [0, s * .9, s * (o * 9) + (s > 0 ? Math.PI - .55 : -.55 + 0)], cast: false }));
+    const bag = mesh(new THREE.TorusGeometry(.058, .011, 8, 18, Math.PI * .9), skinD, { parent: head, pos: [s * .14, 1.343, .244], rot: [.15, s * .4, Math.PI + .15], cast: false });
+    [-.022, 0, .022].forEach((o, k) => mesh(new THREE.TorusGeometry(.028, .0045, 4, 10, 1.1), skinD, { parent: head, pos: [s * .228, 1.372 + o, .155], rot: [0, s * .9, s * (o * 9) + (s > 0 ? Math.PI - .55 : -.55 + 0)], cast: false }));
   });
   // bushy eyebrows
   WZ.brows = []; const browMat = toon('#e2ddd4');
   [-1, 1].forEach(s => {
-    const b = new THREE.Group(); b.position.set(s * .118, 1.455, .245); head.add(b); WZ.brows.push(b);
+    const b = new THREE.Group(); b.position.set(s * .132, 1.478, .232); head.add(b); WZ.brows.push(b);
     [[-.075, -.015, .03, .044], [-.035, .008, .035, .058], [.01, .022, .03, .066], [.055, .02, .015, .064], [.1, .006, -.01, .058], [.14, -.018, -.04, .048], [.17, -.045, -.07, .036], [.0, -.012, .055, .04], [.06, -.008, .04, .04]].forEach(([x, y, z, r]) =>
       mesh(new THREE.SphereGeometry(r, 16, 12), r > .045 ? browMat : whiteD, { parent: b, pos: [x * s, y, z], outline: .008, cast: false }));
     [[.03, .07, .02, .35], [.09, .06, 0, .6], [-.02, .06, .03, .1]].forEach(([x, y, z, rz]) => mesh(new THREE.ConeGeometry(.016, .06, 8), browMat, { parent: b, pos: [x * s, y, z], rot: [0, 0, -rz * s], outline: .004, cast: false }));
@@ -1384,6 +1397,7 @@ function respawnLetter(L) {
 /* ================= Interaction ================= */
 const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), pointer = { x: 0, y: 0, inside: false };
 let lookTarget = [0, 0], hoveringBook = false;
+const eyeRay = new THREE.Raycaster(), eyeNdc = new THREE.Vector2(), eyePlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -2.2), eyePt = new THREE.Vector3(0, 1.6, 2.2), eyeTmp = new THREE.Vector3();
 const inR = (r, x, y) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 function pick(ev) {
   const r = renderer.domElement.getBoundingClientRect();
@@ -1918,7 +1932,7 @@ const lookNow = LOOK_START.clone();
 function easeOut(x) { return 1 - Math.pow(1 - x, 3); }
 
 function frame() {
-  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime, ms = performance.now();
+  const rawDt = clock.getDelta(), dt = Math.min(rawDt, .05), t = clock.elapsedTime, ms = performance.now();
   // camera: opening dolly + gentle parallax
   const k = reduce ? 1 : easeOut(Math.min(1, t / 4.2));
   const px = reduce ? 0 : pointer.x * .35, py = reduce ? 0 : -pointer.y * .15;
@@ -1948,7 +1962,7 @@ function frame() {
   // wizard life
   WZ.body.scale.set(1 + Math.sin(t * 1.65) * .006, 1 + Math.sin(t * 1.65) * .012, 1 + Math.sin(t * 1.65) * .006);
   WZ.head.position.y = Math.sin(t * 1.65 + .6) * .008;
-  WZ.head.rotation.z = Math.sin(t * .7) * .025; WZ.head.rotation.y = Math.sin(t * .45) * .05 + (hoveringBook ? .12 : 0) * .6;
+  WZ.head.rotation.z = Math.sin(t * .7) * .025; { const hy = Math.sin(t * .45) * .04 + (pointer.inside && FX.state === 'lair' ? Math.max(-.22, Math.min(.22, pointer.x * .22)) : 0); WZ.head.rotation.y += (hy - WZ.head.rotation.y) * .08; }
   WZ.beard.rotation.z = Math.sin(t * 1.1) * .03;
   WZ.hat.rotation.z = -.05 + Math.sin(t * 1.3) * .03;
   // wand wave: the staff swings in circles around his grip, streaming sparkles
@@ -1970,21 +1984,34 @@ function frame() {
   // blinking
   if (t > blinkAt && blinkT < 0) { blinkT = 0; }
   if (blinkT >= 0) {
-    blinkT += dt; const d = .16, p = blinkT / d;
+    blinkT += rawDt; const d = .16, p = blinkT / d;
     const close = p < .5 ? p * 2 : Math.max(0, 2 - p * 2);
     WZ.lids.forEach(l => l.rotation.x = -1.25 + close * 2.9);
     if (p >= 1) { blinkT = -1; blinkAt = t + (Math.random() < .2 ? .25 : 2.2 + Math.random() * 4.2); WZ.lids.forEach(l => l.rotation.x = -1.25); }
   }
   // glancing
   if (t > glanceAt) { const opts = [[0, 0], [0, 0], [-.25, 0], [.25, .05], [.15, -.15], [-.15, .12]]; lookTarget = opts[(Math.random() * opts.length) | 0]; glanceAt = t + 2.5 + Math.random() * 3; }
-  const lt = hoveringBook ? [.45, .12] : lookTarget;
-  WZ.pupils.forEach(p => { p.rotation.y += (lt[0] - p.rotation.y) * .12; p.rotation.x += (lt[1] - p.rotation.x) * .12; });
+  // eyes follow the mouse: aim each pupil at the point under the cursor, a few meters in front of him
+  const following = pointer.inside && FX.state === 'lair';
+  if (following) { eyeRay.setFromCamera(eyeNdc.set(pointer.x, -pointer.y), camera); eyeRay.ray.intersectPlane(eyePlane, eyePt); }
+  WZ.pupils.forEach((p, i) => {
+    let yaw = lookTarget[0], pitch = lookTarget[1];
+    if (following) {
+      const lp = WZ.eyes[i].worldToLocal(eyeTmp.copy(eyePt));
+      yaw = Math.atan2(lp.x, lp.z); pitch = -Math.atan2(lp.y, Math.hypot(lp.x, lp.z));
+      const outward = i === 0 ? -1 : 1;                       // keep pupils from crossing in behind the nose
+      yaw = outward < 0 ? Math.max(-.75, Math.min(.3, yaw)) : Math.max(-.3, Math.min(.75, yaw));
+      pitch = Math.max(-.5, Math.min(.45, pitch));
+    }
+    const k = following ? .3 : .12;
+    p.rotation.y += (yaw - p.rotation.y) * k; p.rotation.x += (pitch - p.rotation.x) * k;
+  });
   // eyebrows + mouth
   if (t > curiousAt) { if (!W.talking && Math.random() < .5) W.curious = .7; curiousAt = t + 6 + Math.random() * 4; }
   W.curious = Math.max(0, W.curious - dt);
   WZ.brows.forEach((b, i) => {
     const s = i ? 1 : -1;
-    let y = 1.455, rz = 0;
+    let y = 1.478, rz = 0;
     if (W.talking) { const ph = t * 7.5 + i * .5; y += Math.abs(Math.sin(ph)) * .035; rz = Math.sin(ph) * .12 * s; }
     else if (W.curious > 0 || hoveringBook) y += .025;
     b.position.y += (y - b.position.y) * .35; b.rotation.z += (rz - b.rotation.z) * .35;
