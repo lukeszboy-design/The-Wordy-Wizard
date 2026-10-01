@@ -271,6 +271,51 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .dh-scene svg{max-height:none}
 }
 @media (prefers-reduced-motion: reduce){ .dh-zzz text,#dhBreath,.dh-baby .wing{animation:none} }
+/* --- The Town Crier (listen & spell) --- */
+.tc{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,41fr) minmax(0,59fr);gap:2.2cqw;color:var(--parch-ink)}
+.tc-scene{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.tc-scene svg{width:100%;height:100%;max-height:100%;border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#cfe8ff}
+.tc-side{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1.1cqw}
+.tc-top{display:flex;justify-content:space-between;gap:1cqw;font:700 max(12px,1.25cqw) var(--font-read);color:#6b4a26;font-variant-numeric:tabular-nums}
+.tc-status{margin:0;min-height:2.8em;font:700 max(14px,1.45cqw)/1.4 var(--font-read);text-align:center;text-wrap:balance}
+.tc-notice{position:relative;margin:0 auto;width:min(100%,38cqw);box-sizing:border-box;padding:1.4cqw 2cqw 1.8cqw;background:linear-gradient(#fbf0cf,#f0dca6);border:2px solid #8a6a3a;border-radius:.5cqw;box-shadow:0 .5cqw 1cqw rgba(59,36,18,.25);transform:rotate(-1deg);text-align:center}
+.tc-notice::before,.tc-notice::after{content:"";position:absolute;top:.6cqw;width:1.1cqw;height:1.1cqw;min-width:10px;min-height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d9d9e0,#6b6b78);border:1px solid #2a2433}
+.tc-notice::before{left:.8cqw}.tc-notice::after{right:.8cqw}
+.tc-notice h3{margin:0 0 .6cqw;font:400 max(15px,1.8cqw) var(--font-display);color:#7b2d3f;letter-spacing:.03em}
+.tc-input{display:block;width:100%;box-sizing:border-box;border:none;border-bottom:3px dashed #8a6a3a;background:transparent;text-align:center;font:700 max(24px,3.4cqw)/1.2 var(--font-read);color:#2a1a10;padding:.3cqw 0;letter-spacing:.06em;outline:none}
+.tc-input:focus{border-bottom-style:solid;border-bottom-color:#a3401f}
+.tc-input::placeholder{color:#b89a62;font-weight:400;font-size:.55em;letter-spacing:0}
+.tc-input:disabled{opacity:.7}
+.tc-diff{display:flex;flex-direction:column;align-items:center;gap:.5cqw;margin-top:.8cqw}
+.tc-diff div{display:flex;gap:.3cqw;flex-wrap:wrap;justify-content:center}
+.tc-diff span{display:grid;place-items:center;min-width:2.6cqw;min-height:3.2cqw;padding:0 .2cqw;border-radius:.4cqw;font:700 max(16px,2.1cqw) var(--font-read);border:2px solid #3b2412;background:#fffaf0;text-transform:lowercase}
+.tc-diff .ok{background:#d8f2d0;border-color:#2f6b4a}.tc-diff .bad{background:#ffd6d6;border-color:#a3262f;color:#a3262f}
+.tc-diff small{font:italic max(12px,1.1cqw) var(--font-read);color:#6b4a26}
+.tc-notice.posted{animation:tcpost .6s ease-in forwards}
+@keyframes tcpost{to{transform:translate(-30cqw,-6cqw) scale(.25) rotate(-12deg);opacity:0}}
+.tc-notice.wobble{animation:tcwob .45s ease-in-out}
+@keyframes tcwob{25%{transform:rotate(-3deg) translateX(-4px)}75%{transform:rotate(2deg) translateX(4px)}}
+.tc-bell{transform-box:fill-box;transform-origin:50% 0%}
+.tc-ringing .tc-bell{animation:tcring .22s ease-in-out 6 alternate}
+@keyframes tcring{from{transform:rotate(-22deg)}to{transform:rotate(22deg)}}
+.tc-arm{transform-box:fill-box;transform-origin:0% 100%;transition:transform .25s}
+.tc-ringing .tc-arm{transform:rotate(-28deg)}
+.tc-waves{opacity:0}.tc-ringing .tc-waves{animation:tcwave .45s ease-out 3}
+@keyframes tcwave{0%{opacity:0;transform:scale(.7)}40%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+.tc-waves{transform-box:fill-box;transform-origin:0% 50%}
+.tc-plume{transform-box:fill-box;transform-origin:0% 100%;animation:tcplume 1.8s ease-in-out infinite alternate}
+@keyframes tcplume{from{transform:rotate(-5deg)}to{transform:rotate(7deg)}}
+#tcSay{opacity:0;transition:opacity .2s}.tc-calling #tcSay{opacity:1}
+.tc-hop{animation:tchop .4s ease-in-out 4 alternate}
+@keyframes tchop{to{transform:translateY(-10px)}}
+@media (max-width:760px){
+  .tc{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .tc-scene svg{height:auto;max-height:34vh;width:auto;max-width:100%}
+  .tc-notice{width:100%;padding:14px 16px 18px}
+  .tc-notice::before,.tc-notice::after{top:6px}
+  .tc-diff span{min-width:28px;min-height:34px}
+}
+@media (prefers-reduced-motion: reduce){ .tc-plume,.tc-ringing .tc-bell,.tc-ringing .tc-waves,.tc-hop,.tc-notice.posted{animation:none} }
 </style>
 
 </head>
@@ -400,7 +445,7 @@ const GAMES = {
   hangman:    { name: 'Save the Squire', desc: 'Guess letters, build the ladder', say: "Hangman! Guess the letters one at a time before the picture is done. This spell is still brewing. Check back soon!" },
   scramble:   { name: 'Potion Mix-Up', desc: 'Put the jars in order to brew', say: "Word Scramble! I've jumbled up your letters. Can you put them back in order? This spell is still brewing!" },
   missing:    { name: 'Missing Letter', desc: 'Fill in the blank', say: "Missing Letter! A sneaky imp stole a letter from each word. This spell is still brewing. Check back soon!" },
-  listen:     { name: 'Listen & Spell', desc: 'Hear it, then spell it', say: "Listen & Spell! I'll say a word out loud, and you spell it. This spell is still brewing!" },
+  listen:     { name: 'The Town Crier', desc: 'Hear the word, then write it', say: "Listen & Spell! I'll say a word out loud, and you spell it. This spell is still brewing!" },
   spot:       { name: 'Spot the Mistake', desc: 'Find the right spelling', say: "Spot the Mistake! Only one spelling is correct. Can you find it? This spell is still brewing!" },
   tiles:      { name: 'Letter Tiles', desc: 'Build the word', say: "Letter Tiles! Drag the magic tiles to build each word. This spell is still brewing!" },
   vowels:     { name: 'Vowel Hunt', desc: 'Fill in the vowels', say: "Vowel Hunt! The vowels ran away. Help me put them back! This spell is still brewing!" },
@@ -1137,9 +1182,10 @@ const ICONS = {
     g.fillStyle = '#c0392b'; g.font = '700 12px Andika, sans-serif'; g.fillText('?', 21, 26);
   },
   listen(g) {
-    g.fillStyle = '#3b2412'; g.fill(new Path2D('M7 17 H13 L21 10 V32 L13 25 H7 Z'));
-    g.strokeStyle = '#c0392b'; g.lineWidth = 2.2; g.lineCap = 'round';
-    [6, 11].forEach(r => { g.beginPath(); g.arc(23, 21, r, -.8, .8); g.stroke(); });
+    g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
+    g.fillStyle = '#f2c35b'; const bell = new Path2D('M10 30 Q10 14 19 13 Q28 14 28 30 L31 33 H7 Z'); g.fill(bell); g.stroke(bell);
+    g.fillStyle = '#3b2412'; g.beginPath(); g.arc(19, 35.5, 2.6, 0, 7); g.fill(); g.fillRect(17.5, 8, 3, 5);
+    g.strokeStyle = '#c0392b'; g.lineWidth = 2.2; g.lineCap = 'round'; g.stroke(new Path2D('M32 14 q4 5 0 10 M36 10 q6 9 0 18'));
   },
   spot(g) {
     g.fillStyle = '#3b2412'; g.font = '700 9px Andika, sans-serif'; g.textAlign = 'center'; g.fillText('teh', 17, 21);
@@ -2448,7 +2494,242 @@ const DragonGame = (() => {
   }
   return { mount, unmount };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame };
+/* ================= Game: The Town Crier (listen & spell) ================= */
+const CrierGame = (() => {
+  const NS = 'http://www.w3.org/2000/svg', SLOTS = [[252, 176], [306, 172], [360, 178], [254, 240], [308, 236], [362, 242], [280, 300], [338, 298]];
+  let root, st, words, practice, timers = [], audio = null;
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const canSpeak = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+  const clean = w => w.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').trim();
+
+  function sceneSVG() {
+    return `<svg viewBox="0 0 420 460" role="img" aria-label="A town crier with a bell stands beside the town notice board">
+      <defs>
+        <linearGradient id="tcSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fd3ff"/><stop offset="1" stop-color="#fff0d2"/></linearGradient>
+        <clipPath id="tcClip"><rect width="420" height="460" rx="14"/></clipPath>
+      </defs>
+      <g clip-path="url(#tcClip)">
+      <rect width="420" height="460" fill="url(#tcSky)"/>
+      <circle cx="350" cy="62" r="26" fill="#fff3b0"/>
+      <g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M-10 250 V150 L40 110 L90 150 V250 Z" fill="#f2e3c6"/><path d="M-14 152 L40 104 L94 152" fill="none" stroke-width="10" stroke="#7b2d3f"/>
+        <path d="M10 160 V250 M70 160 V250 M-10 200 H90" stroke="#5e3a1a" stroke-width="4"/><rect x="24" y="168" width="32" height="26" fill="#ffe08a"/>
+        <path d="M150 250 V130 L200 90 L250 130 V250 Z" fill="#e8d6b2"/><path d="M146 132 L200 84 L254 132" fill="none" stroke-width="10" stroke="#3b4f9a"/>
+        <path d="M168 140 V250 M232 140 V250 M150 190 H250" stroke="#5e3a1a" stroke-width="4"/><rect x="186" y="150" width="28" height="30" fill="#ffe08a"/>
+        <path d="M360 250 V140 L400 108 L440 140 V250 Z" fill="#f2e3c6"/><path d="M356 142 L400 102 L444 142" fill="none" stroke-width="10" stroke="#2f6b4a"/>
+      </g>
+      <rect y="248" width="420" height="212" fill="#b8a98e"/>
+      <g fill="none" stroke="#8f8068" stroke-width="2.5">
+        <path d="M0 290 H420 M0 340 H420 M0 400 H420"/><path d="M30 248 V290 M110 248 V290 M190 248 V290 M270 248 V290 M350 248 V290 M70 290 V340 M150 290 V340 M230 290 V340 M310 290 V340 M390 290 V340 M30 340 V400 M110 340 V400 M190 340 V400 M270 340 V400 M350 340 V400 M70 400 V460 M150 400 V460 M230 400 V460 M310 400 V460 M390 400 V460"/>
+      </g>
+      <!-- notice board -->
+      <g id="tcBoard">
+        <rect x="232" y="132" width="10" height="290" fill="#6b4226" stroke="#2a1a10" stroke-width="2.5"/><rect x="386" y="132" width="10" height="290" fill="#6b4226" stroke="#2a1a10" stroke-width="2.5"/>
+        <path d="M220 136 L314 104 L408 136 Z" fill="#7b2d3f" stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round"/>
+        <rect x="236" y="138" width="156" height="196" rx="4" fill="#9b6a35" stroke="#2a1a10" stroke-width="3"/>
+        <path d="M236 186 H392 M236 236 H392 M236 286 H392" stroke="#7a5228" stroke-width="2"/>
+        <text x="314" y="128" text-anchor="middle" font-family="'Uncial Antiqua', Georgia, serif" font-size="13" fill="#f2c35b">NOTICES</text>
+        <g id="tcNotes"></g>
+      </g>
+      <ellipse cx="112" cy="424" rx="54" ry="10" fill="#000" opacity=".2"/>
+      <!-- the crier -->
+      <g id="tcCrier" transform="translate(112 420)">
+        <path d="M-16 0 V-40 M12 0 V-40" stroke="#2a2433" stroke-width="10" stroke-linecap="round"/>
+        <path d="M-22 0 h12 M8 0 h14" stroke="#1b1424" stroke-width="7" stroke-linecap="round"/>
+        <path d="M-36 -40 Q-40 -110 -2 -116 Q36 -110 32 -40 Z" fill="#c0392b" stroke="#2a1a10" stroke-width="3"/>
+        <path d="M-2 -114 V-42" stroke="#8e2b23" stroke-width="2"/>
+        <g fill="#f2c35b" stroke="#7a5210" stroke-width="1"><circle cx="4" cy="-100" r="3"/><circle cx="4" cy="-86" r="3"/><circle cx="4" cy="-72" r="3"/><circle cx="4" cy="-58" r="3"/></g>
+        <path d="M-38 -48 H34" stroke="#2a1a10" stroke-width="6"/><rect x="-6" y="-52" width="10" height="8" fill="#f2c35b" stroke="#2a1a10" stroke-width="1.5"/>
+        <!-- scroll arm -->
+        <path d="M-32 -100 L-46 -70" stroke="#c0392b" stroke-width="12" stroke-linecap="round"/>
+        <g transform="translate(-50 -66) rotate(-10)"><rect x="-6" y="-14" width="12" height="28" rx="3" fill="#f6e7bd" stroke="#2a1a10" stroke-width="2"/><circle cx="0" cy="-14" r="5" fill="#e9d6a0" stroke="#2a1a10" stroke-width="2"/><circle cx="0" cy="14" r="5" fill="#e9d6a0" stroke="#2a1a10" stroke-width="2"/></g>
+        <circle cx="-46" cy="-68" r="6" fill="#f3c39c" stroke="#2a1a10" stroke-width="2"/>
+        <!-- bell arm -->
+        <g class="tc-arm" id="tcArm">
+          <path d="M26 -104 L52 -126" stroke="#c0392b" stroke-width="12" stroke-linecap="round"/>
+          <circle cx="56" cy="-130" r="6" fill="#f3c39c" stroke="#2a1a10" stroke-width="2"/>
+          <g class="tc-bell"><path d="M56 -132 V-122" stroke="#5e3a1a" stroke-width="5"/>
+            <path d="M44 -100 Q44 -122 56 -122 Q68 -122 68 -100 L72 -96 H40 Z" fill="#f2c35b" stroke="#7a5210" stroke-width="2.5" stroke-linejoin="round"/>
+            <circle cx="56" cy="-93" r="3.5" fill="#7a5210"/></g>
+          <g class="tc-waves" fill="none" stroke="#7b2d3f" stroke-width="3" stroke-linecap="round"><path d="M80 -122 q8 10 0 20"/><path d="M90 -128 q12 16 0 32"/></g>
+        </g>
+        <!-- head -->
+        <path d="M-18 -118 Q-2 -108 14 -118 L10 -124 H-14 Z" fill="#fff" stroke="#2a1a10" stroke-width="2"/>
+        <circle cx="-2" cy="-140" r="20" fill="#f3c39c" stroke="#2a1a10" stroke-width="2.5"/>
+        <circle cx="-12" cy="-132" r="4" fill="#f2a294" opacity=".8"/><circle cx="8" cy="-132" r="4" fill="#f2a294" opacity=".8"/>
+        <circle cx="-9" cy="-143" r="2.3" fill="#2a1a10"/><circle cx="5" cy="-143" r="2.3" fill="#2a1a10"/>
+        <path id="tcBrows" d="M-14 -149 L-5 -150 M1 -150 L10 -149" stroke="#5e3a1a" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M-2 -138 q-12 2 -16 8 q8 -2 16 -4 q8 2 16 4 q-4 -6 -16 -8 Z" fill="#8a5a2b" stroke="#2a1a10" stroke-width="1.5"/>
+        <ellipse id="tcMouth" cx="-2" cy="-126" rx="4" ry="1.5" fill="#5a1f2a"/>
+        <!-- plumed tricorn -->
+        <path d="M-30 -156 Q-2 -146 26 -156 Q20 -170 -2 -172 Q-24 -170 -30 -156 Z" fill="#2b3a7a" stroke="#1b1424" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M-34 -154 Q-2 -142 30 -154" fill="none" stroke="#f2c35b" stroke-width="2.5"/>
+        <path class="tc-plume" d="M14 -168 Q30 -200 54 -196 Q40 -188 36 -176 Q30 -170 18 -166 Z" fill="#ff6fb5" stroke="#1b1424" stroke-width="2"/>
+        <path d="M20 -170 Q34 -184 50 -194" stroke="#c43c86" stroke-width="1.5" fill="none"/>
+        <g id="tcSay"><rect x="-80" y="-232" width="110" height="34" rx="12" fill="#fffaf0" stroke="#2a1a10" stroke-width="2"/><path d="M-30 -199 L-18 -186 L-40 -199 Z" fill="#fffaf0" stroke="#2a1a10" stroke-width="2"/><text id="tcSayText" x="-25" y="-209" text-anchor="middle" font-family="Andika, sans-serif" font-weight="700" font-size="17" fill="#2a1a10">Hear ye!</text></g>
+      </g>
+      <g id="tcFx"></g>
+      </g>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    practice = !wordList.length;
+    words = shuffle(practice ? ['bell', 'town', 'notice', 'crown', 'castle', 'market'] : wordList);
+    st = { idx: 0, posted: 0, notes: 0 };
+    root = document.createElement('div'); root.className = 'tc';
+    const bellIco = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 a1.5 1.5 0 0 1 1.5 1.5 V5 Q18 6 18 12 V16 L20 18 H4 L6 16 V12 Q6 6 10.5 5 V4.5 A1.5 1.5 0 0 1 12 3 Z" fill="currentColor"/><circle cx="12" cy="20.5" r="2" fill="currentColor"/></svg>';
+    root.innerHTML = `
+      <div class="tc-scene">${sceneSVG()}</div>
+      <div class="tc-side">
+        <div class="tc-top"><span id="tcCount"></span><span id="tcPosted"></span></div>
+        <p class="tc-status" id="tcStatus" aria-live="polite"></p>
+        <form class="tc-notice" id="tcForm" autocomplete="off">
+          <h3>Hear ye! Hear ye!</h3>
+          <input class="tc-input" id="tcInput" aria-label="Write the word you heard" placeholder="Write the word you heard" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="32">
+          <div class="tc-diff" id="tcDiff" hidden></div>
+        </form>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="tcRing">${bellIco}${canSpeak ? 'Ring the bell again' : 'Peek at the word'}</button>
+          <button type="button" class="sq-btn primary" id="tcNail">Nail it up!</button>
+          <button type="button" class="sq-btn primary" id="tcNext" hidden>Next word</button>
+        </div>
+        ${canSpeak ? '' : '<p class="sq-practice">This browser can\'t speak, so tap "Peek at the word", look closely, then write it from memory.</p>'}
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    q('#tcRing').addEventListener('click', () => call(false));
+    q('#tcForm').addEventListener('submit', e => { e.preventDefault(); nail(); });
+    q('#tcNail').addEventListener('click', nail);
+    q('#tcNext').addEventListener('click', next);
+    newWord(true);
+  }
+  function unmount() { timers.forEach(clearTimeout); timers = []; try { speechSynthesis.cancel(); } catch (e) {} if (root) root.remove(); root = null; }
+  function status(t) { q('#tcStatus').textContent = t; }
+
+  function bellSound() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+      const t0 = audio.currentTime;
+      [0, .28, .56].forEach(off => [[880, .22], [1320, .1], [2210, .05]].forEach(([f, v]) => {
+        const o = audio.createOscillator(), g = audio.createGain(); o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t0 + off); g.gain.linearRampToValueAtTime(v, t0 + off + .01); g.gain.exponentialRampToValueAtTime(.0005, t0 + off + 1.1);
+        o.connect(g).connect(audio.destination); o.start(t0 + off); o.stop(t0 + off + 1.2);
+      }));
+    } catch (e) {}
+  }
+  function voice() {
+    try { const vs = speechSynthesis.getVoices(); return vs.find(v => /en[-_]GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null; } catch (e) { return null; }
+  }
+  function say(text, rate, onend) {
+    try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = rate; u.pitch = 1.05; u.lang = 'en-GB'; const v = voice(); if (v) u.voice = v; if (onend) u.onend = onend; speechSynthesis.speak(u); } catch (e) { if (onend) onend(); }
+  }
+  function call(first) {
+    const sceneEl = q('.tc-scene svg'), crier = q('#tcCrier');
+    sceneEl.classList.remove('tc-ringing'); void sceneEl.getBBox(); sceneEl.classList.add('tc-ringing');
+    bellSound();
+    later(() => sceneEl.classList.remove('tc-ringing'), 1500);
+    if (!canSpeak) {   // look-cover-write fallback
+      crier.classList.add('tc-calling'); q('#tcSayText').textContent = st.word;
+      later(() => { crier.classList.remove('tc-calling'); q('#tcSayText').textContent = 'Hear ye!'; q('#tcInput').focus(); }, 2600);
+      return;
+    }
+    st.calls++;
+    const rate = st.calls > 2 ? .55 : .75;
+    later(() => {
+      crier.classList.add('tc-calling'); q('#tcSayText').textContent = first ? 'Hear ye!' : 'Listen!';
+      q('#tcMouth').setAttribute('ry', 5);
+      const done = () => { if (!root) return; crier.classList.remove('tc-calling'); q('#tcMouth').setAttribute('ry', 1.5); q('#tcInput').focus(); };
+      say(first ? `Hear ye, hear ye! The word is: ${st.word}.` : st.word, rate, done);
+      later(done, first ? 4200 : 2400);
+    }, 900);
+  }
+  function newWord(first) {
+    const word = words[st.idx];
+    Object.assign(st, { word, answer: clean(word), tries: 0, over: false, calls: 0 });
+    q('#tcCount').textContent = `Word ${st.idx + 1} of ${words.length}`;
+    q('#tcPosted').textContent = `Notices posted: ${st.posted}`;
+    const form = q('#tcForm'); form.classList.remove('posted', 'wobble');
+    const inp = q('#tcInput'); inp.value = ''; inp.disabled = false;
+    q('#tcDiff').hidden = true; q('#tcDiff').innerHTML = '';
+    q('#tcNail').hidden = false; q('#tcRing').hidden = false; q('#tcNext').hidden = true;
+    q('#tcBrows').setAttribute('d', 'M-14 -149 L-5 -150 M1 -150 L10 -149');
+    status(canSpeak ? 'Listen to the town crier, then write the word on the notice and nail it to the board.' : 'Peek at the word, then write it from memory and nail it to the board.');
+    if (canSpeak) later(() => call(first), first ? 500 : 300); else inp.focus();
+  }
+  function showDiff(guess) {
+    const d = q('#tcDiff'); d.innerHTML = '';
+    const ans = [...st.answer], g = [...guess];
+    const row1 = document.createElement('div'), row2 = document.createElement('div');
+    ans.forEach((ch, i) => { const s = document.createElement('span'); s.textContent = ch === ' ' ? '·' : ch; s.className = g[i] === ch ? 'ok' : ''; row1.appendChild(s); });
+    g.forEach((ch, i) => { const s = document.createElement('span'); s.textContent = ch === ' ' ? '·' : ch; s.className = ans[i] === ch ? 'ok' : 'bad'; row2.appendChild(s); });
+    const l1 = document.createElement('small'); l1.textContent = 'The crier\'s word:';
+    const l2 = document.createElement('small'); l2.textContent = 'What you wrote:';
+    d.append(l1, row1, l2, row2); d.hidden = false;
+  }
+  function nail() {
+    if (st.over) return;
+    const inp = q('#tcInput'), guess = clean(inp.value);
+    if (!guess) { status('Write the word on the notice first. Ring the bell to hear it again!'); inp.focus(); return; }
+    if (guess === st.answer) return win();
+    st.tries++;
+    const form = q('#tcForm'); form.classList.remove('wobble'); void form.offsetWidth; form.classList.add('wobble');
+    q('#tcBrows').setAttribute('d', 'M-14 -151 L-5 -148 M1 -148 L10 -151');
+    if (st.tries === 1) {
+      status('Not quite! Listen carefully, and try again.');
+      if (canSpeak) later(() => call(false), 500);
+      inp.select();
+    } else {
+      showDiff(guess);
+      status('Here is how the crier spells it. Green letters are right. Copy it onto the notice, then nail it up!');
+      inp.value = ''; inp.focus();
+    }
+  }
+  function win() {
+    st.over = true; st.posted++;
+    q('#tcPosted').textContent = `Notices posted: ${st.posted}`;
+    q('#tcInput').disabled = true; q('#tcDiff').hidden = true;
+    q('#tcForm').classList.remove('wobble'); void q('#tcForm').offsetWidth; q('#tcForm').classList.add('posted');
+    q('#tcBrows').setAttribute('d', 'M-14 -151 Q-10 -154 -5 -151 M1 -151 Q5 -154 10 -151');
+    status(`Huzzah! "${st.word}" is posted on the town board.`);
+    later(postNote, 450);
+    later(() => { const c = q('#tcCrier'); c.classList.add('tc-calling'); q('#tcSayText').textContent = 'Huzzah!'; if (canSpeak) say(`Huzzah! ${st.word}!`, .85); }, 900);
+    later(() => q('#tcCrier').classList.remove('tc-calling'), 2600);
+    const last = st.idx >= words.length - 1, nb = q('#tcNext');
+    q('#tcNail').hidden = true; q('#tcRing').hidden = true;
+    nb.textContent = last ? 'Call them all again' : 'Next word'; nb.hidden = false;
+    later(() => nb.focus(), 700);
+  }
+  function postNote() {
+    const notes = q('#tcNotes');
+    if (notes.children.length >= SLOTS.length) notes.firstElementChild.remove();
+    const [x, y] = SLOTS[st.notes++ % SLOTS.length];
+    const g = document.createElementNS(NS, 'g'), rot = (Math.random() - .5) * 10;
+    g.setAttribute('transform', `translate(${x} ${y}) rotate(${rot.toFixed(1)})`);
+    const fs = Math.max(8, Math.min(13, 70 / Math.max(4, st.word.length)));
+    g.innerHTML = `<rect x="-24" y="-20" width="48" height="40" rx="2" fill="#fbf0cf" stroke="#8a6a3a" stroke-width="1.5"/>
+      <path d="M-18 -10 H18" stroke="#c9a660" stroke-width="1.2"/><text x="0" y="5" text-anchor="middle" font-family="Andika, sans-serif" font-weight="700" font-size="${fs.toFixed(1)}" fill="#2a1a10">${st.word.replace(/[<&>]/g, '')}</text>
+      <path d="M-18 12 H18" stroke="#c9a660" stroke-width="1.2"/><circle cx="0" cy="-16" r="2.6" fill="#6b6b78" stroke="#2a2433" stroke-width="1"/>`;
+    notes.appendChild(g);
+    g.animate([{ transform: `translate(${x - 120}px, ${y + 60}px) scale(.3) rotate(-30deg)`, opacity: 0 }, { transform: `translate(${x}px, ${y}px) rotate(${rot}deg)`, opacity: 1 }], { duration: 450, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+    // hammer taps
+    const fx = q('#tcFx'), h = document.createElementNS(NS, 'g');
+    h.innerHTML = `<path d="M0 0 L20 -20" stroke="#6b4226" stroke-width="4" stroke-linecap="round"/><rect x="14" y="-30" width="18" height="10" rx="2" fill="#6b6b78" stroke="#2a2433" stroke-width="1.5" transform="rotate(45 23 -25)"/>`;
+    fx.appendChild(h);
+    h.animate([{ transform: `translate(${x + 10}px, ${y - 30}px) rotate(-30deg)` }, { transform: `translate(${x + 4}px, ${y - 18}px) rotate(10deg)` }, { transform: `translate(${x + 10}px, ${y - 30}px) rotate(-30deg)` }, { transform: `translate(${x + 4}px, ${y - 18}px) rotate(10deg)`, opacity: 1 }, { transform: `translate(${x + 14}px, ${y - 36}px) rotate(-40deg)`, opacity: 0 }], { duration: 900, delay: 350, fill: 'both' }).onfinish = () => h.remove();
+    const board = q('#tcBoard');
+    later(() => board.animate([{ transform: 'none' }, { transform: 'translateX(2px)' }, { transform: 'translateX(-2px)' }, { transform: 'none' }], { duration: 220 }), 600);
+  }
+  function next() {
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.posted = 0; } else st.idx++;
+    newWord(false);
+  }
+  return { mount, unmount };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
