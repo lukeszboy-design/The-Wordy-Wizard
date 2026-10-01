@@ -329,7 +329,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .bw-levels button{font:700 max(11px,1.1cqw) var(--font-read);padding:.3cqw .9cqw;border:2px solid #3b2412;border-radius:999px;background:#fffaf0;color:#3b2412;cursor:pointer}
 .bw-levels button[aria-pressed="true"]{background:#3b2412;color:#f5e7bf}
 .bw-status{margin:0;min-height:2.8em;font:700 max(13px,1.4cqw)/1.4 var(--font-read);text-align:center;text-wrap:balance}
-.bw-wall{position:relative;padding:2.2cqw 1.2cqw 1.2cqw;border-radius:.6cqw;border:3px solid #2a2433;
+.bw-wall{position:relative;margin-top:2.6cqw;padding:2.2cqw 1.2cqw 1.2cqw;border-radius:.6cqw;border:3px solid #2a2433;
   background:linear-gradient(#8f8aa3,#7d7891);box-shadow:0 .6cqw 0 #4a4560, inset 0 0 0 .3cqw rgba(255,255,255,.08)}
 .bw-wall::before{content:"";position:absolute;left:-3px;right:-3px;top:-2.4cqw;height:2.4cqw;
   background:repeating-linear-gradient(90deg,#8f8aa3 0 3.2cqw,transparent 3.2cqw 5.2cqw);border-top:3px solid #2a2433;clip-path:inset(0 0 0 0)}
@@ -367,6 +367,10 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .bw-deco span{height:16px}
 }
 @media (prefers-reduced-motion: reduce){ .bw-word .placed,.bw-rock.bounce,.bw-wall.shake{animation:none} }
+.music-btn{left:auto;right:1.4cqw}
+.music-btn .mute-slash{display:none}
+.music-btn[aria-pressed="false"] .mute-slash{display:inline}
+.music-btn[aria-pressed="false"]{opacity:.8}
 </style>
 
 </head>
@@ -391,6 +395,10 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
         <p class="g-note reveal" id="gNote"></p>
       </div>
     </section>
+    <button type="button" class="lock-btn music-btn" id="musicBtn" aria-pressed="true" aria-label="Background music: on" hidden>
+      <span class="lock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5 V6 L19 4 V15.5" fill="none" stroke="#3b2412" stroke-width="2.2" stroke-linejoin="round"/><ellipse cx="7" cy="17.5" rx="2.6" ry="2.1" fill="#3b2412"/><ellipse cx="17" cy="15.5" rx="2.6" ry="2.1" fill="#3b2412"/><path class="mute-slash" d="M4 4 L20 20" stroke="#a3262f" stroke-width="2.6" stroke-linecap="round"/></svg></span>
+      <span id="musicLabel">Music</span>
+    </button>
     <button type="button" class="lock-btn" id="lockBtn" aria-label="Grown-ups: unlock to add spelling words">
       <span class="lock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.2" fill="#3b2412"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="#3b2412" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1.6" fill="#f2c35b"/></svg></span>
       <span>Grown-ups</span>
@@ -475,16 +483,17 @@ potion</pre><span>One word per row in the first column. A header row such as “
 (() => {
 'use strict';
 /* Maintainer tool: opening the page with #deploy shows the GitHub-ready index.html (site.html) in a box so it can be copied. Kids never see it. */
-if (location.hash === '#deploy') {
+if (location.hash === '#deploy' || location.hash === '#deploy-music') {
+  const DEPLOY_FILE = location.hash === '#deploy-music' ? 'music.txt' : 'site.html';
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;inset:4%;z-index:99999;background:#fff;color:#000;border:3px solid #000;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;font:14px system-ui';
-  const info = document.createElement('div'); info.id = 'deployInfo'; info.textContent = 'Loading site.html…';
+  const info = document.createElement('div'); info.id = 'deployInfo'; info.textContent = 'Loading ' + DEPLOY_FILE + '…';
   const ta = document.createElement('textarea'); ta.id = 'deployText'; ta.spellcheck = false; ta.style.cssText = 'flex:1;font:11px monospace;white-space:pre';
   box.append(info, ta); document.body.appendChild(box);
-  fetch('site.html', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then(async t => {
+  fetch(DEPLOY_FILE, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then(async t => {
     ta.value = t;
     const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
-    info.textContent = `site.html ready · ${t.length} chars · sha256 ${[...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    info.textContent = `${DEPLOY_FILE} ready · ${t.length} chars · sha256 ${[...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('')}`;
   }).catch(e => { info.textContent = 'Could not load site.html: ' + e.message; });
 }
 const stage = document.getElementById('stage');
@@ -574,6 +583,36 @@ function weekText() {
 function bookWordsLabel() { return WORDS.words.length ? `${WORDS.words.length} words this week · Edit` : "Add this week's words"; }
 
 const $ = id => document.getElementById(id);
+
+/* ================= Background music: "Lilting Modal Melody", looped ================= */
+const MUSIC = (() => {
+  const KEY = 'wordy-wizard-music', LAIR = .35, GAME = .16;
+  const btn = $('musicBtn'), label = $('musicLabel'), el = new Audio();
+  el.loop = true; el.preload = 'auto'; el.volume = LAIR;
+  let on = true, ready = false, gesture = false, target = LAIR, fade = null;
+  try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) {}
+  const show = () => { btn.setAttribute('aria-pressed', on); btn.setAttribute('aria-label', `Background music: ${on ? 'on' : 'off'}`); label.textContent = on ? 'Music' : 'Music off'; };
+  const start = () => { if (on && ready && gesture && el.paused && !document.hidden) el.play().catch(() => {}); };
+  // the song ships as base64 text (music.txt) so it deploys like the rest of the site
+  fetch('music.txt').then(r => { if (!r.ok) throw new Error(r.status); return r.text(); }).then(t => {
+    const bin = atob(t.replace(/\s+/g, '')), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    el.src = URL.createObjectURL(new Blob([u8], { type: 'audio/mpeg' }));
+    ready = true; btn.hidden = false; show(); start();
+  }).catch(() => { btn.hidden = true; });
+  // browsers only allow sound after the first tap or key press
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { gesture = true; start(); }, { capture: true, passive: true }));
+  btn.addEventListener('click', e => {
+    e.stopPropagation(); on = !on; try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (er) {}
+    show(); if (on) { gesture = true; start(); } else el.pause();
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) el.pause(); else start(); });
+  function level(v) {
+    target = v; clearInterval(fade);
+    fade = setInterval(() => { const d = target - el.volume; if (Math.abs(d) < .01) { el.volume = target; clearInterval(fade); } else el.volume = Math.max(0, Math.min(1, el.volume + Math.sign(d) * .01)); }, 40);
+  }
+  return { duck: () => level(GAME), lair: () => level(LAIR) };
+})();
 const gate = $('gate'), panel = $('panel'), lockBtn = $('lockBtn');
 let answer = 0, misses = 0, lockedUntil = 0, cooldown = null, returnFocus = null;
 function newProblem() {
@@ -2800,14 +2839,8 @@ const WallGame = (() => {
       <g fill="#fff" opacity=".9"><ellipse cx="80" cy="50" rx="34" ry="12"/><ellipse cx="104" cy="44" rx="22" ry="12"/><ellipse cx="300" cy="70" rx="30" ry="10"/></g>
       <path d="M0 210 Q90 170 190 196 T420 186 V300 H0 Z" fill="#6aa84f"/>
       <path d="M0 250 Q120 228 240 246 T420 240 V300 H0 Z" fill="#4c7a33"/>
-      <!-- castle tower at the right edge -->
-      <g stroke="#2a2433" stroke-width="2.5">
-        <rect x="350" y="96" width="70" height="160" fill="#9792ab"/>
-        <path d="M350 96 v-14 h14 v14 M378 96 v-14 h14 v14 M406 96 v-14 h14 v14" fill="#9792ab"/>
-        <rect x="374" y="200" width="22" height="56" rx="10" fill="#3b2412"/>
-        <path d="M385 82 V44" stroke="#3b2412" stroke-width="3"/>
-      </g>
-      <path id="bwFlag" d="M386 46 L414 54 L386 64 Z" fill="#c0392b" stroke="#2a1a10" stroke-width="2"/>
+      <g id="bwCastle"></g>
+      <g id="bwFx"></g>
       <!-- catapult -->
       <g transform="translate(110 222)">
         <path d="M-60 0 H60 M-50 0 L-10 -46 M50 0 L10 -46" stroke="#5e3a1a" stroke-width="9" stroke-linecap="round"/>
@@ -2822,6 +2855,79 @@ const WallGame = (() => {
         <path d="M-6 -42 L-30 -4" stroke="#c9a35a" stroke-width="3" stroke-dasharray="4 3"/>
       </g>
     </svg>`;
+  }
+
+  // ---- the castle in the scene: a wall and a tower made of blocks, with one hole per missing stone ----
+  const BW_W = 22, BW_H = 15;
+  function buildCastle(holes) {
+    const g = q('#bwCastle'); g.innerHTML = '';
+    const blocks = [];
+    const addArea = (x0, y0, cols, rows, tag) => { for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const off = r % 2 ? BW_W / 2 : 0, x = x0 + c * BW_W + off; if (x + BW_W > x0 + cols * BW_W + .1) continue; blocks.push({ x, y: y0 + r * BW_H, tag, r }); } };
+    addArea(232, 136, 5, 8, 'wall');
+    addArea(342, 76, 3, 12, 'tower');
+    const ns = 'http://www.w3.org/2000/svg', shade = ['#9792ab', '#8f8aa3', '#a19cb4', '#8a859e'];
+    blocks.forEach((b, k) => {
+      const rct = document.createElementNS(ns, 'rect');
+      rct.setAttribute('x', b.x); rct.setAttribute('y', b.y); rct.setAttribute('width', BW_W); rct.setAttribute('height', BW_H);
+      rct.setAttribute('fill', shade[k % 4]); rct.setAttribute('stroke', '#2a2433'); rct.setAttribute('stroke-width', 1.6);
+      g.appendChild(rct); b.el = rct;
+    });
+    [[232, 124, 5], [342, 64, 3]].forEach(([x0, y, n]) => { for (let c = 0; c < n; c++) { const m = document.createElementNS(ns, 'rect'); m.setAttribute('x', x0 + c * BW_W + 3); m.setAttribute('y', y); m.setAttribute('width', BW_W - 8); m.setAttribute('height', 12); m.setAttribute('fill', '#9792ab'); m.setAttribute('stroke', '#2a2433'); m.setAttribute('stroke-width', 1.6); g.appendChild(m); blocks.push({ el: m, x: x0 + c * BW_W, y, tag: 'top' }); } });
+    g.insertAdjacentHTML('beforeend', `<path class="bw-door" d="M366 256 V230 Q375 220 384 230 V256 Z" fill="#3b2412" stroke="#1d1826" stroke-width="2"/>
+      <path class="bw-pole" d="M375 64 V30" stroke="#3b2412" stroke-width="3"/><path id="bwFlag" d="M376 32 L404 40 L376 50 Z" fill="#c0392b" stroke="#2a1a10" stroke-width="2"/>`);
+    const face = shuffle(blocks.filter(b => b.tag === 'wall' && b.r >= 1 && b.r <= 6));
+    const chosen = []; for (const b of face) { if (chosen.length >= holes) break; if (chosen.every(c => Math.abs(c.x - b.x) > BW_W * .9 || Math.abs(c.y - b.y) > BW_H * .9)) chosen.push(b); }
+    chosen.sort((a, b) => a.x - b.x || a.y - b.y).forEach(b => { b.el.setAttribute('fill', '#1d1826'); b.el.setAttribute('stroke-dasharray', '3 2'); b.hole = true; });
+    st.blocks = blocks; st.holes = chosen;
+  }
+  function patchHole() {
+    const h = st.holes.find(b => b.hole); if (!h) return;
+    h.hole = false; h.el.removeAttribute('stroke-dasharray'); h.el.setAttribute('fill', '#c9c0a0');
+    h.el.animate([{ transform: 'translateX(-30px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 320, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+    dust(h.x + BW_W / 2, h.y + BW_H / 2, 4);
+  }
+  function dust(x, y, n) {
+    const fx = q('#bwFx'), ns = 'http://www.w3.org/2000/svg';
+    for (let k = 0; k < n; k++) { const c = document.createElementNS(ns, 'circle'); c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 4 + Math.random() * 5); c.setAttribute('fill', '#d9d2c3'); fx.appendChild(c);
+      c.animate([{ transform: 'translate(0,0) scale(.4)', opacity: .9 }, { transform: `translate(${(Math.random() - .5) * 40}px,${-10 - Math.random() * 20}px) scale(1.5)`, opacity: 0 }], { duration: 700 + Math.random() * 300, easing: 'ease-out', fill: 'forwards' }).onfinish = () => c.remove(); }
+  }
+  function crumble() {
+    const blocks = st.blocks.slice().sort((a, b) => a.y - b.y);
+    blocks.forEach((b, k) => {
+      const dx = (Math.random() - .3) * 40, dy = 262 - b.y - Math.random() * 10, rot = (Math.random() - .5) * 160;
+      b.el.style.transformBox = 'fill-box'; b.el.style.transformOrigin = 'center';
+      b.el.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg)` }], { duration: 650 + Math.random() * 350, delay: 120 + (blocks.length - k) * 6 + Math.random() * 120, easing: 'cubic-bezier(.5,0,.9,.6)', fill: 'forwards' });
+    });
+    q('.bw-door').animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, delay: 500, fill: 'forwards' });
+    const flag = q('#bwFlag'), pole = q('.bw-pole');
+    [flag, pole].forEach(el => { el.style.transformBox = 'fill-box'; el.style.transformOrigin = '50% 100%'; el.animate([{ transform: 'none' }, { transform: 'translate(10px, 200px) rotate(90deg)', opacity: 0 }], { duration: 1000, delay: 150, easing: 'ease-in', fill: 'forwards' }); });
+    for (let k = 0; k < 4; k++) later(() => dust(250 + Math.random() * 150, 250, 5), 500 + k * 180);
+    const svg = q('#bwScene svg'); svg.animate([{ transform: 'none' }, { transform: 'translate(-3px,2px)' }, { transform: 'translate(3px,-2px)' }, { transform: 'none' }], { duration: 300, delay: 300, iterations: 2 });
+  }
+  function fire(hit) {
+    const fx = q('#bwFx'), ns = 'http://www.w3.org/2000/svg';
+    const ball = document.createElementNS(ns, 'circle'); ball.setAttribute('r', 10); ball.setAttribute('fill', '#7d7891'); ball.setAttribute('stroke', '#2a1a10'); ball.setAttribute('stroke-width', 2);
+    fx.appendChild(ball);
+    q('#bwAmmo').setAttribute('fill', 'none'); q('#bwArm').setAttribute('transform', 'rotate(80)');
+    const sx = 30, sy = 150, tx = 236, ty = 180, mx = 130, my = 40, kf = [];
+    for (let k = 0; k <= 14; k++) { const u = k / 14; kf.push({ transform: `translate(${(1 - u) * (1 - u) * sx + 2 * (1 - u) * u * mx + u * u * tx}px, ${(1 - u) * (1 - u) * sy + 2 * (1 - u) * u * my + u * u * ty}px)` }); }
+    ball.animate(kf, { duration: 850, easing: 'linear', fill: 'forwards' }).onfinish = () => {
+      if (!root) return;
+      dust(tx + 6, ty, 5);
+      if (hit === 'bounce') {
+        ball.animate([{ transform: `translate(${tx}px,${ty}px)` }, { transform: `translate(${tx - 50}px,${ty - 40}px)` }, { transform: `translate(${tx - 95}px,${ty + 70}px)`, opacity: .9 }, { transform: `translate(${tx - 115}px,${ty + 60}px)`, opacity: 0 }], { duration: 900, easing: 'ease-in', fill: 'forwards' });
+        label(tx - 40, ty - 50, 'BONK!');
+      } else {
+        ball.animate([{ transform: `translate(${tx}px,${ty}px)` }, { transform: `translate(${tx + 30}px,${ty + 80}px)`, opacity: 0 }], { duration: 700, fill: 'forwards' });
+        label(tx + 40, ty - 60, 'CRASH!'); crumble();
+      }
+    };
+  }
+  function label(x, y, text) {
+    const ns = 'http://www.w3.org/2000/svg', t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y); t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-family', "'Uncial Antiqua', Georgia, serif"); t.setAttribute('font-size', 26); t.setAttribute('fill', '#7b2d3f'); t.setAttribute('stroke', '#fff'); t.setAttribute('stroke-width', 1); t.textContent = text;
+    q('#bwFx').appendChild(t);
+    t.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none', offset: .25 }, { opacity: 0, transform: 'translateY(-16px)' }], { duration: 1500, fill: 'forwards' });
   }
 
   function mount(container, wordList) {
@@ -2844,9 +2950,10 @@ const WallGame = (() => {
         <div class="bw-tray" id="bwTray" aria-label="Letter stones"></div>
         <div class="sq-actions">
           <button type="button" class="sq-btn" id="bwHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+          <button type="button" class="sq-btn" id="bwRetry" hidden>Try this wall again</button>
           <button type="button" class="sq-btn primary" id="bwNext" hidden>Next wall</button>
         </div>
-        <p class="px-hint">Drag a letter stone into a hole, or tap a stone to drop it in the glowing hole. You can type letters too.</p>
+        <p class="px-hint">Drag a letter stone into a hole, or tap a stone to drop it in the glowing hole. Careful: a wrong stone makes the catapult fire!</p>
         ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
       </div>`;
     container.appendChild(root);
@@ -2857,6 +2964,7 @@ const WallGame = (() => {
     q('#bwHear').addEventListener('click', () => speak(st.word));
     if (!('speechSynthesis' in window)) q('#bwHear').hidden = true;
     q('#bwNext').addEventListener('click', next);
+    q('#bwRetry').addEventListener('click', () => newWord());
     const tray = q('#bwTray');
     tray.addEventListener('pointerdown', onDown); tray.addEventListener('pointermove', onMove);
     tray.addEventListener('pointerup', onUp); tray.addEventListener('pointercancel', onUp);
@@ -2901,11 +3009,11 @@ const WallGame = (() => {
     for (const c of pool) { if (decoys.length >= decoyCount) break; if (!decoys.includes(c)) decoys.push(c); }
     const tray = q('#bwTray'); tray.innerHTML = '';
     shuffle([...need, ...decoys]).forEach(c => { const r = document.createElement('button'); r.type = 'button'; r.className = 'bw-rock'; r.textContent = c; r.dataset.l = c; r.setAttribute('aria-label', `Letter stone ${c}`); tray.appendChild(r); });
-    q('#bwWall').classList.remove('fixed'); q('#bwScene').classList.remove('bw-won');
-    q('#bwAmmo').setAttribute('fill', '#e5533d');
+    q('#bwWall').classList.remove('fixed'); q('#bwScene').classList.remove('bw-won'); q('#bwFx').innerHTML = ''; buildCastle(n); q('#bwArm').setAttribute('transform', 'rotate(0)'); q('#bwRetry').hidden = true;
+    q('#bwAmmo').setAttribute('fill', '#7d7891');
     q('#bwNext').hidden = true;
     setTarget(gaps()[0]);
-    status(n === 1 ? 'A stone fell out of the wall! Find the missing letter before the catapult fires.' : `${n} stones fell out of the wall! Fix them before the catapult fires.`);
+    status(n === 1 ? 'The castle has a hole! Find the missing letter before the catapult fires.' : `The castle has ${n} holes! Fix them before the catapult fires.`);
     startTimer();
   }
   const gaps = () => [...q('#bwWord').querySelectorAll('.gap')];
@@ -2958,64 +3066,43 @@ const WallGame = (() => {
     const i = +gap.dataset.i, want = st.chars[i], l = rock.dataset.l;
     if (l === want) {
       const s = document.createElement('span'); s.className = 'placed'; s.textContent = l;
-      gap.replaceWith(s); rock.classList.add('used');
+      gap.replaceWith(s); rock.classList.add('used'); patchHole();
       const left = gaps();
       if (!left.length) return win();
       setTarget(left.find(g => +g.dataset.i > i) || left[0]);
       status(`Clunk! "${l}" fits. ${left.length} more stone${left.length > 1 ? 's' : ''} to go.`);
     } else {
-      st.misses++;
+      st.over = true; stopTimer();
       rock.classList.remove('bounce'); void rock.offsetWidth; rock.classList.add('bounce');
       const w = q('#bwWall'); w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake');
-      status(`"${l}" doesn't fit there. Say the word slowly and listen for the missing sound.${st.misses >= 2 ? ' Tap "Hear the word" for help!' : ''}`);
+      status(`Oh no! "${l}" doesn't fit, and the catapult fired while the hole was open. The castle crumbled! The word is "${st.word}".`);
+      q('#bwMeterLabel').textContent = 'The castle crumbled!';
+      fire('crumble'); later(revealMissing, 900); speak(st.word);
+      endRound(true);
     }
   }
-  function flyShot(color, onHit, bounce) {
-    const rr = root.getBoundingClientRect(), sc = q('#bwScene svg').getBoundingClientRect(), wall = q('#bwWord').getBoundingClientRect();
-    const sx = sc.left - rr.left + sc.width * .04, sy = sc.top - rr.top + sc.height * .5;
-    const tx = wall.left - rr.left + wall.width * (.3 + Math.random() * .4), ty = wall.top - rr.top + wall.height * .3;
-    const shot = document.createElement('div'); shot.className = 'bw-shot'; shot.style.background = `radial-gradient(circle at 35% 30%, #fff8, ${color} 45%)`; shot.style.border = '2px solid #2a1a10';
-    root.appendChild(shot);
-    const mx = (sx + tx) / 2, my = Math.min(sy, ty) - rr.height * .35;
-    const kf = []; for (let k = 0; k <= 12; k++) { const u = k / 12, x = (1 - u) * (1 - u) * sx + 2 * (1 - u) * u * mx + u * u * tx, y = (1 - u) * (1 - u) * sy + 2 * (1 - u) * u * my + u * u * ty; kf.push({ transform: `translate(${x}px,${y}px) rotate(${u * 540}deg)` }); }
-    q('#bwAmmo').setAttribute('fill', 'none');
-    q('#bwArm').setAttribute('transform', 'rotate(80)');
-    shot.animate(kf, { duration: 900, easing: 'linear', fill: 'forwards' }).onfinish = () => {
-      if (!root) return;
-      onHit(tx, ty);
-      if (bounce) shot.animate([{ transform: `translate(${tx}px,${ty}px)` }, { transform: `translate(${tx - 60}px,${ty - 50}px) rotate(200deg)` }, { transform: `translate(${tx - 110}px,${ty + 140}px) rotate(400deg)`, opacity: 0 }], { duration: 800, easing: 'ease-in', fill: 'forwards' }).onfinish = () => shot.remove();
-      else { shot.animate([{ transform: `translate(${tx}px,${ty}px) scale(1)` }, { transform: `translate(${tx}px,${ty}px) scale(2.4,1.2)`, opacity: .9, offset: .2 }, { transform: `translate(${tx}px,${ty + 30}px) scale(2.2,1.4)`, opacity: 0 }], { duration: 1400, fill: 'forwards' }).onfinish = () => shot.remove(); }
-    };
-  }
-  function bonk(x, y, text) {
-    const b = document.createElement('div'); b.className = 'bw-bonk'; b.textContent = text; b.style.left = x + 'px'; b.style.top = (y - 30) + 'px'; root.appendChild(b);
-    b.animate([{ transform: 'translate(-50%,0) scale(.5)', opacity: 0 }, { transform: 'translate(-50%,-10px) scale(1.2)', opacity: 1, offset: .3 }, { transform: 'translate(-50%,-30px) scale(1)', opacity: 0 }], { duration: 1300, fill: 'forwards' }).onfinish = () => b.remove();
-  }
+  function revealMissing() { gaps().forEach(g => { const s = document.createElement('span'); s.className = 'missed'; s.textContent = st.chars[+g.dataset.i]; g.replaceWith(s); }); }
   function win() {
     st.over = true; stopTimer(); st.fixed++;
     q('#bwFixed').textContent = `Walls fixed: ${st.fixed}`;
     q('#bwWall').classList.add('fixed'); q('#bwScene').classList.add('bw-won');
     q('#bwMeterLabel').textContent = 'The wall is strong again!';
-    status(`You fixed the wall! The word is "${st.word}". Here comes the catapult… BONK!`);
+    status(`You patched every hole! The word is "${st.word}". Here comes the catapult… the boulder bounces right off!`);
     speak(st.word);
-    q('#bwAmmo').setAttribute('fill', '#8f8aa3');
-    later(() => flyShot('#8f8aa3', (x, y) => bonk(x, y, 'BONK!'), true), 700);
+    later(() => fire('bounce'), 600);
     endRound();
   }
   function timeUp() {
     if (st.over) return;
     st.over = true;
-    status(`Splat! The catapult flung a tomato. No harm done! The word is "${st.word}". Here are the missing stones.`);
-    q('#bwMeterLabel').textContent = 'Splat!';
-    flyShot('#e5533d', (x, y) => {
-      bonk(x, y, 'SPLAT!');
-      gaps().forEach(g => { const s = document.createElement('span'); s.className = 'missed'; s.textContent = st.chars[+g.dataset.i]; g.replaceWith(s); });
-      speak(st.word);
-    }, false);
-    endRound();
+    status(`The catapult fired before the holes were patched, and the castle crumbled! The word is "${st.word}". Here are the missing stones.`);
+    q('#bwMeterLabel').textContent = 'The castle crumbled!';
+    fire('crumble'); later(() => { revealMissing(); speak(st.word); }, 900);
+    endRound(true);
   }
-  function endRound() {
+  function endRound(failed) {
     root.querySelectorAll('.bw-rock').forEach(r => r.disabled = true);
+    q('#bwRetry').hidden = !failed;
     const last = st.idx >= words.length - 1, nb = q('#bwNext');
     nb.textContent = last ? 'Build them all again' : 'Next wall'; nb.hidden = false;
     later(() => nb.focus(), 1800);
@@ -3167,12 +3254,13 @@ function startGame(key) {
   FX.key = key; paintGameCanvas(key);
   say(`${GAMES[key].name}! ${CASTS[(Math.random() * CASTS.length) | 0]}`);
   W.waveT = 0; hoverKey = null; paintCurrent();
+  MUSIC.duck();
   setTimeout(() => { FX.state = 'toGame'; FX.p = 0; bubble.classList.add('hide'); lockBtn.hidden = true; }, reduce ? 300 : 900);
 }
 function backToLair() {
   if (FX.state !== 'game') return;
   if (ACTIVE_GAME) { ACTIVE_GAME.unmount(); ACTIVE_GAME = null; }
-  gameScreen.hidden = true; FX.state = 'toLair'; FX.p = 1; lockBtn.hidden = true;
+  gameScreen.hidden = true; FX.state = 'toLair'; FX.p = 1; lockBtn.hidden = true; MUSIC.lair();
 }
 document.getElementById('gameBack').addEventListener('click', backToLair);
 gameHook = startGame;
