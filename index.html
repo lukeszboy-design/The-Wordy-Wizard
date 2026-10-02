@@ -2974,7 +2974,7 @@ const CrierGame = (() => {
 })();
 /* ================= Game: Broken Castle Wall (missing letter) ================= */
 const WallGame = (() => {
-  const LEVELS = { easy: { label: 'Easy', frac: 0, min: 1, secs: 45 }, medium: { label: 'Medium', frac: .34, min: 2, secs: 45 }, hard: { label: 'Hard', frac: .5, min: 3, secs: 40 } };
+  const LEVELS = { easy: { label: 'Easy', holes: 1, secs: 45 }, medium: { label: 'Medium', holes: 3, secs: 45 }, hard: { label: 'Hard', holes: 4, secs: 40 } };
   const VOWELS = 'aeiou', ABC = 'abcdefghijklmnopqrstuvwxyz';
   let root, st, words, practice, timers = [], tick = null, drag = null, keyHandler, level = 'easy';
   const q = s => root.querySelector(s);
@@ -3108,8 +3108,11 @@ const WallGame = (() => {
       </div>`;
     container.appendChild(root);
     root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.level === level) return;
       level = b.dataset.level; try { localStorage.setItem('wordy-wizard-wall-level', level); } catch (e) {}
-      root.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-pressed', x === b)); newWord();
+      root.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-pressed', x === b));
+      // switch to a different word so changing level can't reveal more of the same word
+      st.idx = (st.idx + 1) % words.length; newWord();
     }));
     q('#bwHear').addEventListener('click', () => speak(st.word));
     if (!('speechSynthesis' in window)) q('#bwHear').hidden = true;
@@ -3137,7 +3140,7 @@ const WallGame = (() => {
     const word = words[st.idx], chars = [...word.toLowerCase()];
     const letterIdx = chars.map((c, i) => /[a-z]/.test(c) ? i : -1).filter(i => i >= 0);
     const L = LEVELS[level];
-    let n = Math.max(L.min, Math.round(letterIdx.length * L.frac)); n = Math.min(n, Math.max(1, letterIdx.length - 1));
+    const n = Math.min(L.holes, Math.max(1, letterIdx.length - 1));
     const missing = new Set(shuffle(letterIdx).slice(0, n));
     Object.assign(st, { word, chars, missing, over: false, misses: 0, t0: 0, secs: L.secs });
     q('#bwCount').textContent = `Wall ${st.idx + 1} of ${words.length}`;
