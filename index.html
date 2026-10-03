@@ -223,7 +223,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 }
 @media (prefers-reduced-motion: reduce){ .px-flame,.px-sbub,.px-steam,.px-jar .bub,.px-jar.hop{animation:none} }
 /* --- Dragon's Hoard (word search) --- */
-.dh{position:absolute;left:4%;right:4%;top:22%;bottom:8%;display:grid;grid-template-columns:minmax(0,56fr) minmax(0,44fr);gap:2.2cqw;color:var(--parch-ink)}
+.dh{position:absolute;left:4%;right:4%;top:22%;bottom:8%;display:grid;grid-template-columns:minmax(0,56fr) minmax(0,44fr);grid-template-rows:minmax(0,1fr);gap:2.2cqw;color:var(--parch-ink)}
 .dh-boardwrap{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
 .dh-board{position:relative;width:100%;aspect-ratio:var(--ar,1);box-sizing:border-box;display:grid;gap:.3cqw;padding:1cqw;border-radius:1.4cqw;border:3px solid var(--ink);background:radial-gradient(ellipse at 50% 35%,#5a3a22,#2a1a10 80%);box-shadow:0 .5cqw 0 rgba(59,36,18,.25), inset 0 0 2cqw rgba(0,0,0,.5);touch-action:none;user-select:none;-webkit-user-select:none}
 .dh-coin{position:relative;display:grid;place-items:center;aspect-ratio:1/1;min-width:0;border-radius:50%;border:2px solid #7a5210;cursor:pointer;padding:0;
@@ -238,7 +238,8 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 @keyframes dhnope{25%{transform:rotate(var(--r,0deg)) translateX(-3px)}75%{transform:rotate(var(--r,0deg)) translateX(3px)}}
 .dh-coin.hint{animation:dhhint .6s ease-in-out 3}
 @keyframes dhhint{50%{transform:rotate(var(--r,0deg)) scale(1.25);filter:brightness(1.4)}}
-.dh-side{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1cqw}
+/* the side panel scrolls if it can't fit (short screens) rather than stretching the board's row */
+.dh-side{min-width:0;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:safe center;gap:1cqw}
 .dh-scene svg{display:block;width:100%;height:auto;max-height:17cqw;border-radius:1.2cqw;border:3px solid var(--ink);background:#1d1426}
 .dh-top{display:flex;justify-content:space-between;gap:1cqw;font:700 max(12px,1.2cqw) var(--font-read);color:#6b4a26;font-variant-numeric:tabular-nums}
 .dh-status{margin:0;min-height:2.8em;font:700 max(13px,1.35cqw)/1.4 var(--font-read);text-align:center;text-wrap:balance}
@@ -272,6 +273,20 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .dh-board{height:auto!important;width:100%!important;padding:8px;gap:3px}
   .dh-coin{font-size:clamp(14px,4.4vw,20px)}
   .dh-scene svg{max-height:none}
+}
+/* phones on their side: board and dragon side by side, the board sized to the screen's height */
+@media (max-width:760px) and (orientation:landscape){
+  .game-screen:has(.dh) #gameTitle,.game-screen:has(.dh) #gameDesc{display:none}
+  /* everything starts below the "Back to the lair" button and fits the screen's height */
+  .dh{flex-direction:row;align-items:flex-start;padding:58px 16px 8px}
+  .dh-boardwrap{flex:0 0 auto}
+  .dh-board{width:min(58vw, calc((100dvh - 70px) * var(--cols, 1) / var(--rows, 1)))!important;container-type:inline-size;padding:5px;gap:2px}
+  .dh-coin{font-size:max(11px, calc(100cqw / var(--cols, 1) * .48))}
+  .dh-side{flex:1;max-height:calc(100dvh - 70px);overflow-y:auto;justify-content:flex-start}
+  .dh-side > *{flex-shrink:0}
+  .dh-scene svg{max-height:28dvh}
+  .dh-status{font-size:13px;min-height:0}
+  .dh-word{font-size:13px}
 }
 @media (prefers-reduced-motion: reduce){ .dh-zzz text,#dhBreath,.dh-baby .wing{animation:none} }
 /* --- The Town Crier (listen & spell) --- */
@@ -2888,7 +2903,7 @@ const DragonGame = (() => {
   function newRound() {
     const pz = makePuzzle(rounds[st.round]);
     Object.assign(st, pz, { found: new Set(), done: false, anchor: null });
-    const board = q('#dhBoard'); board.innerHTML = ''; board.style.gridTemplateColumns = `repeat(${pz.cols}, minmax(0,1fr))`; board.style.gridTemplateRows = `repeat(${pz.rows}, minmax(0,1fr))`; board.style.setProperty('--ar', `${pz.cols} / ${pz.rows}`); fitBoard();
+    const board = q('#dhBoard'); board.innerHTML = ''; board.style.gridTemplateColumns = `repeat(${pz.cols}, minmax(0,1fr))`; board.style.gridTemplateRows = `repeat(${pz.rows}, minmax(0,1fr))`; board.style.setProperty('--cols', pz.cols); board.style.setProperty('--rows', pz.rows); board.style.setProperty('--ar', `${pz.cols} / ${pz.rows}`); fitBoard();
     pz.grid.forEach((ch, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'dh-coin'; b.textContent = ch; b.dataset.i = i; b.tabIndex = i === 0 ? 0 : -1;
       b.style.setProperty('--r', `${((Math.random() - .5) * 14).toFixed(1)}deg`);
