@@ -453,6 +453,34 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .jt-fixing .jt-banner{height:auto;min-height:84px;padding:16px 4px 26px}
 }
 @media (prefers-reduced-motion: reduce){ .jt-banner,#jtJester,.jt-bell,#jtBrush,.jt-caught .jt-stars,.jt-laugh #jtJester{animation:none} }
+/* --- Title screen: the castle from outside, shown while the lair, music and voice load --- */
+.title{position:fixed;inset:0;z-index:40;overflow:hidden;background:#0d0a1f;transition:opacity .8s ease 1.3s}
+.title .castle{position:absolute;inset:0;width:100%;height:100%;transform-origin:50% 50%;transition:transform 2.1s cubic-bezier(.55,0,.85,.35)}
+.title.zoom .castle{transform:scale(13)}
+.title.zoom{opacity:0;pointer-events:none}
+.title-head{position:absolute;left:16px;right:16px;top:3.5vh;text-align:center;transition:opacity .45s, transform .6s}
+.title h1{margin:0;font:400 clamp(34px,7.4vmin,104px)/1.05 var(--font-display);color:#f5c75e;letter-spacing:.02em;text-wrap:balance;text-shadow:0 0 .35em rgba(255,190,80,.55),0 .05em 0 #2a0f18,0 0 3px #2a0f18}
+.title .tag{margin:.35em 0 0;font:italic 700 clamp(15px,2.5vmin,28px) var(--font-read);color:#e9dcff;text-shadow:0 2px 6px rgba(0,0,0,.7)}
+.title-foot{position:absolute;left:16px;right:16px;bottom:4.5vh;display:flex;flex-direction:column;align-items:center;gap:14px;transition:opacity .45s, transform .6s}
+.title.zoom .title-head,.title.zoom .title-foot{opacity:0;transform:translateY(-2vh)}
+.t-steps{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;margin:0;padding:8px 16px;list-style:none;border-radius:999px;background:rgba(13,10,31,.55);font:700 clamp(13px,2vmin,19px) var(--font-read);color:#cfc6e8}
+.t-steps li{display:flex;align-items:center;gap:8px;transition:color .3s}
+.t-steps li i{position:relative;width:15px;height:15px;border-radius:50%;border:2px solid #cfc6e8;border-top-color:transparent;box-sizing:border-box;animation:tspin .9s linear infinite}
+.t-steps li.done{color:#f5c75e}
+.t-steps li.done i{animation:none;background:#f5c75e;border-color:#f5c75e}
+.t-steps li.done i::after{content:"";position:absolute;left:3.5px;top:.5px;width:3.5px;height:7px;border:solid #2a0f18;border-width:0 2px 2px 0;transform:rotate(45deg)}
+@keyframes tspin{to{transform:rotate(360deg)}}
+.t-enter{font:400 clamp(22px,3.8vmin,40px) var(--font-display);color:#2a0f18;background:radial-gradient(circle at 35% 30%,#ffe7a0,#e0a63a 70%);border:3px solid #2a0f18;border-radius:999px;padding:.42em 1.5em;cursor:pointer;box-shadow:0 0 0 4px rgba(245,199,94,.25),0 0 30px 6px rgba(255,190,80,.45),0 6px 0 #2a0f18;animation:tglow 1.6s ease-in-out infinite alternate}
+.t-enter:active{transform:translateY(3px);box-shadow:0 0 0 4px rgba(245,199,94,.25),0 0 30px 6px rgba(255,190,80,.45),0 3px 0 #2a0f18}
+.t-enter:focus-visible{outline:4px solid #fff;outline-offset:5px}
+@keyframes tglow{to{box-shadow:0 0 0 7px rgba(245,199,94,.35),0 0 48px 14px rgba(255,190,80,.6),0 6px 0 #2a0f18}}
+.t-note{margin:0;min-height:1.3em;font:italic clamp(12px,1.8vmin,17px) var(--font-read);color:#d6ccf0;text-align:center;max-width:52ch;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.castle .flag{transform-box:fill-box;transform-origin:0 50%;animation:flag 1.4s ease-in-out infinite alternate}
+.castle .twinkle{animation:twk 2.6s ease-in-out infinite alternate}
+@keyframes twk{from{opacity:.2}to{opacity:1}}
+.castle .glow{animation:wglow 3s ease-in-out infinite alternate}
+@keyframes wglow{from{opacity:.7}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){ .title{transition:opacity .4s} .title .castle{transition:none} .title.zoom .castle{transform:none} .t-enter,.castle .flag,.castle .twinkle,.castle .glow,.t-steps li i{animation:none} }
 .music-btn{left:auto;right:1.4cqw}
 .music-btn .mute-slash{display:none}
 .music-btn[aria-pressed="false"] .mute-slash{display:inline}
@@ -470,7 +498,6 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
       <span id="bubbleText"></span>
       <svg class="tail" viewBox="0 0 40 30" aria-hidden="true"><path d="M2 -4 L24 -4 C26 8 32 20 40 30 C24 24 10 12 2 -4 Z" fill="#fbf1d4"/><path d="M24 0 C26 8 32 20 40 30 C24 24 10 12 2 0" fill="none" stroke="#1b1424" stroke-width="2.6" stroke-linejoin="round"/></svg>
     </div>
-    <div class="curtain"></div>
     <section class="game-screen" id="gameScreen" hidden aria-labelledby="gameTitle">
       <h2 class="sr-only" id="gameTitle">Game</h2>
       <p id="gameDesc" hidden></p>
@@ -504,6 +531,77 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
       <span id="mPageNo">Page 1</span>
       <button type="button" id="mNext" class="m-arrow" aria-label="Next page of spells"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5 L16 12 L9 19"/></svg></button>
     </div>
+  </div>
+</div>
+
+<div class="title" id="title" role="dialog" aria-modal="true" aria-labelledby="titleName" aria-describedby="titleTag">
+  <svg class="castle" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<defs>
+<linearGradient id="tSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0a24"/><stop offset=".55" stop-color="#26286a"/><stop offset="1" stop-color="#6a4a86"/></linearGradient>
+<radialGradient id="tHalo" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#e8ecff" stop-opacity=".45"/><stop offset="1" stop-color="#e8ecff" stop-opacity="0"/></radialGradient>
+<radialGradient id="tWin" cx=".5" cy=".55" r=".6"><stop offset="0" stop-color="#fff4c4"/><stop offset=".55" stop-color="#ffcf6b"/><stop offset="1" stop-color="#f08a2e"/></radialGradient>
+<radialGradient id="tWinGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffc861" stop-opacity=".75"/><stop offset="1" stop-color="#ffc861" stop-opacity="0"/></radialGradient>
+<linearGradient id="tStone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a5378"/><stop offset=".5" stop-color="#6a6288"/><stop offset="1" stop-color="#4f4870"/></linearGradient>
+</defs>
+<rect width="1600" height="900" fill="url(#tSky)"/>
+<g fill="#fff"><circle cx="522" cy="93" r="2.6" class="twinkle" style="animation-delay:-2.1s"/><circle cx="159" cy="331" r="2.1" class="twinkle" style="animation-delay:-0.2s"/><circle cx="671" cy="142" r="2.1" class="twinkle" style="animation-delay:-2.1s"/><circle cx="206" cy="133" r="2.6"/><circle cx="108" cy="332" r="0.9"/><circle cx="84" cy="482" r="1.3" class="twinkle" style="animation-delay:-1.4s"/><circle cx="912" cy="318" r="2.6" class="twinkle" style="animation-delay:-1.5s"/><circle cx="1019" cy="215" r="2.1"/><circle cx="902" cy="350" r="1.6"/><circle cx="686" cy="183" r="2.1"/><circle cx="581" cy="147" r="1.1"/><circle cx="396" cy="326" r="2.1"/><circle cx="553" cy="257" r="2.1"/><circle cx="197" cy="240" r="1.3" class="twinkle" style="animation-delay:-1.3s"/><circle cx="72" cy="378" r="2.1"/><circle cx="1393" cy="183" r="2.6" class="twinkle" style="animation-delay:-1.3s"/><circle cx="1269" cy="48" r="0.9"/><circle cx="759" cy="375" r="0.9"/><circle cx="499" cy="328" r="2.6"/><circle cx="460" cy="222" r="2.6" class="twinkle" style="animation-delay:-2.4s"/><circle cx="572" cy="346" r="1.6" class="twinkle" style="animation-delay:-2.0s"/><circle cx="214" cy="146" r="1.6"/><circle cx="794" cy="102" r="1.6"/><circle cx="1406" cy="461" r="2.1" class="twinkle" style="animation-delay:-1.1s"/><circle cx="577" cy="496" r="1.1" class="twinkle" style="animation-delay:-0.5s"/><circle cx="376" cy="138" r="1.6"/><circle cx="298" cy="165" r="1.1" class="twinkle" style="animation-delay:-1.0s"/><circle cx="905" cy="534" r="2.6"/><circle cx="1511" cy="370" r="2.6" class="twinkle" style="animation-delay:-2.3s"/><circle cx="1242" cy="491" r="2.1" class="twinkle" style="animation-delay:-1.0s"/><circle cx="174" cy="359" r="0.9" class="twinkle" style="animation-delay:-2.6s"/><circle cx="706" cy="70" r="2.1" class="twinkle" style="animation-delay:-0.0s"/><circle cx="249" cy="66" r="1.3"/><circle cx="121" cy="124" r="1.6" class="twinkle" style="animation-delay:-0.7s"/><circle cx="559" cy="210" r="0.9" class="twinkle" style="animation-delay:-1.3s"/><circle cx="1555" cy="274" r="1.3" class="twinkle" style="animation-delay:-0.3s"/><circle cx="551" cy="156" r="2.6" class="twinkle" style="animation-delay:-0.1s"/><circle cx="1513" cy="301" r="1.1"/><circle cx="1454" cy="427" r="1.3"/><circle cx="1374" cy="393" r="1.3"/><circle cx="1445" cy="206" r="1.1"/><circle cx="362" cy="456" r="1.1"/><circle cx="1303" cy="417" r="1.1" class="twinkle" style="animation-delay:-1.3s"/><circle cx="1165" cy="554" r="1.3"/><circle cx="316" cy="343" r="1.3" class="twinkle" style="animation-delay:-2.4s"/><circle cx="1571" cy="535" r="1.3" class="twinkle" style="animation-delay:-0.3s"/><circle cx="753" cy="196" r="1.6"/><circle cx="1432" cy="472" r="1.6"/><circle cx="554" cy="364" r="2.6" class="twinkle" style="animation-delay:-1.0s"/><circle cx="1134" cy="120" r="1.1" class="twinkle" style="animation-delay:-1.7s"/><circle cx="147" cy="530" r="2.6" class="twinkle" style="animation-delay:-1.0s"/><circle cx="1506" cy="409" r="1.1"/><circle cx="54" cy="335" r="1.6"/><circle cx="241" cy="465" r="1.6"/><circle cx="564" cy="312" r="1.1" class="twinkle" style="animation-delay:-2.1s"/><circle cx="1158" cy="67" r="2.6"/><circle cx="695" cy="489" r="1.1" class="twinkle" style="animation-delay:-0.6s"/><circle cx="802" cy="430" r="1.3" class="twinkle" style="animation-delay:-1.1s"/><circle cx="217" cy="511" r="1.3"/><circle cx="1057" cy="458" r="2.1" class="twinkle" style="animation-delay:-2.4s"/><circle cx="803" cy="303" r="2.1"/><circle cx="1389" cy="437" r="2.1" class="twinkle" style="animation-delay:-2.1s"/><circle cx="282" cy="270" r="2.6" class="twinkle" style="animation-delay:-0.2s"/><circle cx="1088" cy="302" r="1.6"/><circle cx="178" cy="318" r="1.1" class="twinkle" style="animation-delay:-0.1s"/><circle cx="164" cy="259" r="0.9"/><circle cx="1452" cy="254" r="2.1"/><circle cx="968" cy="120" r="1.3"/><circle cx="853" cy="273" r="1.1"/><circle cx="1395" cy="528" r="1.3"/><circle cx="1421" cy="121" r="1.6" class="twinkle" style="animation-delay:-0.3s"/><circle cx="709" cy="50" r="1.1" class="twinkle" style="animation-delay:-0.6s"/><circle cx="488" cy="77" r="1.1"/><circle cx="1027" cy="211" r="1.3"/><circle cx="1539" cy="131" r="0.9" class="twinkle" style="animation-delay:-1.3s"/><circle cx="1574" cy="468" r="1.1"/><circle cx="1581" cy="232" r="1.6" class="twinkle" style="animation-delay:-0.8s"/><circle cx="1151" cy="21" r="2.1"/><circle cx="1121" cy="221" r="2.1"/></g>
+<circle cx="1300" cy="165" r="150" fill="url(#tHalo)"/>
+<circle cx="1300" cy="165" r="58" fill="#f6efcf"/>
+<g fill="#e1d6ad"><circle cx="1282" cy="150" r="11"/><circle cx="1318" cy="182" r="14"/><circle cx="1308" cy="138" r="6"/></g>
+<path d="M0 610 L110 530 L210 585 L330 500 L450 590 L560 540 L640 600 L960 600 L1050 545 L1160 590 L1270 505 L1390 585 L1500 535 L1600 590 V900 H0 Z" fill="#241f48"/>
+<path d="M0 770 Q320 660 800 652 Q1280 660 1600 770 V900 H0 Z" fill="#1b2340"/>
+<g stroke="#1b1424" stroke-width="4" stroke-linejoin="round">
+  <!-- outer wall with corner towers -->
+  <rect x="360" y="575" width="880" height="160" fill="url(#tStone)"/>
+  <g fill="#6a6288"><rect x="362" y="549" width="30" height="28"/><rect x="414" y="549" width="30" height="28"/><rect x="466" y="549" width="30" height="28"/><rect x="518" y="549" width="30" height="28"/><rect x="570" y="549" width="30" height="28"/><rect x="622" y="549" width="30" height="28"/><rect x="674" y="549" width="30" height="28"/><rect x="726" y="549" width="30" height="28"/><rect x="778" y="549" width="30" height="28"/><rect x="830" y="549" width="30" height="28"/><rect x="882" y="549" width="30" height="28"/><rect x="934" y="549" width="30" height="28"/><rect x="986" y="549" width="30" height="28"/><rect x="1038" y="549" width="30" height="28"/><rect x="1090" y="549" width="30" height="28"/><rect x="1142" y="549" width="30" height="28"/><rect x="1194" y="549" width="30" height="28"/></g>
+  <rect x="290" y="480" width="110" height="255" fill="url(#tStone)"/><rect x="1200" y="480" width="110" height="255" fill="url(#tStone)"/>
+  <path d="M278 482 L345 330 L412 482 Z" fill="#5b2d6e"/><path d="M1188 482 L1255 330 L1322 482 Z" fill="#5b2d6e"/>
+  <!-- inner towers -->
+  <rect x="500" y="320" width="115" height="415" fill="url(#tStone)"/><rect x="985" y="320" width="115" height="415" fill="url(#tStone)"/>
+  <path d="M486 322 L557 150 L629 322 Z" fill="#6b3fa0"/><path d="M971 322 L1043 150 L1114 322 Z" fill="#6b3fa0"/>
+  <!-- the keep -->
+  <rect x="640" y="340" width="320" height="395" fill="url(#tStone)"/>
+  <g fill="#6a6288"><rect x="640" y="314" width="32" height="28"/><rect x="696" y="314" width="32" height="28"/><rect x="752" y="314" width="32" height="28"/><rect x="808" y="314" width="32" height="28"/><rect x="864" y="314" width="32" height="28"/><rect x="920" y="314" width="32" height="28"/></g>
+</g>
+<g stroke="#4a4368" stroke-width="3" fill="none" opacity=".8">
+  <path d="M640 400 H960 M640 560 H960 M640 640 H960 M360 640 H640 M960 640 H1240 M500 420 H615 M985 420 H1100 M500 520 H615 M985 520 H1100 M290 560 H400 M1200 560 H1310 M500 620 H615 M985 620 H1100"/>
+  <path d="M700 340 V400 M900 340 V400 M680 560 V640 M760 560 V640 M840 560 V640 M920 560 V640 M430 575 V640 M1170 575 V640 M555 420 V520 M1043 420 V520"/>
+</g>
+<!-- the lit window of the wizard's lair: the camera flies in through here -->
+<ellipse cx="800" cy="450" rx="150" ry="130" fill="url(#tWinGlow)" class="glow"/>
+<path d="M752 512 V440 A48 48 0 0 1 848 440 V512 Z" fill="url(#tWin)" stroke="#1b1424" stroke-width="5"/>
+<path d="M768 512 V492 Q768 470 778 468 L774 458 L786 444 L790 466 Q798 470 798 492 V512 Z" fill="#3a2550" opacity=".85"/>
+<path d="M740 516 H860 V526 H740 Z" fill="#4a4368" stroke="#1b1424" stroke-width="4"/>
+<!-- small lit windows -->
+<g fill="#ffcf6b" stroke="#1b1424" stroke-width="3">
+  <path d="M543 400 V376 A14 14 0 0 1 571 376 V400 Z"/><path d="M1029 400 V376 A14 14 0 0 1 1057 376 V400 Z"/>
+  <path d="M543 600 V578 A14 14 0 0 1 571 578 V600 Z"/><path d="M1029 600 V578 A14 14 0 0 1 1057 578 V600 Z"/>
+  <path d="M333 560 V540 A12 12 0 0 1 357 540 V560 Z"/><path d="M1243 560 V540 A12 12 0 0 1 1267 540 V560 Z"/>
+</g>
+<!-- gate -->
+<path d="M748 735 V676 A52 52 0 0 1 852 676 V735 Z" fill="#120d1c" stroke="#1b1424" stroke-width="4"/>
+<g stroke="#4a4368" stroke-width="3"><path d="M766 650 V735 M784 632 V735 M800 626 V735 M816 632 V735 M834 650 V735 M748 680 H852 M748 705 H852"/></g>
+<path d="M760 735 Q744 800 680 900 H920 Q856 800 840 735 Z" fill="#3a3352"/>
+<!-- flags -->
+<g stroke="#1b1424" stroke-width="3">
+  <path d="M557 150 V96 M1043 150 V96 M345 330 V286 M1255 330 V286" />
+  <path class="flag" d="M559 98 L600 110 L559 124 Z" fill="#c0392b" style="animation-delay:-.4s"/>
+  <path class="flag" d="M1045 98 L1086 110 L1045 124 Z" fill="#f2c35b"/>
+  <path class="flag" d="M347 288 L378 297 L347 307 Z" fill="#f2c35b" style="animation-delay:-.9s"/>
+  <path class="flag" d="M1257 288 L1288 297 L1257 307 Z" fill="#c0392b" style="animation-delay:-.2s"/>
+</g>
+<path d="M0 845 Q420 775 800 812 Q1180 775 1600 845 V900 H0 Z" fill="#121729"/>
+<g fill="#ffe9a8"><circle cx="420" cy="790" r="3" class="twinkle"/><circle cx="1180" cy="770" r="2.5" class="twinkle" style="animation-delay:-1.2s"/><circle cx="640" cy="830" r="2" class="twinkle" style="animation-delay:-2s"/><circle cx="1010" cy="815" r="2.5" class="twinkle" style="animation-delay:-.6s"/></g>
+</svg>
+  <div class="title-head"><h1 id="titleName">The Wordy Wizard</h1><p class="tag" id="titleTag">A spelling adventure in the wizard's castle</p></div>
+  <div class="title-foot">
+    <ul class="t-steps" aria-label="Getting the castle ready">
+      <li id="tsScene"><i aria-hidden="true"></i>Lighting the lanterns</li>
+      <li id="tsMusic"><i aria-hidden="true"></i>Tuning the music</li>
+      <li id="tsVoice"><i aria-hidden="true"></i>Waking the wizard</li>
+    </ul>
+    <button type="button" class="t-enter" id="tEnter" hidden>Enter the castle</button>
+    <p class="t-note" id="tNote" aria-live="polite"></p>
   </div>
 </div>
 
@@ -645,7 +743,8 @@ let typer = null, quiet = null, voicing = false, line = 0, unheard = null;
 // the wizard reads each line aloud (George, at an unhurried pace); his mouth moves until both the voice and the typing finish
 function voiceLine(parts) {
   const me = line;
-  voicing = VOICE.speak(parts, { rate: .85, onend: () => { if (me !== line) return; voicing = false; if (!typer && !quiet) W.talking = false; } });
+  voicing = VOICE.speak(parts, { rate: .85, onend: () => { if (me !== line) return; voicing = false; MUSIC.talk(false); if (!typer && !quiet) W.talking = false; } });
+  MUSIC.talk(voicing);
   unheard = voicing ? null : parts;   // browsers stay silent until the first tap; say it then instead
   if (voicing) W.talking = true;
 }
@@ -692,7 +791,8 @@ const MUSIC = (() => {
   const KEY = 'wordy-wizard-music', LAIR = .35, GAME = .16;
   const btn = $('musicBtn'), label = $('musicLabel'), el = new Audio();
   el.loop = true; el.preload = 'auto'; el.volume = LAIR;
-  let on = true, ready = false, gesture = false, target = LAIR, fade = null;
+  let on = true, ready = false, gesture = false, target = LAIR, fade = null, base = LAIR, talking = false, readyRes;
+  const readyP = new Promise(r => readyRes = r);
   try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) {}
   const show = () => { btn.setAttribute('aria-pressed', on); btn.setAttribute('aria-label', `Background music: ${on ? 'on' : 'off'}`); label.textContent = on ? 'Music' : 'Music off'; };
   const start = () => { if (on && ready && gesture && el.paused && !document.hidden) el.play().catch(() => {}); };
@@ -701,8 +801,8 @@ const MUSIC = (() => {
     const bin = atob(t.replace(/\s+/g, '')), u8 = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
     el.src = URL.createObjectURL(new Blob([u8], { type: 'audio/mpeg' }));
-    ready = true; btn.hidden = false; show(); start();
-  }).catch(() => { btn.hidden = true; });
+    ready = true; btn.hidden = false; show(); start(); readyRes(true);
+  }).catch(() => { btn.hidden = true; readyRes(false); });
   // browsers only allow sound after the first tap or key press
   ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { gesture = true; start(); }, { capture: true, passive: true }));
   btn.addEventListener('click', e => {
@@ -714,7 +814,10 @@ const MUSIC = (() => {
     target = v; clearInterval(fade);
     fade = setInterval(() => { const d = target - el.volume; if (Math.abs(d) < .01) { el.volume = target; clearInterval(fade); } else el.volume = Math.max(0, Math.min(1, el.volume + Math.sign(d) * .01)); }, 40);
   }
-  return { duck: () => level(GAME), lair: () => level(LAIR) };
+  const apply = () => level(base * (talking ? .45 : 1));
+  // called inside the Enter tap so the song can start right away in every browser
+  function unlock() { gesture = true; if (on && ready && el.paused && !document.hidden) { try { const p = el.play(); if (p) p.catch(() => {}); } catch (e) {} } }
+  return { duck: () => { base = GAME; apply(); }, lair: () => { base = LAIR; apply(); }, talk: v => { if (talking !== v) { talking = v; apply(); } }, unlock, ready: readyP };
 })();
 
 /* ================= The wizard's voice: Kokoro "George" (kindly British gentleman), run in a worker ================= */
@@ -734,7 +837,8 @@ const VOICE = (() => {
     };`;
   const hasSynth = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
   const clips = new Map(), waiting = new Map(), pending = new Set(), hurry = new Set(), queue = [];
-  let worker = null, state = 'off', busy = null, ctx = null, src = null, token = 0;
+  let worker = null, state = 'off', busy = null, ctx = null, src = null, token = 0, ending = null;
+  const once = f => { let done = !f; return () => { if (!done) { done = true; f(); } }; };
   // the browser's slow-reading rates (.55–.8) map onto gentler Kokoro speeds
   const speedFor = rate => Math.round((.35 + .65 * rate) * 100) / 100;
   const keyFor = (text, speed) => speed + '|' + text;
@@ -805,7 +909,7 @@ const VOICE = (() => {
   }
   // Web Audio keeps working after timers (Safari blocks <audio>.play() outside a tap)
   function unlock() {
-    try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
+    try { if (!ctx) ctx = window.__wwAudio = window.__wwAudio || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
   }
   let tapped = false;
   ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { tapped = true; unlock(); }, { capture: true, passive: true }));
@@ -832,6 +936,7 @@ const VOICE = (() => {
   }
   function cancel() {
     token++;
+    const f = ending; ending = null; if (f) f();   // a line cut off by the next one still finishes tidily
     if (src) { const s = src; src = null; s.onended = null; try { s.stop(); } catch (e) {} }
     try { speechSynthesis.cancel(); } catch (e) {}
   }
@@ -847,7 +952,7 @@ const VOICE = (() => {
   function speak(text, { rate = .8, onend, intro } = {}) {
     cancel();
     if (!awake()) { if (onend) setTimeout(onend, 0); return false; }
-    unlock();
+    unlock(); onend = ending = once(onend);
     const parts = [].concat(text), me = token, speed = speedFor(rate);
     if (intro) { if (clips.has(keyFor(intro, speed)) || state === 'failed') parts.unshift(intro); else warm([intro], rate, true); }
     const all = parts.join(' ');
@@ -862,9 +967,53 @@ const VOICE = (() => {
   }
   // record the week's words ahead of time so "hear it" buttons answer instantly; `soon` puts them next in line
   function warm(list, rate = .8, soon = false) { const ws = (list || []).filter(Boolean).map(String); (soon ? ws.reverse() : ws).forEach(w => request(w, speedFor(rate), soon)); }
-  return { speak, cancel, warm, canSpeak: hasSynth || ('Worker' in window && typeof WebAssembly === 'object') };
+  return { speak, cancel, warm, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); }, canSpeak: hasSynth || ('Worker' in window && typeof WebAssembly === 'object') };
 })();
 VOICE.warm(WORDS.words);
+/* ================= Title screen: the castle from outside while the lair, music and voice load ================= */
+const TITLE = (() => {
+  const el = $('title'), T = { introAt: null, entered: false, onEnter: [], mark: () => {} };
+  if (!el || location.hash === '#deploy' || location.hash === '#deploy-music') { if (el) el.remove(); T.introAt = performance.now(); T.entered = true; return T; }
+  const btn = $('tEnter'), note = $('tNote'), need = { scene: false, music: false, voice: false };
+  const row = { scene: 'tsScene', music: 'tsMusic', voice: 'tsVoice' };
+  let shown = false;
+  function offer(force) {
+    if (shown) return;
+    const all = Object.values(need).every(Boolean);
+    if (!all && !force) return;
+    shown = true; btn.hidden = false;
+    note.textContent = all ? 'Tap the button to go inside. Turn your sound on!' : 'Some of the magic is still loading. Go on in, it will catch up.';
+    try { btn.focus({ preventScroll: true }); } catch (e) {}
+  }
+  T.mark = k => {
+    if (need[k]) return; need[k] = true; const li = $(row[k]); if (li) li.classList.add('done');
+    if (shown && Object.values(need).every(Boolean)) note.textContent = 'Tap the button to go inside. Turn your sound on!';
+    offer(false);
+  };
+  setTimeout(() => offer(true), 12000);
+  function unlockAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      const a = window.__wwAudio = window.__wwAudio || new AC();
+      if (a.state === 'suspended') a.resume();
+      const s = a.createBufferSource(); s.buffer = a.createBuffer(1, 1, 22050); s.connect(a.destination); s.start(0);
+    } catch (e) {}
+  }
+  function enter() {
+    if (T.entered || btn.hidden) return; T.entered = true;
+    MUSIC.unlock(); VOICE.unlock(); unlockAudio();
+    T.introAt = performance.now();
+    el.classList.add('zoom');
+    setTimeout(() => el.remove(), reduce ? 450 : 2200);
+    T.onEnter.forEach(f => { try { f(); } catch (e) {} });
+  }
+  btn.addEventListener('click', enter);
+  document.addEventListener('keydown', e => { if (!T.entered && !btn.hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); enter(); } });
+  return T;
+})();
+MUSIC.ready.then(() => TITLE.mark('music'));
+VOICE.ready.then(() => TITLE.mark('voice'));
+TITLE.onEnter.push(() => setTimeout(() => say("Welcome to my lair, young speller! I'm the Wordy Wizard. Pick a spell from my book to practice this week's words."), reduce ? 500 : 2000));
 const gate = $('gate'), panel = $('panel'), lockBtn = $('lockBtn');
 let answer = 0, misses = 0, lockedUntil = 0, cooldown = null, returnFocus = null;
 function newProblem() {
@@ -1022,7 +1171,7 @@ function fail() {
   d.textContent = "This device can't show the 3D lair. You can still pick a spell from the list below.";
   stage.appendChild(d);
   document.querySelector('.mobile-panel').style.display = 'flex';
-  setTimeout(() => say("Welcome to my lair, young speller! Pick a spell to practice this week's words."), 400);
+  TITLE.mark('scene');
 }
 
 /* ================= Renderer, scene, camera ================= */
@@ -3090,7 +3239,7 @@ const CrierGame = (() => {
   function voice() {
     try { const vs = speechSynthesis.getVoices(); return vs.find(v => /en[-_]GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null; } catch (e) { return null; }
   }
-  function ctx() { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); return audio; }
+  function ctx() { audio = audio || window.__wwAudio || new (window.AudioContext || window.webkitAudioContext)(); return audio; }
   // the built-in voice first; the device's own voice only if the built-in one can't load
   function say(text, rate, onend) {
     const fallback = () => { if (root) deviceSay(text, rate, onend); };
@@ -3981,7 +4130,7 @@ function easeOut(x) { return 1 - Math.pow(1 - x, 3); }
 function frame() {
   const rawDt = clock.getDelta(), dt = Math.min(rawDt, .05), t = clock.elapsedTime, ms = performance.now();
   // camera: opening dolly + gentle parallax
-  const k = reduce ? 1 : easeOut(Math.min(1, t / 4.2));
+  const k = reduce ? 1 : TITLE.introAt === null ? 0 : easeOut(Math.min(1, (ms - TITLE.introAt) / 4200));
   const px = reduce ? 0 : pointer.x * .35, py = reduce ? 0 : -pointer.y * .15;
   camera.position.lerpVectors(CAM_START, CAM_END, k);
   camera.position.x += px + Math.sin(t * .23) * .05; camera.position.y += py + Math.sin(t * .31) * .03;
@@ -4083,7 +4232,7 @@ function frame() {
     L.s.position.set(letterOrigin.x + L.dx * L.t + Math.sin(L.t * 6) * .04, letterOrigin.y + L.t * 1.1, letterOrigin.z);
     L.s.material.opacity = Math.sin(Math.min(1, L.t) * Math.PI) * .95;
   }
-  renderFrame();
+  renderFrame(); TITLE.mark('scene');
   // speech bubble follows the wizard on screen
   proj.copy(anchor).project(camera);
   bubble.style.left = ((proj.x + 1) / 2 * 100) + '%';
@@ -4098,7 +4247,6 @@ Promise.all([
 ].map(p => p.catch(() => {}))).then(() => { drawBanner(); paintCurrent(); letterSprites.forEach(respawnLetter); letterSprites.forEach((L, i) => L.t = i * .25); });
 document.getElementById('loading').remove();
 requestAnimationFrame(frame);
-setTimeout(() => say("Welcome to my lair, young speller! I'm the Wordy Wizard. Pick a spell from my book to practice this week's words."), reduce ? 300 : 3200);
 })();
 </script>
 
