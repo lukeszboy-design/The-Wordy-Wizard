@@ -1800,7 +1800,7 @@ const SquireGame = (() => {
   const MAX_WRONG = 6, LETTERS = 'abcdefghijklmnopqrstuvwxyz';
   const B = { x: 158, y: 420 }, T = { x: 226, y: 132 };   // ladder base and top
   const LOOSE = [[1, 0], [3, 2], [5, 1], [6, 3], [8, 0], [10, 2]];
-  const ROPE = { x0: 331, y0: 116, cx: 362, cy: 255, x1: 374, y1: 384 };
+  const HAY = { x: 376, y: 350 };   // where the squire lands in the hay cart
   let root, st, keyHandler, words, practice, raf = 0;
   const q = sel => root.querySelector(sel);
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1850,6 +1850,10 @@ const SquireGame = (() => {
         <g transform="translate(282 128)">
           <g class="sq-arm sq-arm-l"><path d="M-12 -24 L-25 -44" stroke="#2f6b4a" stroke-width="7" stroke-linecap="round"/><circle cx="-26" cy="-46" r="4.5" fill="#f3c39c" stroke="#2a1a10" stroke-width="2"/></g>
           <g class="sq-arm sq-arm-r"><path d="M12 -24 L25 -44" stroke="#2f6b4a" stroke-width="7" stroke-linecap="round"/><circle cx="26" cy="-46" r="4.5" fill="#f3c39c" stroke="#2a1a10" stroke-width="2"/></g>
+          <g id="sqLegs" opacity="0">
+            <path d="M-6 -2 V13 M6 -2 V13" stroke="#7a4a24" stroke-width="7" stroke-linecap="round"/>
+            <g fill="#3b2412" stroke="#2a1a10" stroke-width="2"><ellipse cx="-9" cy="15" rx="6.5" ry="4"/><ellipse cx="9" cy="15" rx="6.5" ry="4"/></g>
+          </g>
           <path d="M-13 0 V-26 Q-13 -31 -8 -31 H8 Q13 -31 13 -26 V0 Z" fill="#2f6b4a" stroke="#2a1a10" stroke-width="2.5"/>
           <path d="M-13 -12 H13" stroke="#8a5a2b" stroke-width="3"/>
           <path d="M-6 -31 L0 -24 L6 -31" fill="#f2c35b" stroke="#2a1a10" stroke-width="1.5"/>
@@ -1873,7 +1877,6 @@ const SquireGame = (() => {
         <g fill="#5e3a1a" stroke="#2a1a10" stroke-width="2.5"><circle cx="350" cy="418" r="12"/><circle cx="402" cy="418" r="12"/></g>
         <g fill="#c9a35a"><circle cx="350" cy="418" r="3"/><circle cx="402" cy="418" r="3"/></g>
       </g>
-      <path id="sqRope" d="M${ROPE.x0} ${ROPE.y0} Q${ROPE.cx} ${ROPE.cy} ${ROPE.x1} ${ROPE.y1}" fill="none" stroke="#c9a35a" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
       <g id="sqGhost" fill="none" stroke-linecap="round" opacity=".42">
         <path d="${rail(-1)} ${rail(1)}" stroke="#3b2412" stroke-width="10"/>
         <path d="${rail(-1)} ${rail(1)}" stroke="#c9a06a" stroke-width="6"/>
@@ -1965,7 +1968,7 @@ const SquireGame = (() => {
     root.querySelectorAll('.sq-stone').forEach(s => { s.getAnimations().forEach(a => a.cancel()); s.style.transform = ''; s.style.opacity = ''; });
     q('#sqCracks').innerHTML = ''; q('#sqRungs').innerHTML = ''; q('#sqFx').innerHTML = '';
     setRails(0); drawGhostRungs(letters.length);
-    const rope = q('#sqRope'); rope.style.opacity = 0;
+    q('#sqLegs').setAttribute('opacity', 0);
     const sq = q('#sqSquire'); sq.setAttribute('class', 'sq-worried'); q('#sqSquireInner').removeAttribute('transform'); q('#sqSquireInner').setAttribute('class', '');
     setMood('worried'); placeKnight(0);
     status(`Guess a letter! Each right letter adds a rung so the knight can climb. ${letters.length} rungs needed.`);
@@ -2086,26 +2089,23 @@ const SquireGame = (() => {
   }
   function lose() {
     revealAll(true);
-    const sq = q('#sqSquire'); sq.setAttribute('class', ''); setMood('grumpy');
-    status(`Hmph! The squire slid down a rope into the hay cart. The word was "${st.word}".`);
-    const rope = q('#sqRope'), len = rope.getTotalLength();
-    rope.style.opacity = 1; rope.style.strokeDasharray = len; rope.style.strokeDashoffset = len;
-    rope.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 500, fill: 'forwards' });
-    const inner = q('#sqSquireInner'), t0 = performance.now(), D = 1700;
-    const bez = (t, a, c, b) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * c + t * t * b;
+    setMood('grumpy');
+    status(`Hmph! The squire tumbled off the tower into the hay cart. The word was "${st.word}".`);
+    q('#sqLegs').setAttribute('opacity', 1);
+    // hop off the tower and fall in an arc onto the hay, arms flailing
+    const inner = q('#sqSquireInner'), t0 = performance.now(), WAIT = reduce ? 0 : 450, D = reduce ? 1 : 1100;
     const step = now => {
       if (!root) return;
-      const k = Math.min(1, (now - t0 - 450) / D);
-      let x = 0, y = 0;
+      const k = Math.min(1, (now - t0 - WAIT) / D);
       if (k < 0) { raf = requestAnimationFrame(step); return; }
-      if (k < .2) { const u = k / .2; x = (ROPE.x0 - 282) * u; y = (ROPE.y0 + 46 - 128) * u; }
-      else { const u = Math.pow((k - .2) / .8, 1.6); x = bez(u, ROPE.x0, ROPE.cx, ROPE.x1) - 282; y = bez(u, ROPE.y0, ROPE.cy, ROPE.y1) + 46 - 128 - 34 * u; }
-      inner.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+      const x = (HAY.x - 282) * k, y = (HAY.y - 128) * k - 360 * k * (1 - k);
+      inner.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(25 * Math.sin(Math.PI * k)).toFixed(1)} 282 100)`);
       if (k < 1) raf = requestAnimationFrame(step);
       else {
-        puff(ROPE.x1, ROPE.y1 - 4);
+        q('#sqSquire').setAttribute('class', '');
+        puff(HAY.x, HAY.y + 14);
         const fx = q('#sqFx');
-        fx.insertAdjacentHTML('beforeend', `<g transform="translate(330 318)"><rect x="-30" y="-16" width="60" height="24" rx="10" fill="#fffaf0" stroke="#2a1a10" stroke-width="2"/><path d="M14 8 L22 18 L4 8 Z" fill="#fffaf0" stroke="#2a1a10" stroke-width="2"/><text x="0" y="1" text-anchor="middle" class="sq-say" fill="#2a1a10">Hmph!</text></g>`);
+        fx.insertAdjacentHTML('beforeend', `<g transform="translate(316 292)"><rect x="-30" y="-16" width="60" height="24" rx="10" fill="#fffaf0" stroke="#2a1a10" stroke-width="2"/><path d="M14 8 L22 18 L4 8 Z" fill="#fffaf0" stroke="#2a1a10" stroke-width="2"/><text x="0" y="1" text-anchor="middle" class="sq-say" fill="#2a1a10">Hmph!</text></g>`);
       }
     };
     raf = requestAnimationFrame(step);
