@@ -2,21 +2,24 @@
 """Record the Wordy Wizard's lines into voice.txt.
 
 Finds every line the wizard says in index.html, splits it into sentences, and
-records each sentence with the Piper "Alan" voice (pitched down to sound like an
-old sea captain). The clips are stored in voice.txt as JSON {sentence: base64 MP3}.
+records each sentence with the Kokoro "George" voice (a kindly British gentleman),
+the same voice the game uses in the browser for spelling words. The clips are
+stored in voice.txt as JSON {"0.9|sentence": base64 MP3}; 0.9 is his speaking
+speed and must match speedFor(.85) in index.html.
 
 Run again after adding or changing a wizard line:
-    uv run --with piper-tts tools/make_voice.py
-Needs ffmpeg. The voice model (~60 MB) downloads to ~/.cache/wordy-wizard-voice.
+    uv run --python 3.12 --with kokoro-onnx --with soundfile tools/make_voice.py
+Needs ffmpeg. The full-quality model (~350 MB) downloads to ~/.cache/wordy-wizard-voice.
+A sentence that isn't recorded still works: the game records it in the browser.
 """
-import base64, json, os, re, subprocess, sys, tempfile, urllib.request
+import base64, json, re, subprocess, tempfile, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MODEL = 'en_GB-alan-medium'
-URL = 'https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alan/medium/' + MODEL
+URL = 'https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/'
 CACHE = Path.home() / '.cache' / 'wordy-wizard-voice'
-FILTER = 'asetrate={sr}*0.86,aresample={sr},atempo=1.08,vibrato=f=5.5:d=0.12,bass=g=4,acompressor,loudnorm=I=-16'
+VOICE, SPEED = 'bm_george', 0.9
+BITRATE = '48k'   # a touch below full quality keeps voice.txt small; speech still sounds clean
 
 def sentences(text):
     return [p.strip() for p in re.split(r'(?<=[.!?])\s+', text) if p.strip()]
@@ -41,28 +44,30 @@ def wizard_lines(html):
             if '${' not in s and s not in out: out.append(s)
     return out
 
+def trim(x, rate):
+    """Same as the browser: drop silence, keeping a breath before and a soft tail after."""
+    import numpy as np
+    loud = np.flatnonzero(np.abs(x) >= .01)
+    if not len(loud): return x
+    return x[max(0, loud[0] - round(rate * .04)):loud[-1] + round(rate * .1)]
+
 def main():
     CACHE.mkdir(parents=True, exist_ok=True)
-    model = CACHE / (MODEL + '.onnx')
-    for ext in ('.onnx', '.onnx.json'):
-        f = CACHE / (MODEL + ext)
-        if not f.exists():
-            print('Downloading', f.name); urllib.request.urlretrieve(URL + ext, f)
-    from piper import PiperVoice
-    voice = PiperVoice.load(str(model))
-    import wave
-    from piper import SynthesisConfig
-    cfg = SynthesisConfig(length_scale=1.12)
+    for name in ('kokoro-v1.0.onnx', 'voices-v1.0.bin'):
+        if not (CACHE / name).exists():
+            print('Downloading', name); urllib.request.urlretrieve(URL + name, CACHE / name)
+    import soundfile as sf
+    from kokoro_onnx import Kokoro
+    tts = Kokoro(str(CACHE / 'kokoro-v1.0.onnx'), str(CACHE / 'voices-v1.0.bin'))
     lines = wizard_lines((ROOT / 'index.html').read_text())
     clips = {}
     with tempfile.TemporaryDirectory() as tmp:
         for i, line in enumerate(lines):
             raw, mp3 = Path(tmp) / f'{i}.wav', Path(tmp) / f'{i}.mp3'
-            with wave.open(str(raw), 'wb') as w: voice.synthesize_wav(line, w, syn_config=cfg)
-            sr = voice.config.sample_rate
-            subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(raw), '-af', FILTER.format(sr=sr),
-                            '-ac', '1', '-ar', '22050', '-c:a', 'libmp3lame', '-b:a', '48k', str(mp3)], check=True)
-            clips[line] = base64.b64encode(mp3.read_bytes()).decode()
+            pcm, sr = tts.create(line, voice=VOICE, speed=SPEED, lang='en-gb')
+            sf.write(raw, trim(pcm, sr), sr)
+            subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(raw), '-ac', '1', '-c:a', 'libmp3lame', '-b:a', BITRATE, str(mp3)], check=True)
+            clips[f'{SPEED}|{line}'] = base64.b64encode(mp3.read_bytes()).decode()
             print(f'{i + 1:2}/{len(lines)}  {line}')
     (ROOT / 'voice.txt').write_text(json.dumps(clips, ensure_ascii=False, indent=0))
     print('Wrote voice.txt:', len(clips), 'clips,', (ROOT / 'voice.txt').stat().st_size // 1024, 'KB')

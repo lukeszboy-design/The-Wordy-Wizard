@@ -641,49 +641,32 @@ const QUIPS = [
 let qi = 0;
 const W = { talking: false, curious: 0, waveT: -1 };
 const bubble = document.getElementById('bubble'), bubbleText = document.getElementById('bubbleText'), mSay = document.getElementById('mSay');
-let typer = null, quiet = null;
-/* The wizard's voice: recorded clips (voice.txt, made by tools/make_voice.py) so he sounds
-   the same on every device. Each sentence is its own clip; a line plays its sentences in order. */
-const VOICE = (() => {
-  const el = new Audio(), clips = {};
-  let queue = [], heard = false, pending = '', speaking = false;
-  fetch('voice.txt').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(j => {
-    for (const k in j) clips[k] = 'data:audio/mpeg;base64,' + j[k];
-    if (pending && heard) { const t = pending; pending = ''; speak(t); }
-  }).catch(() => {});
-  const done = () => { speaking = false; if (!typer) W.talking = false; };
-  function next() {
-    const src = queue.shift();
-    if (!src) return done();
-    el.src = src; el.play().catch(() => { queue = []; done(); });
-  }
-  el.addEventListener('ended', () => setTimeout(next, 120));
-  el.addEventListener('error', () => { queue = []; done(); });
-  function speak(text) {
-    el.pause(); queue = [];
-    if (!heard || !Object.keys(clips).length) { pending = text; speaking = false; return; }   // no sound until the first tap or click
-    pending = '';
-    queue = text.split(/(?<=[.!?])\s+/).map(t => clips[t.trim()]).filter(Boolean);
-    speaking = queue.length > 0; next();
-  }
-  const unlock = () => {
-    if (heard) return; heard = true;
-    if (pending && !bubble.classList.contains('hide') && mSay.textContent === pending) speak(pending);
-  };
-  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, unlock, { once: true, capture: true }));
-  return { speak, get speaking() { return speaking; } };
-})();
+let typer = null, quiet = null, voicing = false, line = 0, unheard = null;
+// the wizard reads each line aloud (George, at an unhurried pace); his mouth moves until both the voice and the typing finish
+function voiceLine(parts) {
+  const me = line;
+  voicing = VOICE.speak(parts, { rate: .85, onend: () => { if (me !== line) return; voicing = false; if (!typer && !quiet) W.talking = false; } });
+  unheard = voicing ? null : parts;   // browsers stay silent until the first tap; say it then instead
+  if (voicing) W.talking = true;
+}
 function say(text) {
-  clearInterval(typer); typer = null; clearTimeout(quiet);
+  // one clip per sentence, so a sentence the wizard repeats is only recorded once
+  const parts = [].concat(text).flatMap(t => t.split(/(?<=[.!?])\s+/)); text = parts.join(' '); line++;
+  clearInterval(typer); clearTimeout(quiet); typer = quiet = null;
   bubble.classList.remove('hide'); mSay.textContent = text; W.talking = true;
-  VOICE.speak(text);
-  if (reduce) { bubbleText.textContent = text; quiet = setTimeout(() => { if (!VOICE.speaking) W.talking = false; }, 1200); return; }
+  voiceLine(parts);
+  const hush = () => { quiet = null; if (!voicing) W.talking = false; };
+  if (reduce) { bubbleText.textContent = text; quiet = setTimeout(hush, 1200); return; }
   let i = 0; bubbleText.textContent = '';
   typer = setInterval(() => {
     bubbleText.textContent = text.slice(0, ++i);
-    if (i >= text.length) { clearInterval(typer); typer = null; quiet = setTimeout(() => { if (!VOICE.speaking) W.talking = false; }, 250); }
+    if (i >= text.length) { clearInterval(typer); typer = null; quiet = setTimeout(hush, 250); }
   }, 34);
 }
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => {
+  if (unheard && !bubble.classList.contains('hide')) voiceLine(unheard);
+  unheard = null;
+}, { capture: true, passive: true }));
 const quip = () => say(QUIPS[qi++ % QUIPS.length]);
 
 /* ================= Grown-ups lock: spelled-out math gate + word list ================= */
@@ -733,6 +716,155 @@ const MUSIC = (() => {
   }
   return { duck: () => level(GAME), lair: () => level(LAIR) };
 })();
+
+/* ================= The wizard's voice: Kokoro "George" (kindly British gentleman), run in a worker ================= */
+// His everyday lines come pre-recorded in voice.txt (made by tools/make_voice.py). Anything else, like this
+// week's words, he records in the browser: the neural voice (~90 MB, cached after the first visit) loads in the
+// background, and every clip is saved, so on later visits he answers instantly without loading the model at all.
+// Until he's ready, or on devices that can't run him, the browser's own British voice stands in.
+const VOICE = (() => {
+  const WORKER = `
+    import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
+    const load = KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', { dtype: 'q8', device: 'wasm' });
+    load.then(() => postMessage({ ready: true }), e => postMessage({ failed: String(e) }));
+    const trim = (x, r) => { let a = 0, b = x.length - 1; while (a < b && Math.abs(x[a]) < .01) a++; while (b > a && Math.abs(x[b]) < .01) b--; return x.slice(Math.max(0, a - Math.round(r * .04)), Math.min(x.length, b + Math.round(r * .1))); };
+    onmessage = async ({ data: { key, text, speed } }) => {
+      try { const a = await (await load).generate(text, { voice: 'bm_george', speed }), pcm = trim(a.audio, a.sampling_rate); postMessage({ key, pcm, rate: a.sampling_rate }, [pcm.buffer]); }
+      catch (e) { postMessage({ key, error: String(e) }); }
+    };`;
+  const hasSynth = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+  const clips = new Map(), waiting = new Map(), pending = new Set(), hurry = new Set(), queue = [];
+  let worker = null, state = 'off', busy = null, ctx = null, src = null, token = 0;
+  // the browser's slow-reading rates (.55–.8) map onto gentler Kokoro speeds
+  const speedFor = rate => Math.round((.35 + .65 * rate) * 100) / 100;
+  const keyFor = (text, speed) => speed + '|' + text;
+  // the shelf: finished clips kept as 16-bit sound in the browser's cache; ones unused for 60 days are swept away
+  const shelf = ('caches' in window ? caches.open('wordy-wizard-voice-v1') : Promise.resolve(null)).catch(() => null);
+  const slot = key => new Request('wizard-voice/' + encodeURIComponent(key));
+  shelf.then(c => c && c.keys().then(ks => ks.forEach(k => c.match(k).then(r => { if (r && Date.now() - +r.headers.get('x-saved') > 60 * 864e5) c.delete(k); })))).catch(() => {});
+  function shelve(key, a) {
+    const i16 = Int16Array.from(a.pcm, v => Math.max(-1, Math.min(1, v)) * 32767);
+    shelf.then(c => c && c.put(slot(key), new Response(i16, { headers: { 'x-rate': String(a.rate), 'x-saved': String(Date.now()) } }))).catch(() => {});
+  }
+  // the pre-recorded lines: { "speed|text": base64 mp3 }, shipped as text so it deploys like music.txt
+  const bundle = fetch('voice.txt').then(r => r.ok ? r.json() : {}).then(lines => {
+    const dec = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 24000);
+    return Promise.all(Object.entries(lines).map(([key, b64]) => {
+      const bin = atob(b64), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return new Promise(ok => dec.decodeAudioData(u8.buffer, buf => { if (!clips.has(key)) clips.set(key, { pcm: buf.getChannelData(0), rate: buf.sampleRate }); ok(); }, ok));
+    }));
+  }).catch(() => {});
+  const fromShelf = key => shelf.then(c => c && c.match(slot(key))).then(r => r && r.arrayBuffer().then(b => {
+    const a = { pcm: Float32Array.from(new Int16Array(b), v => v / 32767), rate: +r.headers.get('x-rate') };
+    if (Date.now() - +r.headers.get('x-saved') > 7 * 864e5) shelve(key, a);   // still in use: keep it fresh
+    return a;
+  })).catch(() => null);
+  function deliver(key, audio) {
+    pending.delete(key); hurry.delete(key); if (audio) clips.set(key, audio);
+    const cbs = waiting.get(key) || []; waiting.delete(key); cbs.forEach(cb => cb(audio));
+  }
+  function start() {
+    if (worker || state === 'failed') return;
+    try {
+      worker = new Worker(URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' })), { type: 'module' });
+      state = 'loading';
+      worker.onmessage = ({ data }) => {
+        if (data.ready) { state = 'ready'; pump(); return; }
+        if (data.failed) { fail(); return; }
+        busy = null;
+        if (data.pcm) { const a = { pcm: data.pcm, rate: data.rate }; shelve(data.key, a); deliver(data.key, a); } else deliver(data.key, null);
+        pump();
+      };
+      worker.onerror = fail;
+    } catch (e) { fail(); }
+  }
+  function fail() {
+    state = 'failed'; if (worker) worker.terminate(); worker = null;
+    if (busy) deliver(busy.key, null); busy = null;
+    queue.splice(0).forEach(j => deliver(j.key, null));
+  }
+  function pump() {
+    if (state !== 'ready' || busy || !queue.length) return;
+    busy = queue.shift(); worker.postMessage(busy);
+  }
+  // look on the shelf first; otherwise George records it. Urgent requests (a child tapped "hear it") jump the line.
+  function request(text, speed, urgent, cb) {
+    const key = keyFor(text, speed);
+    if (clips.has(key)) { if (cb) cb(clips.get(key)); return; }
+    if (cb) waiting.set(key, (waiting.get(key) || []).concat(cb));
+    if (urgent) hurry.add(key);
+    if (pending.has(key)) { const i = queue.findIndex(j => j.key === key); if (urgent && i > 0) queue.unshift(queue.splice(i, 1)[0]); return; }
+    pending.add(key);
+    bundle.then(() => clips.get(key) || fromShelf(key)).then(a => {
+      if (a) { deliver(key, a); return; }
+      if (state === 'failed') { deliver(key, null); return; }
+      const job = { key, text, speed }; hurry.has(key) ? queue.unshift(job) : queue.push(job);
+      start(); pump();
+    });
+  }
+  // Web Audio keeps working after timers (Safari blocks <audio>.play() outside a tap)
+  function unlock() {
+    try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
+  }
+  let tapped = false;
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { tapped = true; unlock(); }, { capture: true, passive: true }));
+  const awake = () => tapped || !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
+  function play(audio, text, rate, onend) {
+    try {
+      unlock();
+      const buf = ctx.createBuffer(1, audio.pcm.length, audio.rate); buf.copyToChannel(audio.pcm, 0);
+      src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination);
+      const me = src; src.onended = () => { if (src === me) src = null; if (onend) onend(); };
+      src.start();
+    } catch (e) { fallback(text, rate, onend); }
+  }
+  function britishVoice() {
+    try { const vs = speechSynthesis.getVoices(); return vs.find(v => /en[-_]GB/i.test(v.lang) && /daniel|arthur|male|george/i.test(v.name)) || vs.find(v => /en[-_]GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null; } catch (e) { return null; }
+  }
+  function fallback(text, rate, onend) {
+    if (!hasSynth) { if (onend) onend(); return; }
+    try {
+      const u = new SpeechSynthesisUtterance(text); u.rate = rate; u.pitch = .95; u.lang = 'en-GB';
+      const v = britishVoice(); if (v) u.voice = v; if (onend) u.onend = onend;
+      speechSynthesis.speak(u);
+    } catch (e) { if (onend) onend(); }
+  }
+  function cancel() {
+    token++;
+    if (src) { const s = src; src = null; s.onended = null; try { s.stop(); } catch (e) {} }
+    try { speechSynthesis.cancel(); } catch (e) {}
+  }
+  // a few clips (e.g. "Hear ye, hear ye! The word is:" + the word) are stitched together with a short breath
+  function join(parts, speed) {
+    const cs = parts.map(t => clips.get(keyFor(t, speed))), gap = Math.round(cs[0].rate * .12);
+    const pcm = new Float32Array(cs.reduce((n, c) => n + c.pcm.length, 0) + gap * (cs.length - 1));
+    let at = 0; cs.forEach(c => { pcm.set(c.pcm, at); at += c.pcm.length + gap; });
+    return { pcm, rate: cs[0].rate };
+  }
+  // an optional `intro` is only said once George has it ready, so his voice never switches mid-sentence
+  // returns false (and stays quiet) before the first tap, when browsers won't play sound
+  function speak(text, { rate = .8, onend, intro } = {}) {
+    cancel();
+    if (!awake()) { if (onend) setTimeout(onend, 0); return false; }
+    unlock();
+    const parts = [].concat(text), me = token, speed = speedFor(rate);
+    if (intro) { if (clips.has(keyFor(intro, speed)) || state === 'failed') parts.unshift(intro); else warm([intro], rate, true); }
+    const all = parts.join(' ');
+    const have = () => parts.every(t => clips.has(keyFor(t, speed)));
+    if (have()) { play(join(parts, speed), all, rate, onend); return true; }
+    let done = false;
+    const give = ok => { if (done || me !== token) return; done = true; ok ? play(join(parts, speed), all, rate, onend) : fallback(all, rate, onend); };
+    parts.slice().reverse().forEach(t => request(t, speed, true, a => { if (!a) give(false); else if (have()) give(true); }));
+    // a saved clip arrives in moments; a fresh recording is worth a short wait only once George is awake
+    setTimeout(() => give(false), state === 'ready' ? 6000 : 400);
+    return true;
+  }
+  // record the week's words ahead of time so "hear it" buttons answer instantly; `soon` puts them next in line
+  function warm(list, rate = .8, soon = false) { const ws = (list || []).filter(Boolean).map(String); (soon ? ws.reverse() : ws).forEach(w => request(w, speedFor(rate), soon)); }
+  return { speak, cancel, warm, canSpeak: hasSynth || ('Worker' in window && typeof WebAssembly === 'object') };
+})();
+VOICE.warm(WORDS.words);
 const gate = $('gate'), panel = $('panel'), lockBtn = $('lockBtn');
 let answer = 0, misses = 0, lockedUntil = 0, cooldown = null, returnFocus = null;
 function newProblem() {
@@ -869,7 +1001,7 @@ $('pSave').addEventListener('click', () => {
   WORDS = { week: $('pWeek').value || isoMonday(), words: draft.slice() };
   let saved = true;
   try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) { saved = false; }
-  closeModal(panel); onWordsChanged();
+  closeModal(panel); onWordsChanged(); VOICE.warm(WORDS.words);
   const n = WORDS.words.length;
   say(n ? "Splendid! I've written your spelling words into my spellbook for this week." + (saved ? '' : " This browser won't let me remember them after you close the page.") : "My word list is empty now. Add some words when you're ready!");
 });
@@ -1939,7 +2071,7 @@ const SquireGame = (() => {
 
   function mount(container, wordList) {
     practice = !wordList.length;
-    words = shuffle(practice ? SQ_SAMPLE : wordList);
+    words = shuffle(practice ? SQ_SAMPLE : wordList); VOICE.warm(words);
     st = { idx: 0, saved: 0, played: 0 };
     root = document.createElement('div'); root.className = 'sq';
     root.innerHTML = `
@@ -1962,7 +2094,7 @@ const SquireGame = (() => {
       b.addEventListener('click', () => guess(l)); keys.appendChild(b);
     });
     q('#sqHear').addEventListener('click', () => speak(st.word));
-    if (!('speechSynthesis' in window)) q('#sqHear').hidden = true;
+    if (!VOICE.canSpeak) q('#sqHear').hidden = true;
     q('#sqNext').addEventListener('click', next);
     keyHandler = e => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1974,12 +2106,10 @@ const SquireGame = (() => {
   }
   function unmount() {
     if (keyHandler) document.removeEventListener('keydown', keyHandler);
-    cancelAnimationFrame(raf); try { speechSynthesis.cancel(); } catch (e) {}
+    cancelAnimationFrame(raf); VOICE.cancel();
     if (root) root.remove(); root = null;
   }
-  function speak(w) {
-    try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(w); u.rate = .8; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {}
-  }
+  const speak = w => VOICE.speak(w);
   function newWord() {
     const word = words[st.idx];
     const letters = [...new Set(word.toLowerCase().replace(/[^a-z]/g, ''))];
@@ -2239,7 +2369,7 @@ const PotionGame = (() => {
 
   function mount(container, wordList) {
     practice = !wordList.length;
-    words = shuffle(practice ? ['potion', 'magic', 'spell', 'castle', 'wizard', 'dragon'] : wordList);
+    words = shuffle(practice ? ['potion', 'magic', 'spell', 'castle', 'wizard', 'dragon'] : wordList); VOICE.warm(words);
     st = { idx: 0, brewed: 0 };
     root = document.createElement('div'); root.className = 'px';
     root.innerHTML = `
@@ -2259,7 +2389,7 @@ const PotionGame = (() => {
       </div>`;
     container.appendChild(root);
     q('#pxHear').addEventListener('click', () => speak(st.word));
-    if (!('speechSynthesis' in window)) q('#pxHear').hidden = true;
+    if (!VOICE.canSpeak) q('#pxHear').hidden = true;
     q('#pxBrew').addEventListener('click', brew);
     q('#pxHintBtn').addEventListener('click', hint);
     q('#pxNext').addEventListener('click', next);
@@ -2275,10 +2405,10 @@ const PotionGame = (() => {
   }
   function unmount() {
     if (keyHandler) document.removeEventListener('keydown', keyHandler);
-    try { speechSynthesis.cancel(); } catch (e) {}
+    VOICE.cancel();
     if (root) root.remove(); root = null; drag = null;
   }
-  function speak(w) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(w); u.rate = .8; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
+  const speak = w => VOICE.speak(w);
   function status(t) { q('#pxStatus').textContent = t; }
   function setMood(m) {
     q('#pxAppMouth').setAttribute('d', { worried: 'M-8 -71 Q-3 -74 2 -71', happy: 'M-10 -73 Q-3 -64 4 -73', oops: 'M-6 -70 Q-3 -73 0 -70 Q-3 -67 -6 -70' }[m]);
@@ -2553,6 +2683,7 @@ const DragonGame = (() => {
   function mount(container, wordList) {
     practice = !wordList.length;
     const base = shuffle(practice ? ['gold', 'dragon', 'coin', 'cave', 'wing', 'egg'] : wordList.filter(w => w.replace(/[^a-z]/gi, '').length <= 12));
+    VOICE.warm(base);
     rounds = []; for (let i = 0; i < base.length; i += PER_ROUND) rounds.push(base.slice(i, i + PER_ROUND));
     if (!rounds.length) rounds = [['gold', 'dragon', 'coin']];
     st = { round: 0 };
@@ -2581,7 +2712,7 @@ const DragonGame = (() => {
     q('#dhNext').addEventListener('click', nextRound);
     newRound();
   }
-  function unmount() { if (ro) ro.disconnect(); ro = null; timers.forEach(clearTimeout); timers = []; try { speechSynthesis.cancel(); } catch (e) {} if (root) root.remove(); root = null; sel = null; }
+  function unmount() { if (ro) ro.disconnect(); ro = null; timers.forEach(clearTimeout); timers = []; VOICE.cancel(); if (root) root.remove(); root = null; sel = null; }
   // size the board so the whole grid fits inside its area (phones use the CSS width instead)
   function fitBoard() {
     if (!root || !st || !st.cols) return;
@@ -2590,7 +2721,7 @@ const DragonGame = (() => {
     const k = Math.min(W / st.cols, H / st.rows);
     board.style.width = (k * st.cols).toFixed(1) + 'px'; board.style.height = (k * st.rows).toFixed(1) + 'px';
   }
-  function speak(w) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(w); u.rate = .8; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
+  const speak = w => VOICE.speak(w);
   function status(t) { q('#dhStatus').textContent = t; }
 
   function newRound() {
@@ -3184,6 +3315,7 @@ const WallGame = (() => {
     practice = !wordList.length;
     words = shuffle((practice ? ['castle', 'stone', 'tower', 'shield', 'knight', 'gate'] : wordList).filter(w => w.replace(/[^a-z]/gi, '').length >= 2));
     if (!words.length) words = ['castle'];
+    VOICE.warm(words);
     st = { idx: 0, fixed: 0 };
     root = document.createElement('div'); root.className = 'bw';
     root.innerHTML = `
@@ -3215,7 +3347,7 @@ const WallGame = (() => {
       st.idx = (st.idx + 1) % words.length; newWord();
     }));
     q('#bwHear').addEventListener('click', () => speak(st.word));
-    if (!('speechSynthesis' in window)) q('#bwHear').hidden = true;
+    if (!VOICE.canSpeak) q('#bwHear').hidden = true;
     q('#bwNext').addEventListener('click', next);
     q('#bwRetry').addEventListener('click', () => newWord());
     const tray = q('#bwTray');
@@ -3231,8 +3363,8 @@ const WallGame = (() => {
     document.addEventListener('keydown', keyHandler);
     newWord();
   }
-  function unmount() { stopTimer(); timers.forEach(clearTimeout); timers = []; if (keyHandler) document.removeEventListener('keydown', keyHandler); try { speechSynthesis.cancel(); } catch (e) {} if (root) root.remove(); root = null; drag = null; }
-  function speak(w) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(w); u.rate = .8; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
+  function unmount() { stopTimer(); timers.forEach(clearTimeout); timers = []; if (keyHandler) document.removeEventListener('keydown', keyHandler); VOICE.cancel(); if (root) root.remove(); root = null; drag = null; }
+  const speak = w => VOICE.speak(w);
   function status(t) { q('#bwStatus').textContent = t; }
 
   function newWord() {
@@ -3494,7 +3626,7 @@ const JesterGame = (() => {
   function mount(container, wordList) {
     practice = !wordList.length;
     const base = (practice ? ['crown', 'jester', 'banner', 'royal', 'castle', 'juggle'] : wordList).map(w => w.toLowerCase());
-    words = base.slice();
+    words = base.slice(); VOICE.warm(words);
     st = { idx: 0, pies: 0, targets: shuffle(base.filter(w => w.replace(/[^a-z]/g, '').length >= 3 && misspellable(w))) };
     if (!st.targets.length) st.targets = ['crown'];
     root = document.createElement('div'); root.className = 'jt';
@@ -3536,8 +3668,8 @@ const JesterGame = (() => {
     newRound();
   }
   function misspellable(w) { return [...w].some(c => SWAPS[c]); }
-  function unmount() { timers.forEach(clearTimeout); timers = []; if (keyHandler) document.removeEventListener('keydown', keyHandler); try { speechSynthesis.cancel(); } catch (e) {} if (root) root.remove(); root = null; }
-  function speak(w) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(w); u.rate = .8; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
+  function unmount() { timers.forEach(clearTimeout); timers = []; if (keyHandler) document.removeEventListener('keydown', keyHandler); VOICE.cancel(); if (root) root.remove(); root = null; }
+  const speak = w => VOICE.speak(w);
   function status(t) { q('#jtStatus').textContent = t; }
 
   function newRound() {
@@ -3584,7 +3716,7 @@ const JesterGame = (() => {
     st.phase = 'letter';
     root.querySelectorAll('.jt-banner').forEach(b => { b.disabled = true; });
     el.classList.add('caught'); st.el = el;
-    q('#jtHear').hidden = !('speechSynthesis' in window);
+    q('#jtHear').hidden = !VOICE.canSpeak;
     const box = q('#jtLetters'); box.innerHTML = '';
     [...st.trick.text].forEach((c, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.textContent = c; b.dataset.i = i;
