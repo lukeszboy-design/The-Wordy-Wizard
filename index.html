@@ -53,7 +53,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .m-grid button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .sr-menu{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sr-menu button:focus{position:fixed;left:16px;bottom:16px;width:auto;height:auto;clip:auto;z-index:5;font:700 15px var(--font-read);background:var(--parchment);color:var(--parch-ink);border:2px solid var(--gold);border-radius:10px;padding:8px 12px}
-@media (max-width:760px){
+@media (max-width:760px) and (orientation:portrait){
   .bubble{display:none}
   .mobile-panel{display:flex}
   .wrap{justify-content:flex-start}
@@ -168,7 +168,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .sq-spark{animation:spark 1s ease-out forwards}
 @keyframes spark{from{opacity:1;transform:scale(.2)}to{opacity:0;transform:scale(1.4) translateY(-14px)}}
 .sq-say{font:700 15px var(--font-read)}
-@media (max-width:760px){
+@media (max-width:760px) and (orientation:portrait){
   .game-screen{position:fixed;inset:0;z-index:25;overflow:auto;background:radial-gradient(ellipse at 50% 40%,#f6e6b8,#e6cd8f 70%,#c9a660)!important}
   .game-screen #gameDesc{display:block;margin:4px 16px 0;text-align:center;font:italic 15px var(--font-read);color:#6b4a26}
   .game-screen #gameTitle{position:static;width:auto;height:auto;clip:auto;white-space:normal;margin:68px 16px 0;text-align:center;font:400 24px var(--font-display);color:#5a2414}
@@ -215,7 +215,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 @keyframes pxsteam{0%{transform:translateY(8px);opacity:0}40%{opacity:.35}100%{transform:translateY(-40px);opacity:0}}
 .px-shake{animation:pxshake .5s ease-in-out}
 @keyframes pxshake{20%{transform:translateX(-4px) rotate(-1.5deg)}45%{transform:translateX(4px) rotate(1.5deg)}70%{transform:translateX(-2px)}}
-@media (max-width:760px){
+@media (max-width:760px) and (orientation:portrait){
   .px{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
   .px-scene svg{height:auto;max-height:34vh;width:auto;max-width:100%}
   .px-shelf{padding:10px 8px 0;border-bottom-width:12px}
@@ -269,25 +269,11 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 #dhLid{transform-box:fill-box;transform-origin:0% 100%;transition:transform .7s 1.9s cubic-bezier(.3,1.4,.5,1)}
 .dh-awake #dhLid{transform:translate(-8px,-24px) rotate(-16deg)}
 #dhChestGlow{opacity:0;transition:opacity .6s 2.1s}.dh-awake #dhChestGlow{opacity:1}
-@media (max-width:760px){
+@media (max-width:760px) and (orientation:portrait){
   .dh{position:static;display:flex;flex-direction:column-reverse;gap:12px;padding:8px 16px 20px}
   .dh-board{height:auto!important;width:100%!important;padding:8px;gap:3px}
   .dh-coin{font-size:clamp(14px,4.4vw,20px)}
   .dh-scene svg{max-height:none}
-}
-/* phones on their side: board and dragon side by side, the board sized to the screen's height */
-@media (max-width:760px) and (orientation:landscape){
-  .game-screen:has(.dh) #gameTitle,.game-screen:has(.dh) #gameDesc{display:none}
-  /* everything starts below the "Back to the lair" button and fits the screen's height */
-  .dh{flex-direction:row;align-items:flex-start;padding:58px 16px 8px}
-  .dh-boardwrap{flex:0 0 auto}
-  .dh-board{width:min(58vw, calc((100dvh - 70px) * var(--cols, 1) / var(--rows, 1)))!important;container-type:inline-size;padding:5px;gap:2px}
-  .dh-coin{font-size:max(11px, calc(100cqw / var(--cols, 1) * .48))}
-  .dh-side{flex:1;max-height:calc(100dvh - 70px);overflow-y:auto;justify-content:flex-start}
-  .dh-side > *{flex-shrink:0}
-  .dh-scene svg{max-height:28dvh}
-  .dh-status{font-size:13px;min-height:0}
-  .dh-word{font-size:13px}
 }
 @media (prefers-reduced-motion: reduce){ .dh-zzz text,#dhBreath,.dh-baby .wing{animation:none} }
 /* --- The Town Crier (listen & spell) --- */
@@ -327,7 +313,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 #tcSay{opacity:0;transition:opacity .2s}.tc-calling #tcSay{opacity:1}
 .tc-hop{animation:tchop .4s ease-in-out 4 alternate}
 @keyframes tchop{to{transform:translateY(-10px)}}
-@media (max-width:760px){
+@media (max-width:760px) and (orientation:portrait){
   .tc{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
   .tc-scene svg{height:auto;max-height:34vh;width:auto;max-width:100%}
   .tc-notice{width:100%;padding:14px 16px 18px}
@@ -379,7 +365,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 #bwArm{transform-box:fill-box;transform-origin:100% 50%;transition:transform .3s linear}
 #bwFlag{transform-box:fill-box;transform-origin:0% 100%;transform:scaleY(0);transition:transform .6s cubic-bezier(.3,1.5,.5,1)}
 .bw-won #bwFlag{transform:none}
-@media (max-width:760px){
+@media (max-width:760px) and (orientation:portrait){
   .bw{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
   .bw-scene svg{max-height:30vh;width:auto;max-width:100%;align-self:center}
   .bw-wall{padding:22px 10px 10px}.bw-wall::before{top:-20px;height:20px;background:repeating-linear-gradient(90deg,#8f8aa3 0 26px,transparent 26px 42px)}
@@ -457,7 +443,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 @keyframes jthehe{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-8px) rotate(2deg)}}
 @keyframes jtpaint{from{transform:rotate(-8deg)}to{transform:rotate(10deg)}}
 @keyframes jtstars{to{transform:rotate(360deg)}}
-@media (max-width:760px){
+@media (max-width:760px) and (orientation:portrait){
   .jt{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
   .jt-scene svg{height:auto;max-height:32vh;width:auto;max-width:100%}
   .jt-banners{gap:8px}
@@ -508,6 +494,34 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .music-btn .mute-slash{display:none}
 .music-btn[aria-pressed="false"] .mute-slash{display:inline}
 .music-btn[aria-pressed="false"]{opacity:.8}
+/* phones on their side: the app fills the whole window instead of sitting in a 16:9 frame.
+   The lair simply shows more of the room; each game keeps its 16:9 layout, centred, with its parchment
+   carried out to the screen's edges. */
+@media (orientation:landscape) and (max-height:540px){
+  .wrap{padding:0;gap:0;justify-content:flex-start}
+  .stage{width:100%;height:100dvh;aspect-ratio:auto;max-width:none;border-radius:0;box-shadow:none}
+  .game-screen{left:50%;right:auto;width:min(100%, calc(100dvh * 16 / 9));transform:translateX(-50%);container-type:inline-size;box-shadow:0 0 0 100vmax #e2c88a}
+  /* short screens: smaller minimum sizes and no reserved blank lines, so each game fits without scrolling */
+  .sq,.bw,.dh,.px{top:19%;bottom:2%}
+  .sq-side,.bw-side,.dh-side{gap:5px}
+  .sq-status,.bw-status,.dh-status{min-height:0;font-size:13px;line-height:1.25}
+  .dh-scene svg{max-height:24dvh}
+  .dh-words{gap:4px}
+  .dh-word{font-size:13px;padding:2px 8px 2px 4px}
+  .sq-slots{min-height:0}
+  .sq-slot{min-width:22px;min-height:28px;font-size:16px;border-bottom-width:4px}
+  .sq-keys{gap:4px}
+  .sq-key{min-height:27px;padding:0;font-size:15px}
+  .sq-btn{min-height:30px;padding:2px 12px;font-size:13px}
+  .sq-practice{display:none}
+  .bw-wall{margin-top:14px;padding:10px 8px 8px}
+  .bw-deco{display:none}
+  .bw-word span,.bw-word button{font-size:16px}
+  .bw-tray{min-height:0;padding:4px;gap:6px}
+  .bw-rock{min-width:34px;min-height:32px;font-size:16px}
+  .bw-meter-label{font-size:11px}
+  .bw .px-hint,.dh .px-hint,.px .px-hint{display:none}   /* the status line above says what to do */
+}
 </style>
 
 </head>
