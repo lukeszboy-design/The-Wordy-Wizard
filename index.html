@@ -188,7 +188,8 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .px-jars{position:relative;display:flex;flex-wrap:nowrap;justify-content:center;gap:.7cqw;touch-action:none;min-height:7cqw}
 .px-jar{position:relative;flex:0 1 5.8cqw;width:5.8cqw;height:auto;aspect-ratio:58/79;min-width:0;padding:0;border:none;background:none;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:1cqw;transition:transform .2s ease, filter .2s}
 .px-jar svg{width:100%;height:100%;display:block;pointer-events:none;overflow:visible}
-.px-jar .px-l{position:absolute;left:0;right:0;top:50%;text-align:center;font:700 max(18px,2.9cqw)/1 var(--font-read);color:#2a1a10;pointer-events:none;text-transform:lowercase}
+/* the letter is drawn inside the jar's picture, centred on its label, so it scales with the jar */
+.px-jar .px-l{font:700 23px var(--font-read);fill:#2a1a10;text-transform:lowercase}
 .px-jar:hover:not(.locked){filter:brightness(1.08)}
 .px-jar:focus-visible{outline:3px solid #a3401f;outline-offset:3px}
 .px-jar.dragging{z-index:5;cursor:grabbing;transition:none;filter:drop-shadow(0 .8cqw .6cqw rgba(0,0,0,.35))}
@@ -2531,7 +2532,7 @@ const PotionGame = (() => {
       </g>
     </svg>`;
   }
-  function jarSVG(color, n) {
+  function jarSVG(color, n, letter) {
     return `<svg viewBox="0 0 60 80" aria-hidden="true">
       <rect x="21" y="2" width="18" height="10" rx="2.5" fill="#a0704a" stroke="#2a1a10" stroke-width="2"/>
       <path d="M22 12 H38 V20 Q54 26 54 42 V68 Q54 78 44 78 H16 Q6 78 6 68 V42 Q6 26 22 20 Z" fill="#cfe9ff" fill-opacity=".45" stroke="#2a1a10" stroke-width="2.5"/>
@@ -2540,6 +2541,7 @@ const PotionGame = (() => {
       <circle class="bub" cx="44" cy="72" r="1.8" fill="#fff" style="animation-delay:${(n * .61 % 2 + .6).toFixed(2)}s"/>
       <path d="M12 34 Q14 28 20 25" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" opacity=".7"/>
       <rect x="13" y="38" width="34" height="26" rx="4" fill="#f6e7bd" stroke="#3b2412" stroke-width="2"/>
+      <text class="px-l" x="30" y="51.5" text-anchor="middle" dominant-baseline="central">${letter.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>
     </svg>`;
   }
 
@@ -2601,7 +2603,7 @@ const PotionGame = (() => {
     const jars = q('#pxJars'); jars.innerHTML = '';
     order.forEach((l, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'px-jar'; b.dataset.l = l; b.setAttribute('role', 'listitem');
-      b.innerHTML = jarSVG(JAR_COLORS[(i + st.idx) % JAR_COLORS.length], i) + `<span class="px-l">${l}</span>`;
+      b.innerHTML = jarSVG(JAR_COLORS[(i + st.idx) % JAR_COLORS.length], i, l);
       jars.appendChild(b);
     });
     labelJars();
