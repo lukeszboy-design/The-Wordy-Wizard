@@ -1204,6 +1204,7 @@ const LOOK_END = new THREE.Vector3(0, 1.75, -1.4), LOOK_START = new THREE.Vector
 camera.position.copy(reduce ? CAM_END : CAM_START);
 
 function resize() {
+  if (renderer.domElement.parentNode !== stage) return;   // the title screen is using it
   const w = stage.clientWidth, h = stage.clientHeight;
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
 }
@@ -4244,8 +4245,9 @@ function frame() {
     L.s.position.set(letterOrigin.x + L.dx * L.t + Math.sin(L.t * 6) * .04, letterOrigin.y + L.t * 1.1, letterOrigin.z);
     L.s.material.opacity = Math.sin(Math.min(1, L.t) * Math.PI) * .95;
   }
-  // under the title the lair only keeps warm (a frame a second); it draws fully once it can be seen
-  if (!(TITLE3D ? TITLE3D.covering() : !TITLE.entered) || ms - lairDrawn > 1000) { renderFrame(); lairDrawn = ms; }
+  // under the title the lair only keeps warm (a frame a second); it draws fully once it can be seen.
+  // While the 3D title has borrowed the canvas, the title draws instead.
+  if (renderer.domElement.parentNode === stage && (TITLE.entered || ms - lairDrawn > 1000)) { renderFrame(); lairDrawn = ms; }
   TITLE.mark('scene');
   // speech bubble follows the wizard on screen
   proj.copy(anchor).project(camera);
@@ -4256,26 +4258,36 @@ function frame() {
 
 /* ================= Title screen in 3D: the wizard's castle from outside, built around the real lair ================= */
 // The castle is added to the lair's own scene, with the room on its upper floor, so the window in the keep looks
-// straight in at the real wizard. A second renderer draws this view full screen over the flat castle picture
-// (which stays for devices without 3D). "Enter the castle" flies the camera in through that window to the exact
+// straight in at the real wizard. The lair's own canvas is borrowed and drawn full screen over the flat castle
+// picture (which stays for devices without 3D); a second canvas was too much for phones and car browsers. "Enter the castle" flies the camera in through that window to the exact
 // spot the lair's camera rests, while the picture shrinks to the lair's frame, so the hand-off can't be seen.
 const TITLE3D = (() => {
   const host = document.getElementById('title');
   if (!host || TITLE.entered) return null;
-  let tr;
-  try { tr = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }); } catch (e) { return null; }
-  tr.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-  tr.outputEncoding = THREE.sRGBEncoding; tr.toneMapping = THREE.ACESFilmicToneMapping; tr.toneMappingExposure = 1.05;
-  tr.shadowMap.enabled = true; tr.shadowMap.type = THREE.PCFSoftShadowMap;
-  const cv = tr.domElement; cv.className = 'castle3d'; cv.setAttribute('aria-hidden', 'true');
+  const tr = renderer, cv = renderer.domElement;
+  cv.classList.add('castle3d'); cv.style.pointerEvents = 'none';
   host.insertBefore(cv, host.querySelector('.title-head'));
+  // give the canvas back to the lair, sized to its frame
+  function handBack() {
+    if (cv.parentNode === stage) return;
+    tr.setScissorTest(false);
+    cv.classList.remove('castle3d'); ['left', 'top', 'width', 'height', 'clipPath', 'pointerEvents'].forEach(k => cv.style[k] = '');
+    stage.prepend(cv); resize(); renderFrame();   // (resizing blanks the canvas, so draw the lair at once)
+    host.style.background = 'transparent';         // the title fades away over the lair, not over a dark screen
+  }
 
   const out = new THREE.Group(); scene.add(out);
   const cam = new THREE.PerspectiveCamera(36, 16 / 9, .1, 600);
   const sky = canvasTex(4, 512, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0b0a24'); gr.addColorStop(.55, '#26286a'); gr.addColorStop(1, '#6a4a86'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
   const FOG_OUT = new THREE.Color(0x2a2660), FOG_IN = scene.fog.color.clone(), DEN_OUT = .0055, DEN_IN = scene.fog.density;
-  const add = (geo, mat, o = {}) => mesh(geo, mat, Object.assign({ parent: out }, o));
-  const stone = (rx, ry) => new THREE.MeshStandardMaterial({ map: rep(stoneMap, rx, ry), bumpMap: rep(stoneBump, rx, ry), bumpScale: .045, roughness: .95, metalness: 0 });
+  // every stone surface shares one material and one copy of the stone textures; the tiling is set by scaling
+  // each shape's own texture coordinates (a texture copy per block used over a gigabyte of graphics memory)
+  const stoneMat = new THREE.MeshStandardMaterial({ map: rep(stoneMap, 1, 1), bumpMap: rep(stoneBump, 1, 1), bumpScale: .045, roughness: .95, metalness: 0 });
+  const stone = (rx, ry) => ({ tile: [rx, ry] });
+  const add = (geo, mat, o = {}) => {
+    if (mat.tile) { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * mat.tile[0], uv.getY(i) * mat.tile[1]); mat = stoneMat; }
+    return mesh(geo, mat, Object.assign({ parent: out }, o));
+  };
   const glow = (hex, size, pos, opacity = 1) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(hex), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity, fog: false })); s.scale.set(size, size, 1); s.position.copy(pos); out.add(s); return s; };
   const warmTex = canvasTex(256, 256, (g, w) => { const r = g.createRadialGradient(w / 2, w * .55, 0, w / 2, w * .55, w * .6); r.addColorStop(0, '#fff4c4'); r.addColorStop(.55, '#ffcf6b'); r.addColorStop(1, '#f08a2e'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
   const warm = new THREE.MeshBasicMaterial({ map: warmTex, fog: false });
@@ -4324,7 +4336,7 @@ const TITLE3D = (() => {
   const WIN = { hw: 2.8, hs: 2.6, y: .3 };
   { const s = new THREE.Shape(); s.moveTo(-6.6, 0); s.lineTo(6.6, 0); s.lineTo(6.6, 9); s.lineTo(-6.6, 9); s.lineTo(-6.6, 0);
     const h = new THREE.Path(); archShape(WIN.hw, WIN.hs).getPoints(40).forEach((p, i) => i ? h.lineTo(p.x, p.y + WIN.y) : h.moveTo(p.x, p.y + WIN.y)); s.holes.push(h);
-    add(new THREE.ExtrudeGeometry(s, { depth: .6, bevelEnabled: false, curveSegments: 40 }), new THREE.MeshStandardMaterial({ map: rep(stoneMap, .25, .25), bumpMap: rep(stoneBump, .25, .25), bumpScale: .045, roughness: .95 }), { pos: [0, 0, 6], receive: true }); }
+    add(new THREE.ExtrudeGeometry(s, { depth: .6, bevelEnabled: false, curveSegments: 40 }), stone(.25, .25), { pos: [0, 0, 6], receive: true }); }
   add(archRing(WIN.hw, WIN.hs, .45, .3), frameMat, { pos: [0, WIN.y, 6.55], outline: .015, receive: true });
   add(new THREE.BoxGeometry(6.9, .22, .7), frameMat, { pos: [0, WIN.y - .1, 6.85], outline: .015, receive: true });
   row(-6.2, 6.2, 9.4, 6.25, 9); row(-6.2, 6.2, 9.4, -4.25, 9); col(-3.2, 5.2, 9.4, -6.25, 6); col(-3.2, 5.2, 9.4, 6.25, 6);
@@ -4409,7 +4421,7 @@ const TITLE3D = (() => {
     cam.aspect = r.w / r.h; cam.updateProjectionMatrix();
   }
   function frameUp() {
-    if (fly) return;
+    if (fly || cv.parentNode === stage) return;
     const r = full(); size(r);
     const tv = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), a = cam.aspect;
     // wide: the whole castle between the title and the button; near: the window and the wizard, big
@@ -4423,7 +4435,7 @@ const TITLE3D = (() => {
   const FLY_MS = 2600;
   TITLE.leaveAfter = FLY_MS + 350;
   TITLE.onEnter.push(() => {
-    if (reduce) return;
+    if (reduce) { handBack(); return; }
     TITLE.introAt = performance.now() - 4200;   // the lair's camera skips its own opening move: we bring it there
     fly = { t0: performance.now(), rect: cv.getBoundingClientRect() };
     from.p.copy(cam.position); from.l.copy(look);
@@ -4435,8 +4447,7 @@ const TITLE3D = (() => {
   }
   function tick(ms) {
     if (!alive) return;
-    // (the browser frees the title's canvas on its own; forcing it now would stall the lair's first moments)
-    if (!host.isConnected) { alive = false; putAway(); tr.dispose(); return; }
+    if (!host.isConnected || cv.parentNode === stage) { alive = false; putAway(); handBack(); return; }
     if (t0 === null) t0 = ms;
     const t = (ms - t0) / 1000;
     let u = 0;   // 0 outside .. 1 arrived in the lair
@@ -4444,7 +4455,7 @@ const TITLE3D = (() => {
       u = flyU = Math.min(1, (ms - fly.t0) / FLY_MS);
       const k = smooth(0, 1, u);
       // shrink from full screen to the lair's frame over the second half
-      const s = smooth(.45, 1, u), a = fly.rect, b = renderer.domElement.getBoundingClientRect();
+      const s = smooth(.45, 1, u), a = fly.rect, b = stage.getBoundingClientRect();
       narrow({ x: a.left + (b.left - a.left) * s, y: a.top + (b.top - a.top) * s, w: a.width + (b.width - a.width) * s, h: a.height + (b.height - a.height) * s, r: 14 * s });
       cam.fov = 36 + (camera.fov - 36) * k; cam.updateProjectionMatrix();
       cam.position.lerpVectors(from.p, CAM_END, k);
@@ -4478,12 +4489,13 @@ const TITLE3D = (() => {
     tr.render(scene, cam);
     fog.color.copy(fc); fog.density = fd; scene.background = bg;
     if (!shown) { shown = true; host.classList.add('has3d'); }
-    if (fly && u >= 1 && !host.classList.contains('leaving')) host.classList.add('leaving');
+    // arrived: the canvas goes back into the lair's frame, exactly where the picture has shrunk to
+    if (fly && u >= 1) { host.classList.add('leaving'); alive = false; putAway(); handBack(); return; }
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
   // the title covers the lair until the last stretch of the fly-in
-  return { cam, out, covering: () => alive && (!fly || flyU < .82) };
+  return { cam, out };
 })();
 
 /* ================= Start ================= */
