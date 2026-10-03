@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+._*
+
+# Editors
+.vscode/
+.idea/
+
+# Secrets - never commit these
+.env
+.env.*
+*.pem
+*.key
+
+# Build output
+dist/
+build/
+node_modules/
+*.zip
+*.dmg

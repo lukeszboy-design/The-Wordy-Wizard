@@ -1,0 +1,14 @@
+name: Idea or new feature
+description: Something new to add or change
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's the idea?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help kids, parents or teachers?
