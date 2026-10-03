@@ -463,6 +463,13 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .title .tag{margin:.35em 0 0;font:italic 700 clamp(15px,2.5vmin,28px) var(--font-read);color:#e9dcff;text-shadow:0 2px 6px rgba(0,0,0,.7)}
 .title-foot{position:absolute;left:16px;right:16px;bottom:4.5vh;display:flex;flex-direction:column;align-items:center;gap:14px;transition:opacity .45s, transform .6s}
 .title.zoom .title-head,.title.zoom .title-foot{opacity:0;transform:translateY(-2vh)}
+.title .castle3d{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity .7s}
+.title.has3d .castle3d{opacity:1}
+.title.has3d.zoom{opacity:1;transition:none}
+.title.has3d.leaving{opacity:0;transition:opacity .3s}
+.title.has3d .castle3d{position:absolute}
+.title.has3d .castle{opacity:0;transition:opacity .7s .3s}
+.title.has3d.zoom .castle{transform:none}
 .t-steps{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;margin:0;padding:8px 16px;list-style:none;border-radius:999px;background:rgba(13,10,31,.55);font:700 clamp(13px,2vmin,19px) var(--font-read);color:#cfc6e8}
 .t-steps li{display:flex;align-items:center;gap:8px;transition:color .3s}
 .t-steps li i{position:relative;width:15px;height:15px;border-radius:50%;border:2px solid #cfc6e8;border-top-color:transparent;box-sizing:border-box;animation:tspin .9s linear infinite}
@@ -908,6 +915,9 @@ const VOICE = (() => {
     });
   }
   // Web Audio keeps working after timers (Safari blocks <audio>.play() outside a tap)
+  // the sound engine is made up front (silent until a tap), because making it can take a moment on some
+  // devices and that moment shouldn't land in the middle of "Enter the castle"
+  try { ctx = window.__wwAudio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
   function unlock() {
     try { if (!ctx) ctx = window.__wwAudio = window.__wwAudio || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
   }
@@ -1004,7 +1014,7 @@ const TITLE = (() => {
     MUSIC.unlock(); VOICE.unlock(); unlockAudio();
     T.introAt = performance.now();
     el.classList.add('zoom');
-    setTimeout(() => el.remove(), reduce ? 450 : 2200);
+    setTimeout(() => el.remove(), reduce ? 450 : T.leaveAfter || 2200);
     T.onEnter.forEach(f => { try { f(); } catch (e) {} });
   }
   btn.addEventListener('click', enter);
@@ -1013,7 +1023,8 @@ const TITLE = (() => {
 })();
 MUSIC.ready.then(() => TITLE.mark('music'));
 VOICE.ready.then(() => TITLE.mark('voice'));
-TITLE.onEnter.push(() => setTimeout(() => say("Welcome to my lair, young speller! I'm the Wordy Wizard. Pick a spell from my book to practice this week's words."), reduce ? 500 : 2000));
+// (after the fly-in when there is one, so he greets the children once they're inside)
+TITLE.onEnter.push(() => setTimeout(() => say("Welcome to my lair, young speller! I'm the Wordy Wizard. Pick a spell from my book to practice this week's words."), reduce ? 500 : (TITLE.leaveAfter || 1700) + 300));
 const gate = $('gate'), panel = $('panel'), lockBtn = $('lockBtn');
 let answer = 0, misses = 0, lockedUntil = 0, cooldown = null, returnFocus = null;
 function newProblem() {
@@ -4122,6 +4133,7 @@ function renderFrame() {
 
 /* ================= Animation loop ================= */
 const clock = new THREE.Clock();
+let lairDrawn = -1e9;
 let blinkAt = 2.8, blinkT = -1, glanceAt = 3, curiousAt = 7, t0 = performance.now();
 const anchor = V(-1.45, 2.6, -.35), proj = new THREE.Vector3();
 const lookNow = LOOK_START.clone();
@@ -4232,13 +4244,247 @@ function frame() {
     L.s.position.set(letterOrigin.x + L.dx * L.t + Math.sin(L.t * 6) * .04, letterOrigin.y + L.t * 1.1, letterOrigin.z);
     L.s.material.opacity = Math.sin(Math.min(1, L.t) * Math.PI) * .95;
   }
-  renderFrame(); TITLE.mark('scene');
+  // under the title the lair only keeps warm (a frame a second); it draws fully once it can be seen
+  if (!(TITLE3D ? TITLE3D.covering() : !TITLE.entered) || ms - lairDrawn > 1000) { renderFrame(); lairDrawn = ms; }
+  TITLE.mark('scene');
   // speech bubble follows the wizard on screen
   proj.copy(anchor).project(camera);
   bubble.style.left = ((proj.x + 1) / 2 * 100) + '%';
   bubble.style.top = ((1 - proj.y) / 2 * 100) + '%';
   requestAnimationFrame(frame);
 }
+
+/* ================= Title screen in 3D: the wizard's castle from outside, built around the real lair ================= */
+// The castle is added to the lair's own scene, with the room on its upper floor, so the window in the keep looks
+// straight in at the real wizard. A second renderer draws this view full screen over the flat castle picture
+// (which stays for devices without 3D). "Enter the castle" flies the camera in through that window to the exact
+// spot the lair's camera rests, while the picture shrinks to the lair's frame, so the hand-off can't be seen.
+const TITLE3D = (() => {
+  const host = document.getElementById('title');
+  if (!host || TITLE.entered) return null;
+  let tr;
+  try { tr = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }); } catch (e) { return null; }
+  tr.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  tr.outputEncoding = THREE.sRGBEncoding; tr.toneMapping = THREE.ACESFilmicToneMapping; tr.toneMappingExposure = 1.05;
+  tr.shadowMap.enabled = true; tr.shadowMap.type = THREE.PCFSoftShadowMap;
+  const cv = tr.domElement; cv.className = 'castle3d'; cv.setAttribute('aria-hidden', 'true');
+  host.insertBefore(cv, host.querySelector('.title-head'));
+
+  const out = new THREE.Group(); scene.add(out);
+  const cam = new THREE.PerspectiveCamera(36, 16 / 9, .1, 600);
+  const sky = canvasTex(4, 512, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0b0a24'); gr.addColorStop(.55, '#26286a'); gr.addColorStop(1, '#6a4a86'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+  const FOG_OUT = new THREE.Color(0x2a2660), FOG_IN = scene.fog.color.clone(), DEN_OUT = .0055, DEN_IN = scene.fog.density;
+  const add = (geo, mat, o = {}) => mesh(geo, mat, Object.assign({ parent: out }, o));
+  const stone = (rx, ry) => new THREE.MeshStandardMaterial({ map: rep(stoneMap, rx, ry), bumpMap: rep(stoneBump, rx, ry), bumpScale: .045, roughness: .95, metalness: 0 });
+  const glow = (hex, size, pos, opacity = 1) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(hex), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity, fog: false })); s.scale.set(size, size, 1); s.position.copy(pos); out.add(s); return s; };
+  const warmTex = canvasTex(256, 256, (g, w) => { const r = g.createRadialGradient(w / 2, w * .55, 0, w / 2, w * .55, w * .6); r.addColorStop(0, '#fff4c4'); r.addColorStop(.55, '#ffcf6b'); r.addColorStop(1, '#f08a2e'); g.fillStyle = r; g.fillRect(0, 0, w, w); });
+  const warm = new THREE.MeshBasicMaterial({ map: warmTex, fog: false });
+  const archGeo = (hw, hs) => { const sg = new THREE.ShapeGeometry(archShape(hw, hs), 24), uv = sg.attributes.uv, p = sg.attributes.position; for (let i = 0; i < uv.count; i++) uv.setXY(i, (p.getX(i) + hw) / (2 * hw), p.getY(i) / (hs + hw)); return sg; };
+  const archRing = (hw, hs, rim, depth) => { const f = archShape(hw + rim, hs); f.holes.push(archShape(hw, hs, new THREE.Path())); return new THREE.ExtrudeGeometry(f, { depth, bevelEnabled: true, bevelThickness: .05, bevelSize: .05, bevelSegments: 2, curveSegments: 32 }); };
+  const frameMat = toon('#5a4f6b'), roofA = toon('#6b3fa0'), roofB = toon('#5b2d6e'), trim = toon('#4a4368');
+  const flames = [], flags = [], flies = [], lights = [];
+  // the castle's lights stay in the scene for good (at zero once inside): taking lights away makes every
+  // material rebuild its shader, which would freeze the lair for a moment
+  const light = (l, base) => { l.intensity = base; lights.push({ l, base }); scene.add(l); return l; };
+  const G = -6;   // the ground: the lair is the keep's upper floor
+
+  /* ----- land, mountains, trees ----- */
+  add(new THREE.CircleGeometry(260, 48), toon('#1d2742'), { pos: [0, G, 0], rot: [-Math.PI / 2, 0, 0], cast: false, receive: true });
+  add(new THREE.SphereGeometry(1, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2), toon('#232d4c'), { pos: [0, G - 1.2, 2], scale: [30, 2.6, 22], cast: false, receive: true });
+  { const s = new THREE.Shape(); s.moveTo(-1.6, 0); s.lineTo(1.6, 0); s.lineTo(6, 40); s.lineTo(-6, 40); s.lineTo(-1.6, 0);
+    add(new THREE.ShapeGeometry(s), toon('#3a3352'), { pos: [0, G + 1.42, 14.7], rot: [-Math.PI / 2 + .035, 0, Math.PI], cast: false, receive: true }); }
+  seed = 31;
+  for (let i = 0; i < 14; i++) {
+    const x = (i % 2 ? 1 : -1) * (60 + rnd() * 120), r = 18 + rnd() * 24;
+    add(new THREE.ConeGeometry(r, r * (.9 + rnd() * .6), 6), toon(i % 3 ? '#2a2552' : '#241f48'), { pos: [x * .9, G + r * .35, -100 - rnd() * 50], rot: [0, rnd() * 3, 0], cast: false });
+  }
+  const pine = toon('#1f3d42'), bark = toon('#3a2418');
+  [[-22, 4], [-25, -3], [-21, 13], [-29, 8], [22, 5], [26, -2], [21, 14], [30, 9], [-34, -9], [35, -8], [-27, 22], [28, 23]].forEach(([x, z], i) => {
+    const s = 1.6 + ((i * 37) % 10) / 12;
+    add(new THREE.CylinderGeometry(.18 * s, .24 * s, 1, 8), bark, { pos: [x, G + .5 * s, z] });
+    [[1.6, 2.4, 1.6], [1.25, 2, 2.9], [.85, 1.6, 4]].forEach(([r, h, y]) => add(new THREE.ConeGeometry(r * s, h * s, 9), pine, { pos: [x, G + y * s, z], outline: .04 }));
+  });
+
+  /* ----- the castle ----- */
+  const merlon = (x, y, z) => add(new THREE.BoxGeometry(.75, .8, .75), stone(.2, .2), { pos: [x, y, z], outline: .02, receive: true });
+  const row = (x0, x1, y, z, n) => { for (let i = 0; i < n; i++) merlon(x0 + (x1 - x0) * i / (n - 1), y, z); };
+  const col = (z0, z1, y, x, n) => { for (let i = 0; i < n; i++) merlon(x, y, z0 + (z1 - z0) * i / (n - 1)); };
+  const roofed = (x, z, r, y0, y1, roof, rh) => {
+    add(new THREE.CylinderGeometry(r, r * 1.06, y1 - y0, 28), stone(r * 1.3, (y1 - y0) / 4), { pos: [x, (y0 + y1) / 2, z], outline: .03, receive: true });
+    add(new THREE.CylinderGeometry(r * 1.2, r * 1.2, .45, 28), trim, { pos: [x, y1 + .2, z], outline: .02 });
+    add(new THREE.ConeGeometry(r * 1.38, rh, 28), roof, { pos: [x, y1 + .4 + rh / 2, z], outline: .03 });
+    return y1 + .4 + rh;   // the roof's tip, for a flag
+  };
+  // the keep wraps the lair (x ±6, y 0..6, z -4..6): solid below, walls around, a roof slab above
+  add(new THREE.BoxGeometry(13.2, 6, 11.2), stone(3.3, 1.5), { pos: [0, G / 2, 1], outline: .03, receive: true });
+  [-6.3, 6.3].forEach(x => add(new THREE.BoxGeometry(.6, 9, 11.2), stone(2.8, 2.25), { pos: [x, 4.5, 1], receive: true }));
+  add(new THREE.BoxGeometry(13.2, 9, .6), stone(3.3, 2.25), { pos: [0, 4.5, -4.3], receive: true });
+  add(new THREE.BoxGeometry(13.2, 2.95, 11.2), stone(3.3, .75), { pos: [0, 7.53, 1], receive: true });
+  // the front wall, with the great window into the wizard's room
+  const WIN = { hw: 2.8, hs: 2.6, y: .3 };
+  { const s = new THREE.Shape(); s.moveTo(-6.6, 0); s.lineTo(6.6, 0); s.lineTo(6.6, 9); s.lineTo(-6.6, 9); s.lineTo(-6.6, 0);
+    const h = new THREE.Path(); archShape(WIN.hw, WIN.hs).getPoints(40).forEach((p, i) => i ? h.lineTo(p.x, p.y + WIN.y) : h.moveTo(p.x, p.y + WIN.y)); s.holes.push(h);
+    add(new THREE.ExtrudeGeometry(s, { depth: .6, bevelEnabled: false, curveSegments: 40 }), new THREE.MeshStandardMaterial({ map: rep(stoneMap, .25, .25), bumpMap: rep(stoneBump, .25, .25), bumpScale: .045, roughness: .95 }), { pos: [0, 0, 6], receive: true }); }
+  add(archRing(WIN.hw, WIN.hs, .45, .3), frameMat, { pos: [0, WIN.y, 6.55], outline: .015, receive: true });
+  add(new THREE.BoxGeometry(6.9, .22, .7), frameMat, { pos: [0, WIN.y - .1, 6.85], outline: .015, receive: true });
+  row(-6.2, 6.2, 9.4, 6.25, 9); row(-6.2, 6.2, 9.4, -4.25, 9); col(-3.2, 5.2, 9.4, -6.25, 6); col(-3.2, 5.2, 9.4, 6.25, 6);
+  // towers: two at the keep's front corners, three rising from its roof, two big ones flanking
+  const tips = [];
+  [-6.9, 6.9].forEach(x => tips.push([x, roofed(x, 6.6, 1.25, G, 11, roofB, 3.6), 6.6, '#f2c35b']));
+  [-3.9, 3.9].forEach((x, i) => tips.push([x, roofed(x, -1.8, 1.7, 8.9, 15, roofA, 5.2), -1.8, i ? '#c0392b' : '#f2c35b']));
+  tips.push([0, roofed(0, -2.9, 1.25, 8.9, 12.6, roofA, 4), -2.9, '#c0392b']);
+  [-12.5, 12.5].forEach((x, i) => tips.push([x, roofed(x, 3, 2.2, G, 8, roofA, 5.6), 3, i ? '#f2c35b' : '#c0392b']));
+  [-1, 1].forEach(sd => { add(new THREE.BoxGeometry(4.1, 8, 1.6), stone(1, 2), { pos: [sd * 8.55, G + 4, 3], outline: .03, receive: true }); row(sd * 6.9, sd * 10.3, G + 8.4, 3, 4); });
+  // the outer wall and gate
+  add(new THREE.BoxGeometry(32, 4.4, 1.2), stone(8, 1.1), { pos: [0, G + 2.2, 14], outline: .03, receive: true });
+  [-1, 1].forEach(sd => { add(new THREE.BoxGeometry(1.2, 4.4, 11), stone(2.8, 1.1), { pos: [sd * 16, G + 2.2, 8.5], outline: .03, receive: true }); row(sd * 2.6, sd * 15.4, G + 4.8, 14, 9); });
+  [-16, 16].forEach((x, i) => tips.push([x, roofed(x, 14, 1.5, G, G + 6.6, roofB, 3.6), 14, i ? '#c0392b' : '#f2c35b']));
+  add(archGeo(1.6, 1.7), new THREE.MeshBasicMaterial({ color: C('#120d1c') }), { pos: [0, G, 14.61], cast: false });
+  add(archRing(1.6, 1.7, .35, .3), frameMat, { pos: [0, G, 14.5], outline: .015, receive: true });
+  [-1, -.5, 0, .5, 1].forEach(x => add(new THREE.BoxGeometry(.09, 3.3 - Math.abs(x) * .6, .09), ironMat, { pos: [x, G + (3.3 - Math.abs(x) * .6) / 2, 14.66], cast: false }));
+  [1, 2].forEach(y => add(new THREE.BoxGeometry(3, .09, .09), ironMat, { pos: [0, G + y, 14.68], cast: false }));
+  [-2.7, 2.7].forEach(x => {
+    add(new THREE.BoxGeometry(.4, .52, .4), new THREE.MeshStandardMaterial({ color: C('#ffcb72'), emissive: C('#ff9c38'), emissiveIntensity: 1, transparent: true, opacity: .75, roughness: .2 }), { pos: [x, G + 3, 14.85], cast: false });
+    add(new THREE.ConeGeometry(.38, .32, 4), ironMat, { pos: [x, G + 3.42, 14.85], rot: [0, Math.PI / 4, 0], cast: false, outline: .012 });
+    add(new THREE.BoxGeometry(.48, .06, .48), ironMat, { pos: [x, G + 2.72, 14.85], cast: false });
+    flames.push({ s: glow('#ffae55', 3.2, V(x, G + 3.02, 15.1), .8), base: .8, ph: x });
+    const l = light(new THREE.PointLight(0xff9440, 2.4, 12, 1.6), 2.4); l.position.set(x, G + 3, 15.6); flames.push({ l, base: 2.4, ph: x + 1 });
+  });
+  // small lit windows
+  const smallWin = (x, y, z, s) => { add(archGeo(.3 * s, .4 * s), warm, { pos: [x, y, z], cast: false }); glow('#ffc861', 1.8 * s, V(x, y + .4 * s, z + .1), .45); };
+  // (set just proud of each round tower's face so they don't sink into the curve)
+  const face = (z, r) => z + r * 1.06 + .06;
+  [-6.9, 6.9].forEach(x => { smallWin(x, 2.6, face(6.6, 1.25), 1); smallWin(x, 7.6, face(6.6, 1.25), 1); smallWin(x, -2.8, face(6.6, 1.25), 1); });
+  [-3.9, 3.9].forEach(x => smallWin(x, 12.2, face(-1.8, 1.7), 1));
+  [-12.5, 12.5].forEach(x => { smallWin(x, 4.2, face(3, 2.2), 1.2); smallWin(x, -1, face(3, 2.2), 1.2); });
+  [-16, 16].forEach(x => smallWin(x, G + 4.3, face(14, 1.5), 1));
+  // a flag on every roof
+  tips.forEach(([x, y, z, c], i) => {
+    limb(V(x, y - .3, z), V(x, y + 1.9, z), .05, .05, ironMat, out, .012, 8);
+    const g = new THREE.PlaneGeometry(1.7, .8, 10, 1); g.translate(.85, 0, 0);
+    const f = add(g, toon(c, { side: THREE.DoubleSide }), { pos: [x, y + 1.45, z] });
+    flags.push({ f, rest: g.attributes.position.array.slice(), ph: i * 1.7 });
+  });
+
+  /* ----- sky: moon and stars ----- */
+  const moonTex = canvasTex(256, 256, (g, w) => {
+    g.fillStyle = '#f6efcf'; g.beginPath(); g.arc(128, 128, 120, 0, 7); g.fill();
+    g.fillStyle = '#e1d6ad'; [[-30, -20, 26], [40, 30, 32], [20, -55, 14], [-50, 45, 16]].forEach(([x, y, r]) => { g.beginPath(); g.arc(128 + x, 128 + y, r, 0, 7); g.fill(); });
+  });
+  const moonPos = V(95, 52, -200);
+  add(new THREE.PlaneGeometry(20, 20), new THREE.MeshBasicMaterial({ map: moonTex, transparent: true, fog: false }), { pos: moonPos.toArray(), cast: false });
+  glow('#e8ecff', 76, moonPos.clone().add(V(0, 0, -1)), .5);
+  const stars = [0, 1].map(k => {
+    const pts = []; seed = 77 + k;
+    for (let i = 0; i < 260; i++) { const a = rnd() * Math.PI * 2, e = .1 + rnd() * 1.2; pts.push(Math.cos(a) * Math.cos(e) * 330, 10 + Math.sin(e) * 330, -Math.abs(Math.sin(a)) * 330 * Math.cos(e) - 40); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    const p = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: k ? 2.6 : 1.8, sizeAttenuation: false, transparent: true, fog: false, depthWrite: false }));
+    out.add(p); return p;
+  });
+  seed = 9;
+  for (let i = 0; i < 18; i++) flies.push({ s: glow('#ffe9a8', .8, V(0, 0, 0), .9), x: (rnd() - .5) * 46, y: G + .8 + rnd() * 3, z: 16 + rnd() * 20, ph: rnd() * 7 });
+
+  /* ----- light: moonlight like the room's, a soft night sky, and warm light at the window ----- */
+  light(new THREE.HemisphereLight(C('#6a5fae'), C('#140c18'), 1), .55);
+  const sun = light(new THREE.DirectionalLight(0x9db4ff, 1), 1.15);
+  sun.position.set(-34, 55, 62); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -.0015;
+  Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 34, bottom: -22, near: 1, far: 180 });
+  const winLight = light(new THREE.PointLight(0xffb060, 1, 14, 1.5), 1.5); winLight.position.set(0, 3.4, 9);
+
+  /* ----- camera: opens wide on the castle, drifts in toward the window, then flies through it ----- */
+  const WIN_C = V(0, WIN.y + 2.6, 6.3);
+  let wide = { p: V(0, 4, 80), l: V(0, 7, 4) }, near = { p: V(0, 2.6, 36), l: V(0, 3.2, 6) };
+  let fly = null, alive = true, shown = false, t0 = null, waveAt = 2.5, flyU = 0;
+  const full = () => ({ x: 0, y: 0, w: host.clientWidth || innerWidth, h: host.clientHeight || innerHeight, r: 0 });
+  function size(r) {
+    Object.assign(cv.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+    tr.setSize(Math.round(r.w), Math.round(r.h), false); cam.aspect = r.w / r.h; cam.updateProjectionMatrix();
+  }
+  // during the fly-in the picture narrows to the lair's frame by drawing into a smaller part of the same canvas
+  // (resizing the canvas every frame would stutter) and clipping the rest away, rounded like the lair's corners
+  function narrow(r) {
+    const W = cv.clientWidth, H = cv.clientHeight, y = H - r.y - r.h;
+    cv.style.clipPath = `inset(${r.y}px ${W - r.x - r.w}px ${y}px ${r.x}px round ${r.r}px)`;
+    tr.setScissorTest(true); tr.setViewport(r.x, y, r.w, r.h); tr.setScissor(r.x, y, r.w, r.h);
+    cam.aspect = r.w / r.h; cam.updateProjectionMatrix();
+  }
+  function frameUp() {
+    if (fly) return;
+    const r = full(); size(r);
+    const tv = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)), a = cam.aspect;
+    // wide: the whole castle between the title and the button; near: the window and the wizard, big
+    const dW = Math.max(26 / tv, 28 / (tv * a)), dN = Math.max(8.2 / tv, 7.6 / (tv * a));
+    wide = { p: V(0, 3 + dW * .02, 6 + dW), l: V(0, 3.6, 4) };
+    near = { p: V(0, 2.5, 6.3 + dN), l: V(0, 3.1, 6) };
+  }
+  new ResizeObserver(frameUp).observe(host); frameUp();
+  const smooth = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  const look = V(0, 0, 0), from = { p: V(0, 0, 0), l: V(0, 0, 0) }, endLook = V(0, 0, 0), q0 = new THREE.Quaternion();
+  const FLY_MS = 2600;
+  TITLE.leaveAfter = FLY_MS + 350;
+  TITLE.onEnter.push(() => {
+    if (reduce) return;
+    TITLE.introAt = performance.now() - 4200;   // the lair's camera skips its own opening move: we bring it there
+    fly = { t0: performance.now(), rect: cv.getBoundingClientRect() };
+    from.p.copy(cam.position); from.l.copy(look);
+  });
+  // when the title closes, the castle is hidden; its lights stay dark and the moon's shadow stops updating
+  function putAway() {
+    out.visible = false;
+    lights.forEach(({ l }) => l.intensity = 0); sun.shadow.autoUpdate = false; sun.shadow.needsUpdate = true;
+  }
+  function tick(ms) {
+    if (!alive) return;
+    // (the browser frees the title's canvas on its own; forcing it now would stall the lair's first moments)
+    if (!host.isConnected) { alive = false; putAway(); tr.dispose(); return; }
+    if (t0 === null) t0 = ms;
+    const t = (ms - t0) / 1000;
+    let u = 0;   // 0 outside .. 1 arrived in the lair
+    if (fly) {
+      u = flyU = Math.min(1, (ms - fly.t0) / FLY_MS);
+      const k = smooth(0, 1, u);
+      // shrink from full screen to the lair's frame over the second half
+      const s = smooth(.45, 1, u), a = fly.rect, b = renderer.domElement.getBoundingClientRect();
+      narrow({ x: a.left + (b.left - a.left) * s, y: a.top + (b.top - a.top) * s, w: a.width + (b.width - a.width) * s, h: a.height + (b.height - a.height) * s, r: 14 * s });
+      cam.fov = 36 + (camera.fov - 36) * k; cam.updateProjectionMatrix();
+      cam.position.lerpVectors(from.p, CAM_END, k);
+      look.lerpVectors(from.l, LOOK_END, smooth(0, .8, u));
+      cam.lookAt(look);
+      // the last stretch settles exactly onto the lair's own camera
+      const e = smooth(.8, 1, u);
+      if (e > 0) { cam.position.lerp(camera.position, e); q0.copy(cam.quaternion).slerp(camera.quaternion, e); cam.quaternion.copy(q0); }
+    } else if (reduce) {
+      cam.position.copy(near.p); look.copy(near.l); cam.lookAt(look);
+    } else {
+      const k = smooth(0, 14, t);
+      cam.position.lerpVectors(wide.p, near.p, k); look.lerpVectors(wide.l, near.l, k);
+      cam.position.x += Math.sin(t * .17) * (1.2 + 1.8 * (1 - k)); cam.position.y += Math.sin(t * .23) * .3;
+      cam.lookAt(look);
+      // now and then the wizard waves out of his window
+      if (t > waveAt && W.waveT < 0 && !TITLE.entered) { W.waveT = 0; waveAt = t + 7 + Math.random() * 3; }
+    }
+    // outside: night sky, light mist, moonlight. These fade into the lair's own as the camera comes inside.
+    const inside = smooth(.55, 1, u);
+    lights.forEach(({ l, base }) => l.intensity = base * (1 - inside));
+    if (!reduce) {
+      flames.forEach(f => { const v = 1 + Math.sin(t * 9 + f.ph * 3) * .06 + Math.sin(t * 23 + f.ph) * .04; if (f.s) f.s.material.opacity = f.base * v; else f.l.intensity = f.base * v * (1 - inside); });
+      flags.forEach(({ f, rest, ph }) => { const a = f.geometry.attributes.position; for (let i = 0; i < a.count; i++) { const x = rest[i * 3]; a.setZ(i, Math.sin(t * 3.2 + ph - x * 2.8) * .12 * x); } a.needsUpdate = true; f.geometry.computeVertexNormals(); });
+      stars.forEach((p, k) => p.material.opacity = .55 + Math.sin(t * (1.1 + k * .7) + k * 2) * .35);
+      flies.forEach(f => { f.s.position.set(f.x + Math.sin(t * .5 + f.ph) * 1.6, f.y + Math.sin(t * .9 + f.ph * 2) * .5, f.z + Math.cos(t * .4 + f.ph) * 1.6); f.s.material.opacity = .5 + .5 * Math.sin(t * 2.2 + f.ph * 5); });
+    }
+    const fog = scene.fog, bg = scene.background, fc = fog.color.clone(), fd = fog.density;
+    fog.color.copy(FOG_OUT).lerp(FOG_IN, inside); fog.density = DEN_OUT + (DEN_IN - DEN_OUT) * inside;
+    scene.background = u > .9 ? bg : sky;
+    tr.render(scene, cam);
+    fog.color.copy(fc); fog.density = fd; scene.background = bg;
+    if (!shown) { shown = true; host.classList.add('has3d'); }
+    if (fly && u >= 1 && !host.classList.contains('leaving')) host.classList.add('leaving');
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  // the title covers the lair until the last stretch of the fly-in
+  return { cam, out, covering: () => alive && (!fly || flyU < .82) };
+})();
 
 /* ================= Start ================= */
 drawBanner(); paintCurrent(); onWordsChanged = paintCurrent;
