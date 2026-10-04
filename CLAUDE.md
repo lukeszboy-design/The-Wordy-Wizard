@@ -6,11 +6,10 @@ Spelling games for elementary students. Parents enter the week's words by hand o
 - The whole app is one file: `index.html` (HTML, CSS and JavaScript inline). Keep it that way unless Luke asks otherwise.
 - Uses three.js r128 from cdnjs for the 3D scene.
 - `music.txt` is the background music ("Skipping Song"), stored as base64-encoded MP3 text. Don't edit it by hand.
-- The wizard's voice is Kokoro "George" (a kindly British gentleman), handled by `VOICE` in index.html. It also reads spelling words in every game except The Town Crier.
+- Voices are handled by `VOICE` in index.html, using the Kokoro speech engine in the browser (never the device's built-in voices). The wizard's own lines use "George" (a kindly British gentleman). Spelling words in every game (Town Crier included) use the word voice: a 60/40 blend of Emma and George in `word-voice.bin` (rebuild with `uv run --python 3.12 --with kokoro-onnx --with soundfile tools/make_word_voice.py`). It loads through the unused "Lily" voice slot. Clip names are `speed|text` for George and `blend1|speed|text` for the word voice.
   - `voice.txt` holds his pre-recorded lines: one MP3 clip per sentence (JSON, keyed `"0.9|sentence"`, base64). After adding or changing a wizard `say(...)` line, re-record with `uv run --python 3.12 --with kokoro-onnx --with soundfile tools/make_voice.py` (needs ffmpeg). Keep the wizard's lines fixed text where possible; anything not in voice.txt is recorded in the browser instead.
   - Spelling words are recorded in the browser: the Kokoro model (~90 MB, kokoro-js from jsdelivr, model from Hugging Face) runs in a Web Worker, and finished clips are saved in the browser's cache so later visits don't need the model. The browser's own voice is the fallback.
 - Hosted on GitHub Pages from the `main` branch at https://lukeszboy-design.github.io/The-Wordy-Wizard/ (repo: lukeszboy-design/The-Wordy-Wizard).
-- `voices/crier.onnx` is the Town Crier's voice (Piper "Ryan" model), run in the browser by `CRIER_VOICE` in index.html so he can say any spelling word in the same voice on every device. The engine files load from cdnjs/jsdelivr and are cached in the browser after the first load (~90 MB).
 - Word lists and progress are saved in the browser with localStorage. Don't break existing saved data when changing its format.
 
 ## Design direction

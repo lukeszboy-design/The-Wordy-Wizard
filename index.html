@@ -806,7 +806,7 @@ let typer = null, quiet = null, voicing = false, line = 0, unheard = null;
 // the wizard reads each line aloud (George, at an unhurried pace); his mouth moves until both the voice and the typing finish
 function voiceLine(parts) {
   const me = line;
-  voicing = VOICE.speak(parts, { rate: .85, onend: () => { if (me !== line) return; voicing = false; MUSIC.talk(false); if (!typer && !quiet) W.talking = false; } });
+  voicing = VOICE.speak(parts, { rate: .85, wizard: true, onend: () => { if (me !== line) return; voicing = false; MUSIC.talk(false); if (!typer && !quiet) W.talking = false; } });
   MUSIC.talk(voicing);
   unheard = voicing ? null : parts;   // browsers stay silent until the first tap; say it then instead
   if (voicing) W.talking = true;
@@ -883,28 +883,37 @@ const MUSIC = (() => {
   return { duck: () => { base = GAME; apply(); }, lair: () => { base = LAIR; apply(); }, talk: v => { if (talking !== v) { talking = v; apply(); } }, unlock, ready: readyP };
 })();
 
-/* ================= The wizard's voice: Kokoro "George" (kindly British gentleman), run in a worker ================= */
-// His everyday lines come pre-recorded in voice.txt (made by tools/make_voice.py). Anything else, like this
-// week's words, he records in the browser: the neural voice (~90 MB, cached after the first visit) loads in the
-// background, and every clip is saved, so on later visits he answers instantly without loading the model at all.
-// Until he's ready, or on devices that can't run him, the browser's own British voice stands in.
+/* ================= Voices: real voices for any word, made in the browser (never the device's own) ================= */
+// Two voices from the Kokoro speech engine: the wizard's own (George), whose everyday lines come pre-recorded in
+// voice.txt (made by tools/make_voice.py), and the word voice that reads spelling words in every game, a warm
+// British blend of Emma and George (word-voice.bin, made by tools/make_word_voice.py). The engine (~90 MB,
+// cached after the first visit) runs in a background worker, and every clip it makes is saved, so later visits
+// answer instantly without loading it at all. Until it's ready, words simply wait for it.
 const VOICE = (() => {
   const WORKER = `
     import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
-    const load = KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', { dtype: 'q8', device: 'wasm' });
+    // the word voice is our own blend, so it borrows the slot of a British voice we never use ("Lily"): her
+    // file is fetched from word-voice.bin instead (and any copy the engine kept from before is cleared first)
+    const LILY = 'https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices/bf_lily.bin', realFetch = self.fetch.bind(self);
+    self.fetch = (u, o) => realFetch(String(u) === LILY ? '${new URL('word-voice.bin', location.href).href}' : u, o);
+    const load = caches.open('kokoro-voices').then(c => c.delete(LILY)).catch(() => {})
+      .then(() => KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', { dtype: 'q8', device: 'wasm' }));
     load.then(() => postMessage({ ready: true }), e => postMessage({ failed: String(e) }));
     const trim = (x, r) => { let a = 0, b = x.length - 1; while (a < b && Math.abs(x[a]) < .01) a++; while (b > a && Math.abs(x[b]) < .01) b--; return x.slice(Math.max(0, a - Math.round(r * .04)), Math.min(x.length, b + Math.round(r * .1))); };
-    onmessage = async ({ data: { key, text, speed } }) => {
-      try { const a = await (await load).generate(text, { voice: 'bm_george', speed }), pcm = trim(a.audio, a.sampling_rate); postMessage({ key, pcm, rate: a.sampling_rate }, [pcm.buffer]); }
+    onmessage = async ({ data: { key, text, speed, voice } }) => {
+      try { const a = await (await load).generate(text, { voice, speed }), pcm = trim(a.audio, a.sampling_rate); postMessage({ key, pcm, rate: a.sampling_rate }, [pcm.buffer]); }
       catch (e) { postMessage({ key, error: String(e) }); }
     };`;
-  const hasSynth = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
   const clips = new Map(), waiting = new Map(), pending = new Set(), hurry = new Set(), queue = [];
   let worker = null, state = 'off', busy = null, ctx = null, src = null, token = 0, ending = null;
   const once = f => { let done = !f; return () => { if (!done) { done = true; f(); } }; };
-  // the browser's slow-reading rates (.55–.8) map onto gentler Kokoro speeds
+  let upRes; const up = new Promise(r => upRes = r);   // the engine is ready (or can't run here)
+  const WIZARD = 'bm_george', WORDS_VOICE = 'bf_lily';   // (the word voice speaks through Lily's slot; see the worker)
+  // the browser's slow-reading rates (.55–.8) map onto gentler Kokoro speeds; words go a touch slower still
   const speedFor = rate => Math.round((.35 + .65 * rate) * 100) / 100;
-  const keyFor = (text, speed) => speed + '|' + text;
+  const pick = (rate, wizard) => wizard ? { voice: WIZARD, speed: speedFor(rate) } : { voice: WORDS_VOICE, speed: Math.round(speedFor(rate) * .94 * 100) / 100 };
+  // clip names: George's keep their original "speed|text"; the word voice's say which blend made them
+  const keyFor = (text, speed, voice) => (voice === WIZARD ? '' : 'blend1|') + speed + '|' + text;
   // the shelf: finished clips kept as 16-bit sound in the browser's cache; ones unused for 60 days are swept away
   const shelf = ('caches' in window ? caches.open('wordy-wizard-voice-v1') : Promise.resolve(null)).catch(() => null);
   const slot = key => new Request('wizard-voice/' + encodeURIComponent(key));
@@ -937,7 +946,7 @@ const VOICE = (() => {
       worker = new Worker(URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' })), { type: 'module' });
       state = 'loading';
       worker.onmessage = ({ data }) => {
-        if (data.ready) { state = 'ready'; pump(); return; }
+        if (data.ready) { state = 'ready'; upRes(); pump(); return; }
         if (data.failed) { fail(); return; }
         busy = null;
         if (data.pcm) { const a = { pcm: data.pcm, rate: data.rate }; shelve(data.key, a); deliver(data.key, a); } else deliver(data.key, null);
@@ -947,7 +956,7 @@ const VOICE = (() => {
     } catch (e) { fail(); }
   }
   function fail() {
-    state = 'failed'; if (worker) worker.terminate(); worker = null;
+    state = 'failed'; upRes(); if (worker) worker.terminate(); worker = null;
     if (busy) deliver(busy.key, null); busy = null;
     queue.splice(0).forEach(j => deliver(j.key, null));
   }
@@ -955,9 +964,9 @@ const VOICE = (() => {
     if (state !== 'ready' || busy || !queue.length) return;
     busy = queue.shift(); worker.postMessage(busy);
   }
-  // look on the shelf first; otherwise George records it. Urgent requests (a child tapped "hear it") jump the line.
-  function request(text, speed, urgent, cb) {
-    const key = keyFor(text, speed);
+  // look on the shelf first; otherwise the voice records it. Urgent requests (a child tapped "hear it") jump the line.
+  function request(text, speed, voice, urgent, cb) {
+    const key = keyFor(text, speed, voice);
     if (clips.has(key)) { if (cb) cb(clips.get(key)); return; }
     if (cb) waiting.set(key, (waiting.get(key) || []).concat(cb));
     if (urgent) hurry.add(key);
@@ -966,7 +975,7 @@ const VOICE = (() => {
     bundle.then(() => clips.get(key) || fromShelf(key)).then(a => {
       if (a) { deliver(key, a); return; }
       if (state === 'failed') { deliver(key, null); return; }
-      const job = { key, text, speed }; hurry.has(key) ? queue.unshift(job) : queue.push(job);
+      const job = { key, text, speed, voice }; hurry.has(key) ? queue.unshift(job) : queue.push(job);
       start(); pump();
     });
   }
@@ -987,53 +996,49 @@ const VOICE = (() => {
       src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination);
       const me = src; src.onended = () => { if (src === me) src = null; if (onend) onend(); };
       src.start();
-    } catch (e) { fallback(text, rate, onend); }
-  }
-  function britishVoice() {
-    try { const vs = speechSynthesis.getVoices(); return vs.find(v => /en[-_]GB/i.test(v.lang) && /daniel|arthur|male|george/i.test(v.name)) || vs.find(v => /en[-_]GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null; } catch (e) { return null; }
-  }
-  function fallback(text, rate, onend) {
-    if (!hasSynth) { if (onend) onend(); return; }
-    try {
-      const u = new SpeechSynthesisUtterance(text); u.rate = rate; u.pitch = .95; u.lang = 'en-GB';
-      const v = britishVoice(); if (v) u.voice = v; if (onend) u.onend = onend;
-      speechSynthesis.speak(u);
     } catch (e) { if (onend) onend(); }
   }
   function cancel() {
     token++;
     const f = ending; ending = null; if (f) f();   // a line cut off by the next one still finishes tidily
     if (src) { const s = src; src = null; s.onended = null; try { s.stop(); } catch (e) {} }
-    try { speechSynthesis.cancel(); } catch (e) {}
   }
   // a few clips (e.g. "Hear ye, hear ye! The word is:" + the word) are stitched together with a short breath
-  function join(parts, speed) {
-    const cs = parts.map(t => clips.get(keyFor(t, speed))), gap = Math.round(cs[0].rate * .12);
+  function join(parts, speed, voice) {
+    const cs = parts.map(t => clips.get(keyFor(t, speed, voice))), gap = Math.round(cs[0].rate * .12);
     const pcm = new Float32Array(cs.reduce((n, c) => n + c.pcm.length, 0) + gap * (cs.length - 1));
     let at = 0; cs.forEach(c => { pcm.set(c.pcm, at); at += c.pcm.length + gap; });
     return { pcm, rate: cs[0].rate };
   }
-  // an optional `intro` is only said once George has it ready, so his voice never switches mid-sentence
-  // returns false (and stays quiet) before the first tap, when browsers won't play sound
-  function speak(text, { rate = .8, onend, intro } = {}) {
+  // `wizard: true` is the wizard talking (George); otherwise it's a spelling word in the word voice.
+  // An optional `intro` is only said once it's ready, so the voice never switches mid-sentence.
+  // Returns false (and stays quiet) before the first tap, when browsers won't play sound.
+  function speak(text, { rate = .8, onend, intro, wizard = false } = {}) {
     cancel();
     if (!awake()) { if (onend) setTimeout(onend, 0); return false; }
     unlock(); onend = ending = once(onend);
-    const parts = [].concat(text), me = token, speed = speedFor(rate);
-    if (intro) { if (clips.has(keyFor(intro, speed)) || state === 'failed') parts.unshift(intro); else warm([intro], rate, true); }
+    const parts = [].concat(text), me = token, { voice, speed } = pick(rate, wizard);
+    if (intro) { if (clips.has(keyFor(intro, speed, voice)) || state === 'failed') parts.unshift(intro); else request(intro, speed, voice, true); }
     const all = parts.join(' ');
-    const have = () => parts.every(t => clips.has(keyFor(t, speed)));
-    if (have()) { play(join(parts, speed), all, rate, onend); return true; }
+    const have = () => parts.every(t => clips.has(keyFor(t, speed, voice)));
+    if (have()) { play(join(parts, speed, voice), all, rate, onend); return true; }
     let done = false;
-    const give = ok => { if (done || me !== token) return; done = true; ok ? play(join(parts, speed), all, rate, onend) : fallback(all, rate, onend); };
-    parts.slice().reverse().forEach(t => request(t, speed, true, a => { if (!a) give(false); else if (have()) give(true); }));
-    // a saved clip arrives in moments; a fresh recording is worth a short wait only once George is awake
-    setTimeout(() => give(false), state === 'ready' ? 6000 : 400);
+    const give = ok => { if (done || me !== token) return; done = true; if (ok) play(join(parts, speed, voice), all, rate, onend); else onend(); };
+    parts.slice().reverse().forEach(t => request(t, speed, voice, true, a => { if (!a) give(false); else if (have()) give(true); }));
+    // a saved clip arrives in moments and a fresh one in a few seconds; while the engine is still loading on a
+    // first visit, wait for it (no stand-in voice), but never forever
+    start(); setTimeout(() => give(false), state === 'ready' ? 10000 : 60000);
     return true;
   }
   // record the week's words ahead of time so "hear it" buttons answer instantly; `soon` puts them next in line
-  function warm(list, rate = .8, soon = false) { const ws = (list || []).filter(Boolean).map(String); (soon ? ws.reverse() : ws).forEach(w => request(w, speedFor(rate), soon)); }
-  return { speak, cancel, warm, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); }, canSpeak: hasSynth || ('Worker' in window && typeof WebAssembly === 'object') };
+  function warm(list, rate = .8, soon = false) { const { voice, speed } = pick(rate, false), ws = (list || []).filter(Boolean).map(String); (soon ? ws.reverse() : ws).forEach(w => request(w, speed, voice, soon)); }
+  // ready to read this list: every word already saved, or the engine up and able to make them
+  function wordsReady(list) {
+    const ws = (list || []).filter(Boolean).map(String), { voice, speed } = pick(.8, false);
+    if (!ws.length) { start(); return up; }
+    return Promise.race([up, Promise.all(ws.map(w => new Promise(r => request(w, speed, voice, false, r))))]);
+  }
+  return { speak, cancel, warm, wordsReady, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); }, canSpeak: 'Worker' in window && typeof WebAssembly === 'object' };
 })();
 VOICE.warm(WORDS.words);
 /* ================= Title screen: the castle from outside while the lair, music and voice load ================= */
@@ -1078,7 +1083,7 @@ const TITLE = (() => {
   return T;
 })();
 MUSIC.ready.then(() => TITLE.mark('music'));
-VOICE.ready.then(() => TITLE.mark('voice'));
+Promise.all([VOICE.ready, VOICE.wordsReady(WORDS.words)]).then(() => TITLE.mark('voice'));
 // (after the fly-in when there is one, so he greets the children once they're inside)
 TITLE.onEnter.push(() => setTimeout(() => say("Welcome to my lair, young speller! I'm the Wordy Wizard. Pick a spell from my book to practice this week's words."), reduce ? 500 : (TITLE.leaveAfter || 1700) + 300));
 const gate = $('gate'), panel = $('panel'), lockBtn = $('lockBtn');
@@ -3124,64 +3129,6 @@ const DragonGame = (() => {
   }
   return { mount, unmount };
 })();
-/* ================= Town Crier's voice: a speech engine built into the page =================
-   Speaks any word in the same voice on every device (the Piper "Ryan" voice, voices/crier.onnx).
-   The engine (~90 MB the first time) is saved in the browser so it only downloads once. */
-const CRIER_VOICE = (() => {
-  const ORT = 'https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.18.0/';
-  const PHONEMIZE = 'https://cdn.jsdelivr.net/npm/@diffusionstudio/vits-web@1.0.3/dist/piper-DeOu3H9E.js';
-  const ESPEAK = 'https://cdn.jsdelivr.net/npm/@diffusionstudio/piper-wasm@1.0.0/build/piper_phonemize';
-  const MODEL = 'voices/crier.onnx', CACHE = 'wordy-wizard-voices-v1';
-  let loading = null, session = null, cfg = null, phon = null, playing = null, turn = 0;
-  async function fetchCached(url) {
-    try {
-      const c = await caches.open(CACHE);
-      const hit = await c.match(url); if (hit) return hit;
-      const r = await fetch(url); if (!r.ok) throw new Error(r.status);
-      try { await c.put(url, r.clone()); } catch (e) {}
-      return r;
-    } catch (e) { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return r; }
-  }
-  const script = src => new Promise((ok, no) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = no; document.head.appendChild(el); });
-  function load() {
-    if (!loading) loading = (async () => {
-      if (!window.ort) await script(ORT + 'ort.min.js');
-      ort.env.wasm.wasmPaths = ORT; ort.env.wasm.numThreads = 1;
-      const [c, m, p] = await Promise.all([fetchCached(MODEL + '.json').then(r => r.json()), fetchCached(MODEL).then(r => r.arrayBuffer()), import(PHONEMIZE)]);
-      cfg = c; phon = p;
-      session = await ort.InferenceSession.create(new Uint8Array(m));
-    })().catch(e => { loading = null; throw e; });
-    return loading;
-  }
-  const phonemes = text => new Promise((ok, no) => {
-    phon.createPiperPhonemize({
-      print: line => { try { ok(JSON.parse(line).phoneme_ids); } catch (e) { no(e); } },
-      printErr: () => {},
-      locateFile: f => f.endsWith('.wasm') ? ESPEAK + '.wasm' : f.endsWith('.data') ? ESPEAK + '.data' : f
-    }).then(mod => mod.callMain(['-l', cfg.espeak.voice, '--input', JSON.stringify([{ text }]), '--espeak_data', '/espeak-ng-data'])).catch(no);
-  });
-  function stop() { turn++; if (playing) { const p = playing; playing = null; try { p.src.onended = null; p.src.stop(); } catch (e) {} } }
-  // slow: 1 = normal speed, bigger = slower. Resolves when he finishes speaking.
-  async function speak(text, slow, ctx) {
-    stop(); const me = turn;
-    await load();
-    const ids = await phonemes(text), inf = cfg.inference;
-    if (me !== turn) return;   // something newer was said, or the game closed
-    const out = await session.run({
-      input: new ort.Tensor('int64', BigInt64Array.from(ids, BigInt), [1, ids.length]),
-      input_lengths: new ort.Tensor('int64', BigInt64Array.from([BigInt(ids.length)]), [1]),
-      scales: new ort.Tensor('float32', Float32Array.from([inf.noise_scale, inf.length_scale * slow, inf.noise_w]), [3])
-    });
-    const data = out[session.outputNames[0]].data;
-    if (me !== turn) return;
-    if (ctx.state === 'suspended') await ctx.resume();
-    const buf = ctx.createBuffer(1, data.length, cfg.audio.sample_rate); buf.copyToChannel(data, 0);
-    const src = ctx.createBufferSource(), gain = ctx.createGain(); gain.gain.value = 1.4;
-    src.buffer = buf; src.connect(gain).connect(ctx.destination);
-    return new Promise(ok => { const p = { src }; playing = p; src.onended = () => { if (playing === p) playing = null; ok(); }; src.start(); });
-  }
-  return { load, speak, stop, get ready() { return !!session; }, supported: typeof WebAssembly === 'object' && !!(window.AudioContext || window.webkitAudioContext) };
-})();
 /* ================= Game: The Town Crier (listen & spell) ================= */
 const CrierGame = (() => {
   const NS = 'http://www.w3.org/2000/svg', SLOTS = [[252, 176], [306, 172], [360, 178], [254, 240], [308, 236], [362, 242], [280, 300], [338, 298]];
@@ -3189,8 +3136,7 @@ const CrierGame = (() => {
   const q = s => root.querySelector(s);
   const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const deviceVoice = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
-  const canSpeak = CRIER_VOICE.supported || deviceVoice;
+  const canSpeak = VOICE.canSpeak;
   const clean = w => w.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').trim();
 
   function sceneSVG() {
@@ -3293,10 +3239,9 @@ const CrierGame = (() => {
     q('#tcForm').addEventListener('submit', e => { e.preventDefault(); nail(); });
     q('#tcNail').addEventListener('click', nail);
     q('#tcNext').addEventListener('click', next);
-    if (CRIER_VOICE.supported) CRIER_VOICE.load().catch(() => {});   // start fetching his voice right away
     newWord(true);
   }
-  function unmount() { timers.forEach(clearTimeout); timers = []; CRIER_VOICE.stop(); try { speechSynthesis.cancel(); } catch (e) {} if (root) root.remove(); root = null; }
+  function unmount() { timers.forEach(clearTimeout); timers = []; VOICE.cancel(); if (root) root.remove(); root = null; }
   function status(t) { q('#tcStatus').textContent = t; }
 
   function bellSound() {
@@ -3311,21 +3256,9 @@ const CrierGame = (() => {
       }));
     } catch (e) {}
   }
-  function voice() {
-    try { const vs = speechSynthesis.getVoices(); return vs.find(v => /en[-_]GB/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang)) || null; } catch (e) { return null; }
-  }
-  function ctx() { audio = audio || window.__wwAudio || new (window.AudioContext || window.webkitAudioContext)(); return audio; }
-  // the built-in voice first; the device's own voice only if the built-in one can't load
-  function say(text, rate, onend) {
-    const fallback = () => { if (root) deviceSay(text, rate, onend); };
-    if (!CRIER_VOICE.supported) return fallback();
-    if (!CRIER_VOICE.ready) status('The town crier is warming up his voice…');
-    CRIER_VOICE.speak(text, rate < .6 ? 1.5 : rate < .8 ? 1.2 : 1.05, ctx()).then(() => { if (onend) onend(); }, fallback);
-  }
-  function deviceSay(text, rate, onend) {
-    if (!deviceVoice) { if (onend) onend(); return; }
-    try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = rate; u.pitch = 1.05; u.lang = 'en-GB'; const v = voice(); if (v) u.voice = v; if (onend) u.onend = onend; speechSynthesis.speak(u); } catch (e) { if (onend) onend(); }
-  }
+  // the crier reads in the word voice the grown-ups chose, like every other game
+  const CRY = 'Hear ye, hear ye! The word is:';
+  const say = (text, rate, onend, intro) => VOICE.speak(text, { rate, onend, intro });
   function call(first) {
     const sceneEl = q('.tc-scene svg'), crier = q('#tcCrier');
     sceneEl.classList.remove('tc-ringing'); void sceneEl.getBBox(); sceneEl.classList.add('tc-ringing');
@@ -3342,12 +3275,13 @@ const CrierGame = (() => {
       crier.classList.add('tc-calling'); q('#tcSayText').textContent = first ? 'Hear ye!' : 'Listen!';
       q('#tcMouth').setAttribute('ry', 5);
       const done = () => { if (!root) return; crier.classList.remove('tc-calling'); q('#tcMouth').setAttribute('ry', 1.5); q('#tcInput').focus(); };
-      say(first ? `Hear ye, hear ye! The word is: ${st.word}.` : st.word, rate, () => { if (st.calls === n) { done(); if (first) status('Listen to the town crier, then write the word on the notice and nail it to the board.'); } });
+      say(st.word, rate, () => { if (st.calls === n) { done(); if (first) status('Listen to the town crier, then write the word on the notice and nail it to the board.'); } }, first ? CRY : null);
     }, 900);
   }
   function newWord(first) {
     const word = words[st.idx];
     Object.assign(st, { word, answer: clean(word), tries: 0, over: false, calls: 0 });
+    VOICE.warm([CRY, 'Huzzah!'], .8, true); VOICE.warm([word], .55);
     q('#tcCount').textContent = `Word ${st.idx + 1} of ${words.length}`;
     q('#tcPosted').textContent = `Notices posted: ${st.posted}`;
     const form = q('#tcForm'); form.classList.remove('posted', 'wobble');
@@ -3394,7 +3328,7 @@ const CrierGame = (() => {
     q('#tcBrows').setAttribute('d', 'M-14 -151 Q-10 -154 -5 -151 M1 -151 Q5 -154 10 -151');
     status(`Huzzah! "${st.word}" is posted on the town board.`);
     later(postNote, 450);
-    later(() => { const c = q('#tcCrier'); c.classList.add('tc-calling'); q('#tcSayText').textContent = 'Huzzah!'; if (canSpeak) say(`Huzzah! ${st.word}!`, .85); }, 900);
+    later(() => { const c = q('#tcCrier'); c.classList.add('tc-calling'); q('#tcSayText').textContent = 'Huzzah!'; if (canSpeak) say(st.word, .8, null, 'Huzzah!'); }, 900);
     later(() => q('#tcCrier').classList.remove('tc-calling'), 2600);
     const last = st.idx >= words.length - 1, nb = q('#tcNext');
     q('#tcNail').hidden = true; q('#tcRing').hidden = true;
@@ -4211,7 +4145,7 @@ const JoustGame = (() => {
       status('Listen for the word…');
       const w = word;
       later(() => VOICE.speak(w, { onend: () => { if (st.word === w) later(charge, 300); } }), 500);
-      later(charge, 7000);   // in case the voice never says it's finished
+      later(charge, 65000);   // in case the voice never says it's finished (it waits up to a minute on a first visit)
     } else peek(true);
   }
   // no voice on this device: look at the word, then it hides and the knights charge
