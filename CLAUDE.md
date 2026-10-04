@@ -16,7 +16,7 @@ Spelling games for elementary students. Parents enter the week's words by hand o
 ## Design direction
 - Opening scene is a real 3D cartoon wizard's castle lair (chosen over 2.5D).
 - Players pick games from an open spellbook.
-- Current games include The Jester's Tricks, Save the Squire, Dragon's Hoard, Potion Mix-Up and Broken Castle Wall.
+- Current games include The Jester's Tricks, Save the Squire, Dragon's Hoard, Potion Mix-Up, Broken Castle Wall, The Town Crier and The Joust (spell against the clock).
 
 ## Style
 - Audience is elementary kids: readable fonts, clear instructions, encouraging feedback.

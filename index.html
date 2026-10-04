@@ -222,6 +222,30 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .px-jars{gap:8px;flex-wrap:wrap}
   .px-jar{flex:0 0 auto;width:42px;min-height:57px}
 }
+/* --- The Joust (spell against the clock) --- */
+.jo{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,47fr) minmax(0,53fr);gap:2.2cqw;color:var(--parch-ink)}
+.jo-scene{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:.8cqw}
+.jo-scene svg{display:block;width:100%;height:auto;max-height:calc(100% - 4cqw);border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#9fd3ff}
+.jo-side{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:1.1cqw}
+.jo .sq-top{flex-wrap:wrap}
+.jo .sq-slots.shake{animation:shake .4s ease-in-out}
+.jo-del{grid-column:span 2}
+.jo-rider,.jo-lance,.jo-leg,.jo-pop,.jo-fan{transform-box:fill-box}
+.jo-rider{transform-origin:50% 100%}
+.jo-lance{transform-origin:0% 50%}
+.jo-leg{transform-origin:50% 0}
+.jo-charging .jo-legf{animation:joleg .22s ease-in-out infinite alternate}
+.jo-charging .jo-legb{animation:joleg .22s ease-in-out infinite alternate-reverse}
+@keyframes joleg{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
+.jo-pop{transform-origin:center;animation:jopop .5s ease-out both}
+@keyframes jopop{from{transform:scale(.2);opacity:0}60%{transform:scale(1.15);opacity:1}to{transform:none}}
+.jo-dizzy{animation:jospin 1.4s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes jospin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){ .jo-charging .jo-legf,.jo-charging .jo-legb,.jo-pop,.jo-dizzy{animation:none} }
+@media (max-width:760px) and (orientation:portrait){
+  .jo{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .jo-scene svg{max-height:none}
+}
 @media (prefers-reduced-motion: reduce){ .px-flame,.px-sbub,.px-steam,.px-jar .bub,.px-jar.hop{animation:none} }
 /* --- Dragon's Hoard (word search) --- */
 .dh{position:absolute;left:4%;right:4%;top:22%;bottom:8%;display:grid;grid-template-columns:minmax(0,56fr) minmax(0,44fr);grid-template-rows:minmax(0,1fr);gap:2.2cqw;color:var(--parch-ink)}
@@ -502,8 +526,8 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .stage{width:100%;height:100dvh;aspect-ratio:auto;max-width:none;border-radius:0;box-shadow:none}
   .game-screen{left:50%;right:auto;width:min(100%, calc(100dvh * 16 / 9));transform:translateX(-50%);container-type:inline-size;box-shadow:0 0 0 100vmax #e2c88a}
   /* short screens: smaller minimum sizes and no reserved blank lines, so each game fits without scrolling */
-  .sq,.bw,.dh,.px{top:19%;bottom:2%}
-  .sq-side,.bw-side,.dh-side{gap:5px}
+  .sq,.bw,.dh,.px,.jo{top:19%;bottom:2%}
+  .sq-side,.bw-side,.dh-side,.jo-side{gap:5px}
   .sq-status,.bw-status,.dh-status{min-height:0;font-size:13px;line-height:1.25}
   .dh-scene svg{max-height:24dvh}
   .dh-words{gap:4px}
@@ -520,7 +544,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .bw-tray{min-height:0;padding:4px;gap:6px}
   .bw-rock{min-width:34px;min-height:32px;font-size:16px}
   .bw-meter-label{font-size:11px}
-  .bw .px-hint,.dh .px-hint,.px .px-hint{display:none}   /* the status line above says what to do */
+  .bw .px-hint,.dh .px-hint,.px .px-hint,.jo .bw-meter-label{display:none}   /* the status line above says what to do */
 }
 </style>
 
@@ -729,6 +753,7 @@ const GAMES = {
   scramble:   { name: 'Potion Mix-Up', desc: 'Put the jars in order to brew', say: "Word Scramble! I've jumbled up your letters. Can you put them back in order? This spell is still brewing!" },
   missing:    { name: 'Broken Castle Wall', desc: 'Fill the missing stones', say: "Missing Letter! A sneaky imp stole a letter from each word. This spell is still brewing. Check back soon!" },
   listen:     { name: 'The Town Crier', desc: 'Hear the word, then write it', say: "Listen & Spell! I'll say a word out loud, and you spell it. This spell is still brewing!" },
+  joust:      { name: 'The Joust', desc: 'Spell it before the knights meet', say: "The Joust! Spell the word before your knight reaches the middle, and knock the Red Knight right off his horse!" },
   spot:       { name: "The Jester's Tricks", desc: 'Catch the misspelled banner', say: "The Jester's Tricks! That rascal painted a mistake on the royal banners. Can you catch him?" },
   tiles:      { name: 'Letter Tiles', desc: 'Build the word', say: "Letter Tiles! Drag the magic tiles to build each word. This spell is still brewing!" },
   vowels:     { name: 'Vowel Hunt', desc: 'Fill in the vowels', say: "Vowel Hunt! The vowels ran away. Help me put them back! This spell is still brewing!" },
@@ -740,8 +765,9 @@ const GAMES = {
 /* Each spread is two facing pages: games[0..1] on the left page, games[2..3] on the right. Add more spreads here as games are added. */
 const SPREADS = [
   { heads: ['Choose', 'a Spell'], games: ['wordsearch', 'hangman', 'scramble', 'missing'] },
-  { heads: ['More', 'Spells'], games: ['listen', 'spot', 'tiles', 'vowels'] },
-  { heads: ['Rare', 'Spells'], games: ['memory', 'sort', 'crossword', 'bee'] }
+  { heads: ['More', 'Spells'], games: ['listen', 'spot', 'joust', 'tiles'] },
+  { heads: ['Rare', 'Spells'], games: ['vowels', 'memory', 'sort', 'crossword'] },
+  { heads: ['Secret', 'Spells'], games: ['bee'] }
 ];
 let mPage = 0, turnHook = null, gameHook = null;
 function chooseGame(k) { if (gameHook) gameHook(k); else say(GAMES[k].say); }
@@ -1730,6 +1756,12 @@ const ICONS = {
     g.fillStyle = '#6a3fa0'; p = new Path2D('M26 20 Q30 14 38 12 Q34 20 30 30 H25 Z'); g.fill(p); g.stroke(p);
     g.fillStyle = '#f2c35b'; p = new Path2D('M10 29 H32 V35 H10 Z'); g.fill(p); g.stroke(p);
     [[4, 12], [21, 4], [38, 12]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); g.stroke(); });
+  },
+  joust(g) {
+    g.lineCap = 'round';
+    [[5, 37, 35, 7, '#3d6fb6'], [37, 37, 7, 7, '#c0392b']].forEach(([x1, y1, x2, y2, c]) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.strokeStyle = '#3b2412'; g.lineWidth = 5.5; g.stroke(); g.strokeStyle = c; g.lineWidth = 3; g.stroke(); });
+    const p = new Path2D('M14 17 H28 V27 Q28 35 21 38 Q14 35 14 27 Z'); g.fillStyle = '#f2c35b'; g.strokeStyle = '#3b2412'; g.lineWidth = 2; g.fill(p); g.stroke(p);
+    g.fillStyle = '#7b2d3f'; g.fillRect(19.5, 20, 3, 14); g.fillRect(16, 24.5, 10, 3);
   },
   tiles(g) {
     g.font = '700 10px Andika, sans-serif'; g.textAlign = 'center';
@@ -3995,7 +4027,301 @@ const JesterGame = (() => {
   }
   return { mount, unmount };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame };
+/* ================= Game: The Joust (spell against the clock) ================= */
+// Two knights charge at each other. Spell the word before your knight reaches the middle and the Red Knight
+// is knocked off his horse; the sooner you finish, the harder the hit (one to three stars). Easy, Medium and
+// Hard set how fast the knights ride.
+const JoustGame = (() => {
+  const LEVELS = { easy: { label: 'Easy', base: 5, per: 1.4 }, medium: { label: 'Medium', base: 3.5, per: 1 }, hard: { label: 'Hard', base: 2.5, per: .7 } };
+  const ABC = 'abcdefghijklmnopqrstuvwxyz', NS = 'http://www.w3.org/2000/svg';
+  const GROUND = 362, S = .9, YOU = [52, 152], FOE = [388, 288], TIP = 132 * S;   // where each knight starts and meets
+  const PRACTICE = ['knight', 'horse', 'shield', 'lance', 'armor', 'banner'];
+  let root, st, words, practice, timers = [], raf = 0, keyHandler, level = 'easy';
+  try { level = localStorage.getItem('wordy-wizard-joust-level') || 'easy'; if (!LEVELS[level]) level = 'easy'; } catch (e) {}
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const esc = s => s.replace(/[<&>"]/g, '');
+
+  /* ----- sounds: a fanfare, hoofbeats, and the clang of lances (quiet, made on the fly) ----- */
+  function ac() { const a = window.__wwAudio; try { if (a && a.state === 'suspended') a.resume(); } catch (e) {} return a; }
+  function tone(f, at, dur, vol, type = 'sine', f2) {
+    const a = ac(); if (!a) return;
+    try {
+      const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + at; o.type = type; o.frequency.setValueAtTime(f, t);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+    } catch (e) {}
+  }
+  const fanfare = () => [[392, 0, .14], [523, .15, .14], [659, .3, .14], [784, .45, .45]].forEach(([f, at, d]) => tone(f, at, d, .05, 'sawtooth'));
+  const hoof = v => tone(120, 0, .09, v, 'sine', 50);
+  const clang = big => { [1240, 1870, 2630, 3410].forEach((f, i) => tone(f, 0, .5 + big * .2, (.05 + big * .02) / (i + 1), 'triangle')); tone(160, 0, .25, .12, 'sine', 60); };
+
+  /* ----- the tilt yard ----- */
+  function knight(id, team, trim, coat, x, mirror) {
+    return `<g id="${id}" transform="translate(${x} ${GROUND}) scale(${mirror ? -S : S} ${S})">
+      <g class="jo-horse" stroke="#2a1a10" stroke-width="2.4" stroke-linejoin="round">
+        <path d="M-40 -62 Q-64 -58 -58 -32 Q-50 -48 -40 -52 Z" fill="#3b2412"/>
+        <g class="jo-leg jo-legb"><rect x="-30" y="-46" width="9" height="46" rx="3" fill="${coat}"/><rect x="-31" y="-6" width="11" height="6" rx="2" fill="#2a1a10"/></g>
+        <g class="jo-leg jo-legf"><rect x="20" y="-46" width="9" height="46" rx="3" fill="${coat}"/><rect x="19" y="-6" width="11" height="6" rx="2" fill="#2a1a10"/></g>
+        <ellipse cx="0" cy="-58" rx="44" ry="21" fill="${coat}"/>
+        <path d="M24 -66 Q38 -98 52 -102 L62 -90 Q46 -80 40 -56 Z" fill="${coat}"/>
+        <path d="M48 -106 Q68 -110 76 -94 Q78 -85 69 -83 L54 -86 Z" fill="${coat}"/>
+        <path d="M51 -104 L54 -116 L60 -104" fill="${coat}"/><circle cx="63" cy="-97" r="1.8" fill="#2a1a10" stroke="none"/>
+        <g class="jo-leg jo-legf"><rect x="28" y="-46" width="9" height="46" rx="3" fill="${coat}"/><rect x="27" y="-6" width="11" height="6" rx="2" fill="#2a1a10"/></g>
+        <g class="jo-leg jo-legb"><rect x="-22" y="-46" width="9" height="46" rx="3" fill="${coat}"/><rect x="-23" y="-6" width="11" height="6" rx="2" fill="#2a1a10"/></g>
+        <path d="M-46 -72 Q0 -88 42 -72 L42 -40 Q32 -31 21 -40 Q11 -31 0 -40 Q-11 -31 -21 -40 Q-32 -31 -46 -40 Z" fill="${team}"/>
+        <path d="M-44 -50 Q-34 -43 -21 -48 Q-11 -43 0 -48 Q11 -43 21 -48 Q32 -43 41 -48" fill="none" stroke="${trim}" stroke-width="3"/>
+        <path d="M36 -88 Q46 -98 54 -96 L44 -82 Z" fill="${team}"/>
+      </g>
+      <g class="jo-rider" stroke="#2a1a10" stroke-width="2.4" stroke-linejoin="round">
+        <rect x="-5" y="-84" width="11" height="30" rx="4" fill="#b9b3c6"/>
+        <rect x="-11" y="-118" width="22" height="38" rx="6" fill="#b9b3c6"/>
+        <rect x="-11" y="-110" width="22" height="26" rx="3" fill="${team}"/><path d="M0 -106 V-88 M-6 -97 H6" stroke="${trim}" stroke-width="3"/>
+        <path d="M-12 -118 Q-12 -140 0 -142 Q12 -140 12 -118 Z" fill="#cfcadb"/><path d="M1 -129 H12" stroke-width="2.6"/>
+        <path d="M-4 -141 Q-22 -158 -30 -138 Q-16 -148 -4 -136 Z" fill="${team}"/>
+        <g class="jo-lance">
+          <path d="M2 -103 L134 -110 L134 -106 L2 -96 Z" fill="${team}"/>
+          <path d="M30 -102 L122 -108" stroke="#fff" stroke-width="3" stroke-dasharray="9 9" fill="none"/>
+          <path d="M14 -111 L28 -100 L14 -88 Z" fill="#cfcadb"/>
+        </g>
+        <rect x="4" y="-104" width="16" height="7" rx="3" fill="#b9b3c6"/>
+        <path d="M6 -114 H24 V-100 Q24 -88 15 -84 Q6 -88 6 -100 Z" fill="${team}"/><circle cx="15" cy="-101" r="4" fill="${trim}"/>
+      </g>
+    </g>`;
+  }
+  function sceneSVG() {
+    const crowd = [], cols = ['#e8743b', '#3d6fb6', '#f2c35b', '#7b2d3f', '#2f9e57', '#9b59b6', '#f3c39c'];
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 17; i++) crowd.push(`<circle class="jo-fan" cx="${34 + i * 23 + r * 11}" cy="${178 + r * 22}" r="8" fill="${cols[(i * 3 + r * 2) % cols.length]}" style="animation-delay:${((i * 7 + r * 3) % 10) / 10}s"/>`);
+    const flags = []; for (let i = 0; i < 12; i++) flags.push(`<path d="M${22 + i * 35} 148 l17 0 l-8.5 15 Z" fill="${['#c0392b', '#3d6fb6', '#f2c35b'][i % 3]}"/>`);
+    return `<svg viewBox="0 0 440 400" role="img" aria-label="Two knights on horses charge at each other across a tournament ground">
+      <defs><linearGradient id="joSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fd3ff"/><stop offset="1" stop-color="#fff0d2"/></linearGradient>
+        <clipPath id="joClip"><rect width="440" height="400" rx="14"/></clipPath></defs>
+      <g clip-path="url(#joClip)">
+      <rect width="440" height="400" fill="url(#joSky)"/>
+      <circle cx="386" cy="46" r="22" fill="#fff3b0"/>
+      <g fill="#fff" opacity=".9"><ellipse cx="90" cy="48" rx="34" ry="11"/><ellipse cx="116" cy="40" rx="22" ry="10"/><ellipse cx="270" cy="70" rx="28" ry="9"/></g>
+      <path d="M0 150 Q110 112 220 128 Q330 112 440 140 V170 H0 Z" fill="#8cc777"/>
+      <g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M14 232 V160 H426 V232 Z" fill="#a8743f"/><path d="M8 164 L220 132 L432 164 Z" fill="#7b2d3f"/><path d="M8 164 H432" stroke-width="3"/>
+        <path d="M14 196 H426 M14 218 H426" stroke="#7a4f27" stroke-width="2"/>
+      </g>
+      <path d="M8 146 Q220 160 432 146" fill="none" stroke="#3b2412" stroke-width="1.5"/>${flags.join('')}
+      <g stroke="#2a1a10" stroke-width="1.6">${crowd.join('')}</g>
+      <rect x="0" y="232" width="440" height="168" fill="#e6c98e"/><path d="M0 232 H440" stroke="#2a1a10" stroke-width="2.5"/>
+      <g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+        <rect x="-4" y="262" width="448" height="12" rx="3" fill="#f5e7bf"/><rect x="-4" y="284" width="448" height="9" rx="3" fill="#f5e7bf"/>
+        ${[30, 110, 330, 410].map(x => `<rect x="${x}" y="254" width="9" height="46" rx="2" fill="#a8743f"/>`).join('')}
+        <path d="M220 222 V300" stroke-width="3"/><path d="M221 224 L246 232 L221 240 Z" fill="#f2c35b"/><rect x="213" y="252" width="14" height="48" rx="3" fill="#f2c35b"/>
+      </g>
+      ${knight('joFoe', '#c0392b', '#f2c35b', '#6e4a2e', FOE[0], true)}
+      ${knight('joYou', '#3d6fb6', '#f2c35b', '#f1ece2', YOU[0], false)}
+      <g id="joFx"></g>
+      </g>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    practice = !wordList.filter(w => /[a-z]/i.test(w)).length;
+    words = shuffle(practice ? PRACTICE : wordList.filter(w => /[a-z]/i.test(w))); VOICE.warm(words);
+    st = { idx: 0, stars: 0 };
+    root = document.createElement('div'); root.className = 'jo';
+    root.innerHTML = `
+      <div class="jo-scene">${sceneSVG()}
+        <div class="bw-meter" role="progressbar" aria-label="The knights are charging" aria-valuemin="0" aria-valuemax="100" id="joMeter"><i id="joMeterBar"></i></div>
+        <div class="bw-meter-label" id="joMeterLabel"></div>
+      </div>
+      <div class="jo-side">
+        <div class="sq-top"><span id="joCount"></span>
+          <div class="bw-levels" role="group" aria-label="How fast the knights ride">${Object.entries(LEVELS).map(([k, v]) => `<button type="button" data-level="${k}" aria-pressed="${k === level}">${v.label}</button>`).join('')}</div>
+          <span id="joStars"></span></div>
+        <div class="sq-slots" id="joSlots" aria-label="Your spelling"></div>
+        <p class="sq-status" id="joStatus" aria-live="polite"></p>
+        <div class="sq-keys" id="joKeys" role="group" aria-label="Letters"></div>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="joHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+          <button type="button" class="sq-btn primary" id="joNext" hidden>Next joust</button>
+        </div>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    const keys = q('#joKeys');
+    [...ABC].forEach(l => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sq-key'; b.textContent = l; b.dataset.l = l; b.setAttribute('aria-label', `Letter ${l}`); keys.appendChild(b); });
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'sq-key jo-del'; del.textContent = '⌫'; del.setAttribute('aria-label', 'Rub out the last letter'); keys.appendChild(del);
+    keys.addEventListener('click', e => { const b = e.target.closest('.sq-key'); if (!b) return; if (b.dataset.l) type(b.dataset.l); else rubOut(); });
+    q('#joHear').addEventListener('click', () => { if (VOICE.canSpeak) VOICE.speak(st.word); else peek(); });
+    q('#joNext').addEventListener('click', next);
+    root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', () => {
+      level = b.dataset.level; try { localStorage.setItem('wordy-wizard-joust-level', level); } catch (e) {}
+      root.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-pressed', x === b));
+      // a new word at the new speed, so changing speed can't give a second look at this one
+      st.idx = (st.idx + 1) % words.length; newRound();
+    }));
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target.closest && e.target.closest('input,textarea'))) return;
+      if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); type(e.key.toLowerCase()); }
+      else if (e.key === 'Backspace') { e.preventDefault(); rubOut(); }
+      else if (e.key === 'Enter' && !q('#joNext').hidden) { e.preventDefault(); next(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    newRound();
+  }
+  function unmount() {
+    VOICE.cancel(); stopRide(); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (root) root.remove(); root = null;
+  }
+  const status = t => { q('#joStatus').textContent = t; };
+  const stopRide = () => { cancelAnimationFrame(raf); raf = 0; };
+  const setKeys = on => root.querySelectorAll('#joKeys .sq-key').forEach(b => b.disabled = !on);
+
+  function place(k, ms) {
+    const bob = st.riding && !reduce ? Math.abs(Math.sin(ms / 75)) * 4 : 0;
+    q('#joYou').setAttribute('transform', `translate(${(YOU[0] + (YOU[1] - YOU[0]) * k).toFixed(1)} ${(GROUND - bob).toFixed(1)}) scale(${S} ${S})`);
+    q('#joFoe').setAttribute('transform', `translate(${(FOE[0] + (FOE[1] - FOE[0]) * k).toFixed(1)} ${(GROUND - Math.abs(Math.sin(ms / 75 + 1)) * (bob ? 4 : 0)).toFixed(1)}) scale(${-S} ${S})`);
+  }
+  function meter(k) {
+    q('#joMeterBar').style.width = (k * 100).toFixed(1) + '%'; q('#joMeter').setAttribute('aria-valuenow', Math.round(k * 100));
+  }
+  function slots(reveal) {
+    const box = q('#joSlots'); box.innerHTML = ''; let n = 0;
+    st.chars.forEach(ch => {
+      const s = document.createElement('span'); s.className = 'sq-slot';
+      if (/[a-z]/.test(ch)) { const t = st.typed[n++]; s.textContent = reveal ? ch : t || ''; if (reveal && t !== ch) s.classList.add('missed'); }
+      else { s.classList.add(ch === ' ' ? 'space' : 'punct'); s.textContent = ch === ' ' ? '' : ch; }
+      box.appendChild(s);
+    });
+  }
+
+  function newRound() {
+    // (silence the last word first: stopping it reports "finished", which must not start this round's charge)
+    VOICE.cancel(); stopRide(); timers.forEach(clearTimeout); timers = [];
+    const word = words[st.idx];
+    Object.assign(st, { word, chars: [...word.toLowerCase()], typed: [], k: 0, riding: false, over: false, peeked: false });
+    st.need = st.chars.filter(c => /[a-z]/.test(c));
+    root.querySelectorAll('.jo-rider, .jo-lance').forEach(e => { e.getAnimations().forEach(a => a.cancel()); e.style.transformOrigin = ''; });
+    q('#joFx').innerHTML = ''; q('.jo-scene svg').classList.remove('jo-charging');
+    place(0, 0); meter(0); slots();
+    q('#joCount').textContent = `Joust ${st.idx + 1} of ${words.length}`;
+    q('#joStars').textContent = `★ ${st.stars}`; q('#joStars').setAttribute('aria-label', `${st.stars} stars`);
+    q('#joMeterLabel').textContent = 'The knights are lining up…';
+    q('#joNext').hidden = true; q('#joHear').hidden = false; setKeys(false);
+    if (VOICE.canSpeak) {
+      status('Listen for the word…');
+      const w = word;
+      later(() => VOICE.speak(w, { onend: () => { if (st.word === w) later(charge, 300); } }), 500);
+      later(charge, 7000);   // in case the voice never says it's finished
+    } else peek(true);
+  }
+  // no voice on this device: look at the word, then it hides and the knights charge
+  function peek(first) {
+    if (st.riding || st.over) return;
+    status('Look closely at the word…'); st.typed = [...st.need]; slots();
+    later(() => { st.typed = []; slots(); if (first) charge(); }, 2600);
+  }
+  function charge() {
+    if (st.riding || st.over || !root) return;
+    st.riding = true; st.t0 = performance.now(); st.lastHoof = 0;
+    st.secs = LEVELS[level].base + LEVELS[level].per * st.need.length;
+    fanfare(); setKeys(true); q('.jo-scene svg').classList.add('jo-charging');
+    status('Charge! Spell the word before your knight reaches the middle!');
+    const ride = ms => {
+      if (!root || !st.riding) return;
+      st.k = Math.min(1, (ms - st.t0) / (st.secs * 1000));
+      place(st.k, ms); meter(st.k);
+      const left = Math.ceil(st.secs * (1 - st.k));
+      q('#joMeterLabel').textContent = st.k > .7 ? `Hurry! ${left}…` : 'The knights are charging!';
+      if (ms - st.lastHoof > 150) { st.lastHoof = ms; hoof(.03 + .07 * st.k); }
+      if (st.k >= 1) return missed();
+      raf = requestAnimationFrame(ride);
+    };
+    raf = requestAnimationFrame(ride);
+  }
+
+  function type(l) {
+    if (!st.riding || st.over || st.typed.length >= st.need.length) return;
+    st.typed.push(l); slots();
+    if (st.typed.length === st.need.length) check();
+  }
+  function rubOut() { if (!st.riding || st.over) return; st.typed.pop(); slots(); }
+  function check() {
+    if (st.typed.join('') === st.need.join('')) return hit();
+    // keep the right start of the word, flash the wrong letters red, and clear from the first wrong one
+    const first = st.typed.findIndex((c, i) => c !== st.need[i]);
+    const box = q('#joSlots'), cells = [...box.children].filter(c => !c.classList.contains('punct') && !c.classList.contains('space'));
+    cells.forEach((c, i) => { if (i >= first && st.typed[i] !== st.need[i]) c.classList.add('missed'); });
+    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+    status('Not quite! Fix it, fast!');
+    later(() => { if (st.over) return; st.typed = st.typed.slice(0, first); slots(); }, 600);
+  }
+
+  function hit() {
+    st.riding = false; st.over = true; stopRide(); setKeys(false);
+    const r = 1 - st.k, stars = r >= .5 ? 3 : r >= .2 ? 2 : 1, k0 = st.k, t0 = performance.now();
+    st.stars += stars; q('.jo-scene svg').classList.remove('jo-charging');
+    // the last few strides happen in a rush, then the lances meet
+    const rush = ms => {
+      if (!root) return;
+      const u = Math.min(1, (ms - t0) / 320), k = k0 + (1 - k0) * u * u;
+      place(k, ms); meter(k);
+      if (u < 1) { raf = requestAnimationFrame(rush); return; }
+      clang(stars); burst(YOU[1] + TIP, GROUND - 98 * S, stars === 3 ? 'WHAM!' : stars === 2 ? 'CLANG!' : 'BONK!');
+      const d = [40, 95, 150][stars - 1], h = [30, 60, 95][stars - 1], spin = [90, 450, 810][stars - 1];   // every tumble ends flat on his back
+      const foe = q('#joFoe .jo-rider'); foe.style.transformOrigin = 'center';   // tumbles around his middle, lands on the sand
+      foe.animate([{ transform: 'none' }, { transform: `translate(${-d * .5}px, ${-h}px) rotate(${-spin * .5}deg)` }, { transform: `translate(${-d}px, 74px) rotate(${-spin}deg)` }],
+        { duration: reduce ? 1 : 900, easing: 'cubic-bezier(.3,.6,.4,1)', fill: 'forwards' });
+      q('#joYou .jo-lance').animate([{ transform: 'none' }, { transform: 'rotate(-38deg)' }], { duration: 400, delay: 500, easing: 'ease-out', fill: 'forwards' });
+      later(() => dizzy(FOE[1] + d * S, GROUND - 30), reduce ? 50 : 900);
+      cheer();
+    };
+    raf = requestAnimationFrame(rush);
+    q('#joStars').textContent = `★ ${st.stars}`; q('#joStars').setAttribute('aria-label', `${st.stars} stars`);
+    q('#joMeterLabel').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    status(stars === 3 ? `Mighty blow! You spelled "${st.word}" so fast, the Red Knight went flying!`
+      : stars === 2 ? `Strong hit! You spelled "${st.word}" and knocked the Red Knight off his horse!`
+      : `Just in time! You spelled "${st.word}" and the Red Knight tumbled off!`);
+    done();
+  }
+  function missed() {
+    st.riding = false; st.over = true; stopRide(); setKeys(false); place(1, 0); meter(1);
+    q('.jo-scene svg').classList.remove('jo-charging');
+    clang(0); burst(FOE[1] - TIP, GROUND - 98 * S, 'OOF!');
+    q('#joYou .jo-rider').animate([{ transform: 'none' }, { transform: 'rotate(-16deg)' }, { transform: 'rotate(9deg)' }, { transform: 'none' }], { duration: reduce ? 1 : 800, easing: 'ease-in-out' });
+    q('#joFoe .jo-lance').animate([{ transform: 'none' }, { transform: 'rotate(-38deg)' }], { duration: 400, delay: 400, easing: 'ease-out', fill: 'forwards' });
+    q('#joMeterLabel').textContent = 'The knights met first!';
+    slots(true);
+    status(`Oof! The knights met before the word was finished. It's spelled ${st.need.join('-')}. Try the next joust!`);
+    if (VOICE.canSpeak) later(() => VOICE.speak(st.word), 700);
+    done();
+  }
+  function done() {
+    const last = st.idx >= words.length - 1, nb = q('#joNext');
+    nb.textContent = last ? 'Joust them all again' : 'Next joust'; nb.hidden = false;
+    later(() => nb.focus({ preventScroll: true }), 900);
+  }
+  function burst(x, y, word) {
+    const g = document.createElementNS(NS, 'g'); g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+    let pts = ''; for (let i = 0; i < 16; i++) { const r = i % 2 ? 9 : 22, a = i / 16 * Math.PI * 2; pts += `${(Math.cos(a) * r).toFixed(1)},${(Math.sin(a) * r).toFixed(1)} `; }
+    g.innerHTML = `<g class="jo-pop"><polygon points="${pts}" fill="#fff3b0" stroke="#e8743b" stroke-width="2.5"/>
+      <text x="0" y="-30" text-anchor="middle" font-family="Uncial Antiqua, serif" font-size="22" fill="#7b2d3f" stroke="#fff" stroke-width="4" paint-order="stroke">${word}</text></g>`;
+    q('#joFx').appendChild(g);
+  }
+  function dizzy(x, y) {
+    const g = document.createElementNS(NS, 'g'); g.setAttribute('transform', `translate(${Math.min(410, x).toFixed(1)} ${y})`);
+    g.innerHTML = `<g class="jo-dizzy">${[0, 1, 2].map(i => `<text x="${(Math.cos(i * 2.1) * 16).toFixed(1)}" y="${(Math.sin(i * 2.1) * 6).toFixed(1)}" font-size="14" text-anchor="middle" fill="#f2c35b" stroke="#7a5210" stroke-width="1">★</text>`).join('')}</g>`;
+    q('#joFx').appendChild(g);
+  }
+  function cheer() {
+    root.querySelectorAll('.jo-fan').forEach((f, i) => f.animate([{ transform: 'none' }, { transform: 'translateY(-7px)' }, { transform: 'none' }], { duration: 300, delay: (i % 6) * 60, iterations: reduce ? 0 : 4 }));
+  }
+  function next() {
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.stars = 0; } else st.idx++;
+    newRound();
+  }
+  return { mount, unmount };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
