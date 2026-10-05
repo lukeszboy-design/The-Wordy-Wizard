@@ -648,6 +648,37 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .sm-army{padding:3px 6px}
   .sm-ranks{min-height:0}
 }
+/* --- Forge the Sword (letter tiles) --- */
+.fg{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,46fr) minmax(0,54fr);gap:2.2cqw;color:var(--parch-ink)}
+.fg-scene{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.fg-scene svg{display:block;width:100%;height:auto;max-height:100%;border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#3b2f3f}
+.fg-side{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:1.1cqw}
+.fg .sq-slots.shake{animation:shake .4s ease-in-out}
+.fg-tray{display:flex;flex-wrap:wrap;justify-content:center;gap:.8cqw;padding:.9cqw;border-radius:1cqw;background:#3b2412;box-shadow:inset 0 0 1.2cqw rgba(0,0,0,.6);min-height:5cqw}
+.fg-piece{width:4.4cqw;height:4.6cqw;min-width:40px;min-height:42px;padding:0;border:2px solid #5e2a0c;border-radius:.9cqw .9cqw .5cqw .5cqw;background:radial-gradient(circle at 40% 30%,#fff3b0,#ffb347 45%,#e8541e 88%);font:700 max(18px,2.4cqw)/1 var(--font-read);color:#5e1d06;text-transform:lowercase;cursor:pointer;box-shadow:0 0 1cqw .2cqw rgba(255,140,40,.7);animation:fgheat 1.6s ease-in-out infinite alternate;transition:background .3s,color .3s}
+@keyframes fgheat{to{box-shadow:0 0 1.6cqw .45cqw rgba(255,170,60,.85)}}
+.fg-piece.used{visibility:hidden}
+.fg-piece.cool{animation:none;background:radial-gradient(circle at 40% 30%,#d8dbe6,#8f96ad 60%,#5d6377);border-color:#3a3f4f;color:#2a2f3f;box-shadow:none}
+.fg-piece.hint{outline:3px solid #fff;outline-offset:2px}
+.fg-piece:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.fg-fire{animation:fgfire 1.2s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes fgfire{to{transform:scale(1.06,1.12);opacity:.85}}
+.fg-glow{animation:fgglow .6s ease-in-out 4 alternate}
+@keyframes fgglow{to{filter:drop-shadow(0 0 10px #ffe08a) brightness(1.35)}}
+#fgSword{transform-box:fill-box;transform-origin:50% 50%}
+.fg-new{transform-box:fill-box;transform-origin:50% 0;animation:fgnew .6s ease-out both}
+@keyframes fgnew{from{transform:translateY(-24px) scale(.4);opacity:0}}
+@media (prefers-reduced-motion: reduce){ .fg-piece,.fg-fire,.fg-glow,.fg-new{animation:none} }
+@media (max-width:760px) and (orientation:portrait){
+  .fg{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .fg-scene svg{max-height:none}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .fg{top:19%;bottom:2%}
+  .fg-side{gap:5px}
+  .fg-tray{min-height:0;padding:5px;gap:5px}
+  .fg-piece{min-width:34px;min-height:36px;font-size:16px}
+}
 </style>
 
 </head>
@@ -858,7 +889,7 @@ const GAMES = {
   listen:     { name: 'The Town Crier', desc: 'Hear the word, then write it', say: "Listen & Spell! I'll say a word out loud, and you spell it. This spell is still brewing!" },
   joust:      { name: 'The Joust', desc: 'Spell it before the knights meet', say: "The Joust! Spell the word before your knight reaches the middle, and knock the Red Knight right off his horse!" },
   spot:       { name: "The Jester's Tricks", desc: 'Catch the misspelled banner', say: "The Jester's Tricks! That rascal painted a mistake on the royal banners. Can you catch him?" },
-  tiles:      { name: 'Letter Tiles', desc: 'Build the word', say: "Letter Tiles! Drag the magic tiles to build each word. This spell is still brewing!" },
+  tiles:      { name: 'Forge the Sword', desc: 'Hammer the letters in order', say: "Forge the Sword! Hammer the hot letters onto the blade in order to spell the word, and the sword will glow!" },
   vowels:     { name: 'Gem Mine', desc: 'Dig out the vowel gems', say: "Gem Mine! The dwarves need your help. Tap only the vowels to dig out the gems!" },
   memory:     { name: 'Shield Match', desc: 'Flip shields to find pairs', say: "Shield Match! Flip two shields at a time and find the matching pairs. Every match brings a knight to your army!" },
   sort:       { name: 'Word Sort', desc: 'Sort by sound or pattern', say: "Word Sort! Put each word in the right cauldron. This spell is still brewing!" },
@@ -1968,8 +1999,14 @@ const ICONS = {
     g.fillStyle = '#7b2d3f'; g.fillRect(19.5, 20, 3, 14); g.fillRect(16, 24.5, 10, 3);
   },
   tiles(g) {
-    g.font = '700 10px Andika, sans-serif'; g.textAlign = 'center';
-    [['S', 6, 6], ['P', 22, 6], ['E', 6, 22], ['L', 22, 22]].forEach(([l, x, y]) => { g.fillStyle = '#f2c35b'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8; rr(g, x, y, 14, 14, 2.5); g.fill(); g.stroke(); g.fillStyle = '#3b2412'; g.fillText(l, x + 7, y + 10.5); });
+    g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
+    const blade = new Path2D('M8 34 L30 12 L36 6 L30 18 L12 38 Z'); g.fillStyle = '#d6dae6'; g.fill(blade); g.stroke(blade);
+    g.fillStyle = '#c99a3e'; g.save(); g.translate(11, 31); g.rotate(Math.PI / 4); g.fillRect(-7, -2, 14, 4); g.strokeRect(-7, -2, 14, 4); g.restore();
+    g.fillStyle = '#7a4f27'; g.beginPath(); g.moveTo(9, 33); g.lineTo(4, 38); g.lineWidth = 4; g.strokeStyle = '#7a4f27'; g.stroke();
+    const piece = (x, y, l) => { const gr = g.createRadialGradient(x + 3, y + 3, 1, x + 5, y + 5, 9); gr.addColorStop(0, '#fff3b0'); gr.addColorStop(.5, '#ffb347'); gr.addColorStop(1, '#e8541e');
+      g.fillStyle = gr; g.strokeStyle = '#5e2a0c'; g.lineWidth = 1.4; rr(g, x, y, 11, 11, 2); g.fill(); g.stroke();
+      g.fillStyle = '#5e1d06'; g.font = '700 8px Andika, sans-serif'; g.textAlign = 'center'; g.fillText(l, x + 5.5, y + 8.3); };
+    piece(25, 25, 's'); piece(5, 5, 'w');
   },
   vowels(g) {
     g.lineJoin = 'round';
@@ -4897,7 +4934,239 @@ const ShieldGame = (() => {
   function nextRound() { newRound(); }
   return { mount, unmount, practice: PRACTICE };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame };
+/* ================= Game: Forge the Sword (letter tiles) ================= */
+// Hot letter pieces glow in the blacksmith's tray. Hammer them onto the blade in order to spell the word; the
+// finished sword glows and is hung on the armory wall, a collection that keeps growing through the week.
+const ForgeGame = (() => {
+  const NS = 'http://www.w3.org/2000/svg', ARMORY = 'wordy-wizard-armory';
+  const PRACTICE = ['sword', 'anvil', 'hammer', 'forge', 'metal', 'spark'];
+  const BLADE = { x0: 112, x1: 372, y: 262 };   // where letters sit on the blade
+  let root, st, words, practice, timers = [], keyHandler, armory;
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  /* ----- sounds: the clang of the hammer and the hiss of a cooling piece ----- */
+  function ac() { const a = window.__wwAudio; try { if (a && a.state === 'suspended') a.resume(); } catch (e) {} return a; }
+  function tone(f, dur, vol, type = 'triangle') {
+    const a = ac(); if (!a) return;
+    try {
+      const o = a.createOscillator(), g = a.createGain(), t = a.currentTime; o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+    } catch (e) {}
+  }
+  const clang = () => [1480, 2210, 3020].forEach((f, i) => tone(f, .35, .05 / (i + 1)));
+  function hiss() {
+    const a = ac(); if (!a) return;
+    try {
+      const n = a.sampleRate * .35, buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      f.type = 'highpass'; f.frequency.value = 3000; g.gain.value = .05; s.buffer = buf; s.connect(f).connect(g).connect(a.destination); s.start();
+    } catch (e) {}
+  }
+
+  /* ----- the armory: swords forged this week ----- */
+  function loadArmory() {
+    try { const a = JSON.parse(localStorage.getItem(ARMORY) || 'null'); if (a && a.week === WORDS.week && Array.isArray(a.swords)) return a; } catch (e) {}
+    return { week: WORDS.week, swords: [] };
+  }
+  const saveArmory = () => { try { localStorage.setItem(ARMORY, JSON.stringify(armory)); } catch (e) {} };
+  const swordShape = (scale, hue) => `<g transform="scale(${scale})" stroke="#2a1a10" stroke-width="${(2 / scale).toFixed(2)}" stroke-linejoin="round">
+      <path d="M-4 -40 L4 -40 L4 22 L0 30 L-4 22 Z" fill="${hue}"/><rect x="-12" y="-46" width="24" height="6" rx="2" fill="#c99a3e"/>
+      <rect x="-3" y="-60" width="6" height="14" rx="2" fill="#7a4f27"/><circle cx="0" cy="-63" r="4" fill="#c99a3e"/></g>`;
+  function drawRack(fresh) {
+    const g = q('#fgRack'), list = armory.swords.slice(-11);
+    g.innerHTML = list.map((w, i) => `<g transform="translate(${34 + i * 37} 102)"${fresh && i === list.length - 1 ? ' class="fg-new"' : ''}><title>${w.replace(/[<&>]/g, '')}</title>${swordShape(.8, i % 3 ? '#cfd4e2' : '#e3e7f0')}</g>`).join('');
+    q('#fgArmory').textContent = `Armory: ${armory.swords.length}`;
+    q('#fgArmoryEmpty').style.display = armory.swords.length ? 'none' : '';   // (a note until the first sword is hung)
+  }
+
+  function sceneSVG() {
+    return `<svg viewBox="0 0 440 400" role="img" aria-label="A blacksmith's forge with an anvil, a hammer, a sword blade, and an armory wall of swords">
+      <defs>
+        <radialGradient id="fgFire" cx=".5" cy=".75" r=".6"><stop offset="0" stop-color="#fff1a8"/><stop offset=".4" stop-color="#ff9c38"/><stop offset="1" stop-color="#ff6a1f" stop-opacity="0"/></radialGradient>
+        <linearGradient id="fgSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef1f7"/><stop offset=".5" stop-color="#b9bfd0"/><stop offset="1" stop-color="#8e95a8"/></linearGradient>
+        <clipPath id="fgClip"><rect width="440" height="400" rx="14"/></clipPath>
+      </defs>
+      <g clip-path="url(#fgClip)">
+      <rect width="440" height="400" fill="#3b2f3f"/>
+      <g stroke="#2a2133" stroke-width="2" fill="#4a3c50">${Array.from({ length: 6 }, (_, r) => Array.from({ length: 6 }, (_, c) => `<rect x="${c * 80 - (r % 2) * 40}" y="${r * 44 + 120}" width="80" height="44" rx="6"/>`).join('')).join('')}</g>
+      <rect x="0" y="0" width="440" height="128" fill="#5a3f2c"/>
+      <g stroke="#2a1a10" stroke-width="2.5"><rect x="10" y="22" width="420" height="16" rx="4" fill="#8a5a33"/>
+        <text x="220" y="35" text-anchor="middle" font-family="Uncial Antiqua, serif" font-size="12" fill="#f5e7bf" stroke="none">The Armory</text></g>
+      <g id="fgRack"></g>
+      <text id="fgArmoryEmpty" x="220" y="96" text-anchor="middle" font-family="Andika, sans-serif" font-size="13" fill="#e9d4a8" font-style="italic">Forge a sword to hang it here</text>
+      <path d="M0 128 H440" stroke="#2a1a10" stroke-width="3"/>
+      <g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M14 400 V300 Q14 280 34 280 H104 Q124 280 124 300 V400 Z" fill="#5d5466"/>
+        <ellipse cx="69" cy="300" rx="44" ry="10" fill="#2a1a10"/>
+      </g>
+      <ellipse class="fg-fire" cx="69" cy="292" rx="46" ry="40" fill="url(#fgFire)"/>
+      <g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M150 300 H360 Q392 300 404 284 Q384 284 372 290 L372 280 H150 Q132 280 132 290 Q132 300 150 300 Z" fill="#4b4e5c"/>
+        <path d="M196 300 L208 336 H302 L314 300 Z" fill="#3a3d49"/><rect x="176" y="336" width="158" height="20" rx="4" fill="#3a3d49"/>
+        <rect x="150" y="356" width="210" height="44" fill="#6b4a2f"/>
+      </g>
+      <g id="fgSword">
+        <g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+          <rect x="44" y="254" width="34" height="16" rx="5" fill="#7a4f27"/><circle cx="40" cy="262" r="9" fill="#c99a3e"/>
+          <rect x="78" y="236" width="12" height="52" rx="4" fill="#c99a3e"/>
+          <path id="fgBlade" d="M90 248 H378 L404 262 L378 276 H90 Z" fill="url(#fgSteel)"/>
+        </g>
+        <g id="fgLetters" font-family="Andika, sans-serif" font-weight="700" text-anchor="middle"></g>
+      </g>
+      <g id="fgHammer" class="fg-hammer"><g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+        <rect x="-6" y="-92" width="12" height="80" rx="4" fill="#8a5a33" transform="rotate(-30)"/>
+        <rect x="-26" y="-22" width="40" height="22" rx="4" fill="#6b6f80"/></g></g>
+      <g id="fgFx"></g>
+      </g>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    practice = !wordList.filter(w => /[a-z]/i.test(w)).length;
+    words = shuffle(practice ? PRACTICE : wordList.filter(w => /[a-z]/i.test(w))); VOICE.warm(words);
+    armory = loadArmory(); st = { idx: 0 };
+    root = document.createElement('div'); root.className = 'fg';
+    root.innerHTML = `
+      <div class="fg-scene">${sceneSVG()}</div>
+      <div class="fg-side">
+        <div class="sq-top"><span id="fgCount"></span><span id="fgArmory"></span></div>
+        <div class="sq-slots" id="fgSlots" aria-label="The word on the blade"></div>
+        <p class="sq-status" id="fgStatus" aria-live="polite"></p>
+        <div class="fg-tray" id="fgTray" role="group" aria-label="Hot letter pieces"></div>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="fgHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+          <button type="button" class="sq-btn" id="fgHint">Hint</button>
+          <button type="button" class="sq-btn primary" id="fgNext" hidden>Next sword</button>
+        </div>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    q('#fgTray').addEventListener('click', e => { const b = e.target.closest('.fg-piece'); if (b) pick(b); });
+    q('#fgHear').addEventListener('click', () => VOICE.speak(st.word));
+    q('#fgHint').addEventListener('click', hint);
+    q('#fgNext').addEventListener('click', next);
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target.closest && e.target.closest('input,textarea'))) return;
+      if (/^[a-z]$/i.test(e.key)) {
+        e.preventDefault(); if (st.over) return;
+        const l = e.key.toLowerCase(), free = [...root.querySelectorAll('.fg-piece:not(.used)')].filter(b => b.dataset.l === l);
+        const b = free.find(x => !x.classList.contains('cool')) || free[0];
+        if (b) pick(b); else wrong(null);
+      } else if (e.key === 'Enter' && !q('#fgNext').hidden) { e.preventDefault(); next(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    drawRack(false);
+    newWord();
+  }
+  function unmount() {
+    VOICE.cancel(); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (root) root.remove(); root = null;
+  }
+  const status = t => { q('#fgStatus').textContent = t; };
+
+  function newWord() {
+    timers.forEach(clearTimeout); timers = []; VOICE.cancel();
+    const word = words[st.idx], chars = [...word.toLowerCase()];
+    Object.assign(st, { word, chars, need: chars.filter(c => /[a-z]/.test(c)), done: 0, over: false, tries: 0 });
+    q('#fgCount').textContent = `Sword ${st.idx + 1} of ${words.length}`;
+    q('#fgNext').hidden = true; q('#fgHint').hidden = false;
+    q('#fgSword').getAnimations().forEach(a => a.cancel()); q('#fgSword').classList.remove('fg-glow');
+    q('#fgFx').innerHTML = ''; q('#fgHammer').setAttribute('transform', `translate(418 ${BLADE.y + 40})`);   // the hammer rests by the anvil
+    // the pieces, shuffled (never already in order)
+    let order = shuffle(st.need);
+    for (let n = 0; n < 6 && st.need.length > 1 && order.join('') === st.need.join(''); n++) order = shuffle(st.need);
+    const tray = q('#fgTray'); tray.innerHTML = '';
+    order.forEach(l => { const b = document.createElement('button'); b.type = 'button'; b.className = 'fg-piece'; b.dataset.l = l; b.textContent = l; b.setAttribute('aria-label', `Hot piece: ${l}`); tray.appendChild(b); });
+    draw();
+    if (VOICE.canSpeak) { status('Listen to the word, then hammer the hot letters onto the blade in order.'); later(() => VOICE.speak(word), 400); }
+    else status(`The word is "${word}". Hammer its hot letters onto the blade in order.`);
+  }
+  // the blade's letters (hot orange as they're hammered, cooling to steel) and the slots beside it
+  function draw() {
+    const g = q('#fgLetters'), n = st.chars.length, step = (BLADE.x1 - BLADE.x0) / Math.max(n, 1), fs = Math.min(28, step * 1.15);
+    let k = 0, html = '';
+    st.chars.forEach((c, i) => {
+      const x = BLADE.x0 + step * (i + .5), isLetter = /[a-z]/.test(c), shown = !isLetter || k < st.done;
+      if (isLetter) k++;
+      if (shown) html += `<text x="${x.toFixed(1)}" y="${BLADE.y + fs * .36}" font-size="${fs.toFixed(1)}" fill="${isLetter && k === st.done && !st.over ? '#e8541e' : '#3a3450'}">${c.replace(/[<&>]/g, '')}</text>`;
+    });
+    g.innerHTML = html;
+    const box = q('#fgSlots'); box.innerHTML = ''; k = 0;
+    st.chars.forEach(c => {
+      const s = document.createElement('span'); s.className = 'sq-slot';
+      if (/[a-z]/.test(c)) s.textContent = k++ < st.done ? c : '';
+      else { s.classList.add(c === ' ' ? 'space' : 'punct'); s.textContent = c === ' ' ? '' : c; }
+      box.appendChild(s);
+    });
+    if (st.over) box.classList.add('won'); else box.classList.remove('won');
+  }
+  function slotX(i) {   // the x of the i-th letter on the blade
+    const n = st.chars.length, step = (BLADE.x1 - BLADE.x0) / Math.max(n, 1); let k = -1;
+    for (let j = 0; j < n; j++) if (/[a-z]/.test(st.chars[j]) && ++k === i) return BLADE.x0 + step * (j + .5);
+    return BLADE.x0;
+  }
+  function pick(b) {
+    if (st.over || b.classList.contains('used')) return;
+    if (b.dataset.l !== st.need[st.done]) return wrong(b);
+    root.querySelectorAll('.fg-piece.hint').forEach(x => x.classList.remove('hint'));
+    b.classList.add('used'); b.blur();
+    strike(slotX(st.done));
+    st.done++; draw();
+    if (st.done === st.need.length) return forged();
+  }
+  function wrong(b) {
+    st.tries++; hiss();
+    if (b) { b.classList.add('cool'); later(() => b.classList.remove('cool'), 1200); }
+    const box = q('#fgSlots'); box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+    status(st.tries > 2 ? 'Tap Hint to see which piece goes next.' : 'Hiss! That piece cooled off. Listen again and find the next letter.');
+  }
+  function hint() {
+    if (st.over) return;
+    const b = [...root.querySelectorAll('.fg-piece:not(.used)')].find(x => x.dataset.l === st.need[st.done]);
+    if (!b) return;
+    b.classList.remove('hint'); void b.offsetWidth; b.classList.add('hint');
+    status('The piece with the white ring goes next.');
+    if (VOICE.canSpeak) VOICE.speak(st.word);
+  }
+  function strike(x) {
+    clang();
+    const h = q('#fgHammer');
+    h.setAttribute('transform', `translate(${(x + 14).toFixed(1)} ${BLADE.y - 14})`);
+    if (!reduce) h.firstElementChild.animate([{ transform: 'rotate(-35deg) translateY(-30px)' }, { transform: 'none' }, { transform: 'rotate(-12deg) translateY(-8px)' }], { duration: 260, easing: 'ease-in' });
+    const fx = q('#fgFx');
+    for (let i = 0; i < 8; i++) {
+      const c = document.createElementNS(NS, 'circle'), a = Math.random() * Math.PI - Math.PI, r = 20 + Math.random() * 30;
+      c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', BLADE.y - 10); c.setAttribute('r', 2 + Math.random() * 2); c.setAttribute('fill', i % 2 ? '#ffd27a' : '#ff8a2a');
+      fx.appendChild(c);
+      c.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${(Math.cos(a) * r).toFixed(1)}px, ${(Math.sin(a) * r).toFixed(1)}px)`, opacity: 0 }], { duration: reduce ? 1 : 500, easing: 'ease-out', fill: 'forwards' });
+      later(() => c.remove(), 600);
+    }
+  }
+  function forged() {
+    st.over = true; q('#fgHint').hidden = true; draw();
+    const sword = q('#fgSword'); sword.classList.add('fg-glow');
+    status(`The sword glows! "${st.word}" is forged and hung in the armory.`);
+    armory.swords.push(st.word); saveArmory();
+    later(() => {
+      if (!reduce) sword.animate([{ transform: 'none', opacity: 1 }, { transform: 'translate(0, -170px) scale(.3)', opacity: 0 }], { duration: 700, easing: 'ease-in', fill: 'forwards' });
+      later(() => drawRack(true), reduce ? 0 : 650);
+    }, 1500);
+    const last = st.idx >= words.length - 1, nb = q('#fgNext');
+    nb.textContent = last ? 'Forge them all again' : 'Next sword'; nb.hidden = false;
+    later(() => nb.focus({ preventScroll: true }), 900);
+  }
+  function next() {
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; } else st.idx++;
+    newWord();
+  }
+  return { mount, unmount, practice: PRACTICE };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
