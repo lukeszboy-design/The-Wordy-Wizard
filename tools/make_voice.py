@@ -35,7 +35,7 @@ def wizard_lines(html):
     lines += [m for m in re.findall(r'name:\s*(?:"([^"]+)"|\'([^\']+)\')', games) for m in m if m]
     lines = [n + '!' for n in lines]
     lines += [a or b for a, b in re.findall(r'say:\s*(?:' + js_str + ')', games)]
-    for arr in ('QUIPS', 'CASTS'):
+    for arr in ('QUIPS', 'CASTS', 'SPIDER_SAYS', 'POTION_SAYS'):
         block = re.search(r'const ' + arr + r' = \[(.*?)\];', html, re.S).group(1)
         lines += strs(block)
     # the wizard's own say(...) calls (not the games' say functions, which take a word)

@@ -1691,7 +1691,7 @@ const fill = new THREE.PointLight(0xffd2a8, .42, 14, 1.2); fill.position.set(.4,
 
 /* ================= Table + potions ================= */
 const tableG = new THREE.Group(); tableG.position.set(-3.55, 0, -1.7); tableG.rotation.y = .12; scene.add(tableG);
-const potionAnims = [];
+const potionAnims = [], potions = [];   // (potions: each bottle, for the easter eggs)
 {
   const wood = toon('#ffd9b8', { map: woodMap }), woodD = toon('#c79a78', { map: woodMap });
   mesh(new THREE.BoxGeometry(2.7, .13, 1.25), wood, { parent: tableG, pos: [0, .96, 0], outline: .012, receive: true });
@@ -1765,6 +1765,7 @@ const potionAnims = [];
       g.add(b); bubbles.push({ m: b, t: Math.random(), sp: .25 + Math.random() * .25, x: (Math.random() - .5) * bubbleR, z: (Math.random() - .5) * bubbleR * .6 });
     }
     potionAnims.push({ bubbles, top: liquidTop, light: pl, ph: Math.random() * 6 });
+    potions.push({ g, col, liq, home: g.position.clone(), n: 0 });
   }
   potion(.25, .05, 'round', '#46d46e');
   potion(.65, -.2, 'tall', '#a14be8');
@@ -2211,7 +2212,7 @@ const spider = new THREE.Group(); spider.position.set(4.6, 4.2, -2.8); scene.add
   mesh(new THREE.SphereGeometry(.09, 16, 12), sm, { parent: spider, scale: [1, 1.15, 1], outline: .008 });
   mesh(new THREE.SphereGeometry(.055, 12, 10), sm, { parent: spider, pos: [0, -.11, .02], outline: .006 });
   [-1, 1].forEach(s => { mesh(new THREE.SphereGeometry(.016, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }), { parent: spider, pos: [s * .022, -.11, .068], cast: false }); for (let k = 0; k < 4; k++) { const a = -.6 + k * .4; limb(V(s * .05, a * .08, 0), V(s * .17, a * .2 - .02, .03), .008, .006, sm, spider, 0, 6); } });
-  const th = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(0, .08, 0), V(0, 3, 0)]), new THREE.LineBasicMaterial({ color: 0xd8d8e6, transparent: true, opacity: .55 }));
+  const th = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(0, .08, 0), V(0, 6, 0)]), new THREE.LineBasicMaterial({ color: 0xd8d8e6, transparent: true, opacity: .55 }));
   spider.add(th);
 }
 
@@ -2237,6 +2238,103 @@ function respawnLetter(L) {
   L.s.material.map.needsUpdate = true; L.dx = (Math.random() - .5) * .5; L.t = 0;
 }
 
+/* ================= Easter eggs: Webster the spider and the potions ================= */
+// Tap Webster for a bungee drop, a twirl or a hello; tap a potion and it fizzes over, floats, or goes POOF
+// (and pops back). Each tap shows the next trick, and everything settles back to normal afterwards.
+const EGGS = (() => {
+  // a big invisible ball around Webster, so he's easy to tap
+  mesh(new THREE.SphereGeometry(.32, 10, 8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }), { parent: spider, pos: [0, -.04, 0], cast: false });
+  const parts = [];   // little sprites (bubbles, hearts, smoke) that drift and fade
+  function puff(pos, { color = '#ffffff', size = .2, grow = 1, vel = V(0, .6, 0), life = 1, additive = true, spread = .15, map = glowTex } = {}) {
+    const m = new THREE.SpriteMaterial({ map, color: new THREE.Color(color), transparent: true, depthWrite: false, blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, opacity: 1 });
+    const sp = new THREE.Sprite(m); sp.position.copy(pos).add(V((Math.random() - .5) * spread, (Math.random() - .5) * spread, (Math.random() - .5) * spread));
+    sp.scale.setScalar(size); scene.add(sp);
+    parts.push({ sp, v: vel.clone().add(V((Math.random() - .5) * .4, Math.random() * .3, (Math.random() - .5) * .2)), size, grow, life, age: 0 });
+  }
+  const textMap = (txt, col) => canvasTex(256, 128, g => { g.font = '700 70px Andika, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 12; g.strokeStyle = '#2a1a10'; g.strokeText(txt, 128, 66); g.fillStyle = col; g.fillText(txt, 128, 66); });
+  const hiMap = textMap('Hi!', '#fff3b0'), poofMap = textMap('POOF!', '#ffd0e8');
+  function label(map, pos, life = 1.6) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false })); sp.scale.set(.8, .4, 1); sp.position.copy(pos); scene.add(sp);
+    parts.push({ sp, v: V(0, .25, 0), size: .6, grow: 0, life, age: 0, label: true });
+  }
+  // quick sounds (quiet, made on the fly)
+  function tone(f, f2, dur, vol, type = 'sine') {
+    const a = window.__wwAudio; if (!a) return;
+    try { if (a.state === 'suspended') a.resume(); const o = a.createOscillator(), g = a.createGain(), t = a.currentTime; o.type = type; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0005, t + dur); o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02); } catch (e) {}
+  }
+  let web = null, webN = 0;   // Webster's current trick
+  const SPIDER_SAYS = ["Webster loves to show off.", "Hello, Webster! Mind your manners."];
+  function spiderTrick() {
+    if (web) return;
+    const kind = ['bungee', 'twirl', 'hello'][webN++ % 3];
+    web = { kind, t: 0, dur: kind === 'bungee' ? 2.6 : kind === 'twirl' ? 1.8 : 2.2 };
+    if (kind === 'bungee') tone(700, 180, .5, .06); else if (kind === 'twirl') tone(500, 1200, .4, .05, 'triangle'); else tone(880, 1320, .15, .05);
+    if (webN % 2 === 0 && !W.talking) say(SPIDER_SAYS[(webN / 2) % 2]);
+  }
+  let potN = 0;
+  const POTION_SAYS = ["Oops! That one always does that.", "Careful! That potion is a bit too bubbly."];
+  function potionTrick(i) {
+    const p = potions[i]; if (!p || p.fx) return;
+    const kind = ['fizz', 'float', 'boom'][p.n++ % 3];
+    p.fx = { kind, t: 0, dur: kind === 'boom' ? 2.6 : kind === 'float' ? 2.2 : 2 };
+    if (kind === 'fizz') tone(300, 900, .6, .05, 'triangle');
+    if (kind === 'float') tone(400, 800, 1, .04);
+    if (kind === 'boom' && potN++ % 2 === 0 && !W.talking) setTimeout(() => say(POTION_SAYS[(potN >> 1) % 2]), 700);
+  }
+  const ease = u => u * u * (3 - 2 * u), wp = V(0, 0, 0);
+  function update(dt, ms) {
+    if (web) {
+      web.t += dt; const u = Math.min(1, web.t / web.dur);
+      if (web.kind === 'bungee') {   // drop on the thread, bounce, climb back up
+        const drop = u < .2 ? 1.9 * ease(u / .2) : u < .7 ? 1.9 - Math.sin((u - .2) / .5 * Math.PI * 3) * .35 * (1 - (u - .2) / .5) : 1.9 * (1 - ease((u - .7) / .3));
+        spider.position.y -= drop; spider.rotation.z = Math.sin(web.t * 28) * .25 * (u < .7 ? 1 : 0);
+      } else if (web.kind === 'twirl') {
+        spider.rotation.y += ease(u) * Math.PI * 6; spider.scale.setScalar(1 + Math.sin(u * Math.PI) * .35);
+        if (Math.random() < dt * 14) { spider.getWorldPosition(wp); puff(wp, { color: '#ff7ab8', size: .14, vel: V(0, .7, 0), life: 1.2 }); }
+      } else {
+        spider.position.y -= Math.sin(u * Math.PI) * .5;
+        if (!web.said) { web.said = true; spider.getWorldPosition(wp); label(hiMap, wp.clone().add(V(-.15, -.6, .25)), 1.8); }
+      }
+      if (u >= 1) web = null;
+    }
+    for (const p of potions) {
+      const g = p.g; g.position.copy(p.home); g.rotation.set(0, 0, 0); g.scale.setScalar(1);
+      if (!p.fx) continue;
+      const f = p.fx; f.t += dt; const u = Math.min(1, f.t / f.dur);
+      g.getWorldPosition(wp);
+      if (f.kind === 'fizz') {
+        g.rotation.z = Math.sin(f.t * 30) * .08 * (1 - u);
+        p.liq.emissiveIntensity = .55 + Math.sin(u * Math.PI) * 1.2;
+        if (u < .7 && Math.random() < dt * 40) puff(wp.clone().add(V(0, .45, 0)), { color: p.col, size: .12 + Math.random() * .1, vel: V(0, 1.1, 0), life: 1.1 });
+      } else if (f.kind === 'float') {
+        g.position.y += Math.sin(u * Math.PI) * .55; g.rotation.y = ease(u) * Math.PI * 4; g.rotation.z = Math.sin(f.t * 6) * .1 * Math.sin(u * Math.PI);
+        if (Math.random() < dt * 8) puff(wp.clone().add(V(0, .1, 0)), { color: '#fff3b0', size: .08, vel: V(0, -.2, 0), life: .8 });
+      } else {   // boom: shake, POOF, gone… then pop back
+        if (f.t < .45) g.position.x += Math.sin(f.t * 80) * .03;
+        else if (!f.blown) {
+          f.blown = true; tone(180, 40, .5, .14, 'sawtooth'); tone(900, 200, .3, .05, 'square');
+          const at = wp.clone().add(V(0, .25, 0));
+          for (let k = 0; k < 16; k++) puff(at, { color: k % 2 ? p.col : '#efe9f7', size: .34, grow: 2.6, vel: V(0, .5, 0), life: 1.4, additive: k % 2 === 1, spread: .25 });
+          puff(at, { color: '#ffffff', size: .6, grow: 3, vel: V(0, 0, 0), life: .35 });
+          label(poofMap, at.clone().add(V(0, .55, .2)), 1.4);
+        }
+        const s = f.t < .45 ? 1 : f.t < .55 ? 1 - (f.t - .45) / .1 : f.t < 1.9 ? 0 : f.t < 2.15 ? (f.t - 1.9) / .25 * 1.15 : 1.15 - (f.t - 2.15) / .45 * .15;
+        g.scale.setScalar(Math.max(.001, s));
+      }
+      if (u >= 1) { p.fx = null; p.liq.emissiveIntensity = .55; }
+    }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const q = parts[i]; q.age += dt; const k = q.age / q.life;
+      if (k >= 1) { scene.remove(q.sp); q.sp.material.dispose(); parts.splice(i, 1); continue; }
+      q.sp.position.addScaledVector(q.v, dt);
+      if (!q.label) q.sp.scale.setScalar(q.size * (1 + q.grow * k));
+      q.sp.material.opacity = q.label ? Math.min(1, (1 - k) * 2.5) : (1 - k) * (1 - k);
+    }
+  }
+  return { spider: spiderTrick, potion: potionTrick, update };
+})();
+
 /* ================= Interaction ================= */
 const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), pointer = { x: 0, y: 0, inside: false };
 let lookTarget = [0, 0], hoveringBook = false;
@@ -2257,11 +2355,13 @@ function pick(ev) {
     return { type: 'book', px };
   }
   if (ray.intersectObject(wiz, true).length) return { type: 'wizard' };
+  if (ray.intersectObject(spider, true).length) return { type: 'spider' };
+  for (let i = 0; i < potions.length; i++) if (ray.intersectObject(potions[i].g, true).length) return { type: 'potion', i };
   return null;
 }
 const cvs = renderer.domElement;
 let drag = null, swallowClick = false;
-cvs.addEventListener('pointerdown', ev => { const h = pick(ev); drag = h && h.type !== 'wizard' ? { x: ev.clientX, y: ev.clientY } : null; });
+cvs.addEventListener('pointerdown', ev => { const h = pick(ev); drag = h && (h.type === 'book' || h.type === 'game' || h.type === 'add' || h.type === 'next' || h.type === 'back') ? { x: ev.clientX, y: ev.clientY } : null; });
 cvs.addEventListener('pointerup', ev => {
   if (!drag) return;
   const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y; drag = null;
@@ -2274,7 +2374,7 @@ cvs.addEventListener('pointermove', ev => {
   const hit = pick(ev);
   const k = hit && hit.key ? hit.key : null;
   if (k !== hoverKey && !TURN.on) { hoverKey = k; paintCurrent(); }
-  hoveringBook = !!(hit && hit.type !== 'wizard');
+  hoveringBook = !!(hit && hit.type !== 'wizard' && hit.type !== 'spider' && hit.type !== 'potion');
   cvs.style.cursor = hit && hit.type !== 'book' ? 'pointer' : (hit && hit.type === 'book' ? 'grab' : 'default');
 });
 cvs.addEventListener('pointerleave', () => { pointer.inside = false; hoveringBook = false; drag = null; if (hoverKey && !TURN.on) { hoverKey = null; paintCurrent(); } });
@@ -2287,6 +2387,8 @@ cvs.addEventListener('click', ev => {
   else if (hit.type === 'next') turnPage(1);
   else if (hit.type === 'back') turnPage(-1);
   else if (hit.type === 'wizard') quip();
+  else if (hit.type === 'spider') EGGS.spider();
+  else if (hit.type === 'potion') EGGS.potion(hit.i);
 });
 document.addEventListener('keydown', e => {
   if (!gate.hidden || !panel.hidden) return;
@@ -4657,7 +4759,8 @@ function frame() {
   updateTurn(dt);
   WZ.tipStar.rotation.z = Math.sin(t * 1.7) * .3; WZ.charm.rotation.z = Math.sin(t * 2.1 + 1) * .35;
   // spider
-  spider.position.y = 3.95 + Math.sin(t * .6) * .3; spider.rotation.y = Math.sin(t * .4) * .5;
+  spider.position.y = 3.95 + Math.sin(t * .6) * .3; spider.rotation.y = Math.sin(t * .4) * .5; spider.rotation.z = 0; spider.scale.setScalar(1);
+  EGGS.update(dt, ms);
   // dust
   const dp = dustGeo.attributes.position;
   for (let i = 0; i < DUST; i++) {
