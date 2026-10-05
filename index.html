@@ -97,6 +97,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .drop input{position:absolute;width:1px;height:1px;opacity:0}
 .fmt{display:flex;gap:12px;align-items:flex-start;margin-top:10px;font-size:13px;color:#6b4a26}
 .fmt pre{margin:0;padding:8px 12px;background:#fffaf0;border:1px solid #c9a660;border-radius:8px;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;color:#3b2412}
+#pSortBy{font:16px var(--font-read);padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:#2a1a10;max-width:100%}
 .class-box{border:2px solid var(--ink);border-radius:12px;padding:4px 12px 8px;margin:0 0 12px}
 .class-box legend{font-weight:700;padding:0 6px}
 .class-box p{margin:6px 0 0;font-size:14px;line-height:1.4;color:#6b4a26}
@@ -798,6 +799,69 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .db .sq-slots.db-lots .sq-slot{min-height:18px;min-width:12px;font-size:11px}
   .db .sq-key{min-height:25px}
 }
+/* --- Stable Sort (sort words by spelling pattern) --- */
+.ss{position:absolute;left:4%;right:4%;top:22%;bottom:6%;display:flex;flex-direction:column;gap:1cqw;color:var(--parch-ink)}
+.ss .sq-top{flex-wrap:wrap}
+.ss-by{font-weight:400}
+.ss-yard{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2cqw;align-items:center}
+.ss-horse{position:relative;justify-self:center;height:100%;max-height:21cqw;max-width:100%;aspect-ratio:220/150;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;z-index:4}
+.ss-horse.ss-held{cursor:grabbing;filter:drop-shadow(0 .8cqw .6cqw rgba(0,0,0,.3))}
+.ss-art,.ss-art svg{display:block;width:100%;height:100%}
+.ss-word{position:absolute;left:26%;width:40%;top:41%;height:27%;display:grid;place-items:center;font:700 max(14px,2.1cqw)/1 var(--font-read);color:#fff8e0;text-shadow:0 1px 0 #3b0f1a,0 0 3px #3b0f1a;pointer-events:none;white-space:nowrap}
+.ss-word.ss-long{font-size:max(11px,1.45cqw)}
+.ss-prize{cursor:default;animation:sspop .6s ease-out}
+@keyframes sspop{from{transform:scale(.3);opacity:0}70%{transform:scale(1.08)}to{transform:none;opacity:1}}
+.ss-side{min-width:0;display:flex;flex-direction:column;gap:1cqw;justify-content:center}
+.ss-stables{display:grid;gap:1.6cqw}
+.ss-n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ss-n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ss-stable{position:relative;display:flex;flex-direction:column;align-items:center;gap:.1cqw;padding:.45cqw .8cqw;border:3px solid var(--ink);border-radius:1.2cqw;background:#f7e6b8;color:var(--parch-ink);cursor:pointer;font-family:var(--font-read);transition:transform .15s, background .15s;box-shadow:0 .4cqw 0 rgba(59,36,18,.25)}
+.ss-stable:hover,.ss-stable.ss-over{background:#fff1c8;transform:translateY(-2px)}
+.ss-stable:focus-visible{outline:3px solid #a3401f;outline-offset:3px}
+.ss-stable svg{width:min(6.5cqw,100%);height:auto;display:block}
+.ss-stable b{font:700 max(15px,1.7cqw)/1.15 var(--font-read)}
+.ss-stable small{font:max(12px,1.2cqw)/1.2 var(--font-read);color:#6b4a26}
+.ss-key{position:absolute;left:.7cqw;top:.4cqw;font:700 max(11px,1cqw) var(--font-read);color:#8a6a3a}
+.ss-in{min-height:1.25em;font-size:max(12px,1.3cqw);line-height:1.25;letter-spacing:-.1em}
+.ss-door{transform-box:fill-box;transform-origin:0 50%;transition:transform .3s}
+.ss-open .ss-door{transform:scaleX(.12)}
+.ss-hint{animation:ssglow .8s ease-in-out infinite alternate}
+@keyframes ssglow{from{box-shadow:0 0 0 3px #f2c35b,0 0 10px 3px rgba(242,195,91,.5)}to{box-shadow:0 0 0 5px #f2c35b,0 0 22px 8px rgba(242,195,91,.8)}}
+.ss-wrong{animation:shake .4s ease-in-out}
+.ss-done{background:#fff1b8}
+.ss-arrive{animation:ssin .7s ease-out}
+@keyframes ssin{from{transform:translateX(-45%);opacity:0}to{transform:none;opacity:1}}
+.ss-head,.ss-legf,.ss-legb,.ss-legf2,.ss-legb2{transform-box:fill-box}
+.ss-head{transform-origin:20% 90%}
+.ss-no .ss-head{animation:ssno .55s ease-in-out}
+@keyframes ssno{20%{transform:rotate(-10deg)}45%{transform:rotate(9deg)}70%{transform:rotate(-6deg)}}
+.ss-legf,.ss-legb,.ss-legf2,.ss-legb2{transform-origin:50% 0}
+.ss-arrive .ss-legf,.ss-arrive .ss-legb2,.ss-trot .ss-legf,.ss-trot .ss-legb2{animation:ssleg .2s ease-in-out infinite alternate}
+.ss-arrive .ss-legb,.ss-arrive .ss-legf2,.ss-trot .ss-legb,.ss-trot .ss-legf2{animation:ssleg .2s ease-in-out infinite alternate-reverse}
+@keyframes ssleg{from{transform:rotate(-20deg)}to{transform:rotate(20deg)}}
+@media (prefers-reduced-motion: reduce){ .ss-arrive,.ss-prize,.ss-hint,.ss-no .ss-head,.ss-arrive [class^="ss-leg"],.ss-trot [class^="ss-leg"]{animation:none} .ss-hint{box-shadow:0 0 0 5px #f2c35b} }
+@media (max-width:760px) and (orientation:portrait){
+  .ss{position:static;padding:8px 16px 20px;gap:12px}
+  .ss-yard{grid-template-columns:1fr;gap:10px}
+  .ss-horse{height:auto;width:min(78vw,340px);max-height:none}
+  .ss-word{font-size:clamp(14px,4.6vw,22px)}
+  .ss-word.ss-long{font-size:clamp(11px,3.4vw,16px)}
+  .ss-stables{gap:8px}
+  .ss-stable{padding:6px 4px}
+  .ss-stable svg{width:min(64px,100%)}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .ss{top:19%;bottom:5%;gap:4px}
+  .ss .sq-status{min-height:0;font-size:13px;line-height:1.25}
+  .ss-stables{gap:6px}
+  .ss-stable{padding:2px 4px;gap:0;border-width:2px}
+  .ss-stable svg{width:4.2cqw}
+  .ss-stable b{font-size:13px}
+  .ss-stable small{font-size:11px}
+  .ss-in{min-height:0;font-size:11px}
+  .ss-key{display:none}
+  .ss .sq-practice{display:none}
+}
 </style>
 
 </head>
@@ -944,6 +1008,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
     <p class="sub">Add the words your child is practicing. Every game in the spellbook will use this list.</p>
     <label class="field">Week of <input type="date" id="pWeek"></label>
     <fieldset class="class-box"><legend>Classroom</legend><div id="classBody"></div><p class="msg" id="classMsg" role="status"></p></fieldset>
+    <label class="field" id="sortField" hidden>Stable Sort sorts words by <select id="pSortBy"></select></label>
     <div class="tabs" role="tablist">
       <button type="button" class="tab" role="tab" id="tabType" aria-selected="true" aria-controls="paneType">Type words</button>
       <button type="button" class="tab" role="tab" id="tabCsv" aria-selected="false" aria-controls="paneCsv">Upload a CSV</button>
@@ -1013,7 +1078,7 @@ const GAMES = {
   tiles:      { name: 'Forge the Sword', desc: 'Hammer the letters in order', say: "Forge the Sword! Hammer the hot letters onto the blade in order to spell the word, and the sword will glow!" },
   vowels:     { name: 'Gem Mine', desc: 'Dig out the vowel gems', say: "Gem Mine! The dwarves need your help. Tap only the vowels to dig out the gems!" },
   memory:     { name: 'Shield Match', desc: 'Flip shields to find pairs', say: "Shield Match! Flip two shields at a time and find the matching pairs. Every match brings a knight to your army!" },
-  sort:       { name: 'Word Sort', desc: 'Sort by sound or pattern', say: "Word Sort! Put each word in the right cauldron. This spell is still brewing!" },
+  sort:       { name: 'Stable Sort', desc: 'Lead each horse to its stable', say: "Stable Sort! Each horse wears a word. Lead it to the right stable by how the word is spelled!" },
   crossword:  { name: 'Crossword', desc: 'Solve the clues', say: "Crossword! Use the clues to fill in the grid. This spell is still brewing!" },
   bee:        { name: 'The Royal Court', desc: 'Spell before the queen', say: "The Royal Court! Stand before the queen and spell each word. Spell well, and she will knight you!" },
 };
@@ -1095,6 +1160,9 @@ const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 let WORDS = { week: '', words: [] };
 try { const raw = localStorage.getItem(WORDS_KEY); if (raw) WORDS = Object.assign(WORDS, JSON.parse(raw)); } catch (e) {}
 let onWordsChanged = () => {};
+// how Stable Sort sorts the words (a grown-up's choice; a classroom passes the teacher's choice along)
+const SORT_KEY = 'wordy-wizard-sort-by';
+const sortBy = v => { try { if (v === undefined) return localStorage.getItem(SORT_KEY) || 'auto'; localStorage.setItem(SORT_KEY, v); } catch (e) { return 'auto'; } };
 const isoMonday = () => { const n = new Date(), m = new Date(n); m.setDate(n.getDate() - ((n.getDay() + 6) % 7)); return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-${String(m.getDate()).padStart(2, '0')}`; };
 function weekText() {
   if (WORDS.week) { const [y, mo, d] = WORDS.week.split('-').map(Number); return new Date(y, mo - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
@@ -1429,13 +1497,21 @@ function renderList() {
 function openPanel() {
   draft = WORDS.words.slice(); $('pWeek').value = WORDS.week || isoMonday();
   $('pMsg').textContent = ''; $('csvResult').innerHTML = ''; selectTab('type');
-  renderList(); CLASSROOM.render(); panel.hidden = false; setTimeout(() => (CLASSROOM.joined ? $('pCancel') : $('pWord')).focus(), 30);
+  renderList(); CLASSROOM.render(); showSortChoice(); panel.hidden = false; setTimeout(() => (CLASSROOM.joined ? $('pCancel') : $('pWord')).focus(), 30);
 }
 function selectTab(which) {
   const t = which === 'type';
   $('tabType').setAttribute('aria-selected', t); $('tabCsv').setAttribute('aria-selected', !t);
   $('paneType').hidden = !t; $('paneCsv').hidden = t;
 }
+// the Stable Sort choice appears once that game exists; families in a classroom see the teacher's choice
+function showSortChoice() {
+  const modes = (typeof GAME_MODULES !== 'undefined' && GAME_MODULES.sort && GAME_MODULES.sort.sortModes) || null, sel = $('pSortBy');
+  $('sortField').hidden = !modes; if (!modes) return;
+  if (!sel.options.length) modes.forEach(m => sel.add(new Option(m.label, m.id)));
+  sel.value = modes.some(m => m.id === sortBy()) ? sortBy() : 'auto'; sel.disabled = CLASSROOM.joined;
+}
+$('pSortBy').addEventListener('change', e => sortBy(e.target.value));
 $('tabType').addEventListener('click', () => selectTab('type'));
 $('tabCsv').addEventListener('click', () => selectTab('csv'));
 $('addForm').addEventListener('submit', e => { e.preventDefault(); const v = $('pWord').value; if (!v.trim()) return; addWords(v.split(/[,;\n\t]+/)); $('pWord').value = ''; $('pWord').focus(); });
@@ -1519,6 +1595,7 @@ const CLASSROOM = (() => {
   }
   // a classroom's list becomes this device's list
   function useWords(c) {
+    if (c.sortBy) sortBy(c.sortBy);
     WORDS = { week: c.week || isoMonday(), words: c.words.slice() };
     try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
     onWordsChanged(); VOICE.warm(WORDS.words);
@@ -1545,7 +1622,7 @@ const CLASSROOM = (() => {
     if (!draft.length) { msg('Add some words first, then make the code.'); return; }
     const b = $('classMake'); b.disabled = true; msg('Making your classroom…', true);
     try {
-      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft });
+      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft, sortBy: sortBy() });
       me = { role: 'teacher', code: r.code, key: r.key }; keep();
       WORDS = { week, words: draft.slice() }; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
       onWordsChanged(); VOICE.warm(WORDS.words);
@@ -1558,14 +1635,14 @@ const CLASSROOM = (() => {
     try {
       const c = await call('GET', '/classes/' + code);
       me = { role: 'student', code, updated: c.updated }; keep(); useWords(c);
-      draft = WORDS.words.slice(); $('pWeek').value = WORDS.week; renderList(); render();
+      draft = WORDS.words.slice(); $('pWeek').value = WORDS.week; renderList(); render(); showSortChoice();
       msg(`Joined! ${c.words.length} word${c.words.length === 1 ? '' : 's'} for this week.`, true);
     } catch (e) { msg(e.status === 404 ? 'No classroom has that code. Check the numbers and try again.' : e.message); }
   }
-  function leave() { me = null; keep(); render(); msg('You left the classroom. The words stay here, and you can change them.', true); }
+  function leave() { me = null; keep(); render(); showSortChoice(); msg('You left the classroom. The words stay here, and you can change them.', true); }
   function forget() { me = null; keep(); render(); msg('This device no longer updates the classroom. Families keep the last words you sent.', true); }
   // a teacher's Save sends the new list to the class
-  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words }, me.key) : Promise.resolve(); }
+  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words, sortBy: sortBy() }, me.key) : Promise.resolve(); }
   // a family's device picks up the teacher's latest words when the app opens (and again later in the day)
   let lastSync = 0;
   async function sync() {
@@ -1573,7 +1650,7 @@ const CLASSROOM = (() => {
     lastSync = Date.now();
     try {
       const c = await call('GET', '/classes/' + me.code);
-      if (c.updated !== me.updated) { me.updated = c.updated; keep(); useWords(c); }
+      if (c.updated !== me.updated) { me.updated = c.updated; keep(); useWords(c); } else if (c.sortBy) sortBy(c.sortBy);
     } catch (e) {}
   }
   sync();
@@ -2172,9 +2249,13 @@ const ICONS = {
     g.restore();
   },
   sort(g) {
-    g.fillStyle = '#7b2d3f'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
-    [[4, 22], [23, 22]].forEach(([x, y]) => { const p = new Path2D(`M${x} ${y} H${x + 15} L${x + 13} ${y + 14} H${x + 2} Z`); g.fill(p); g.stroke(p); });
-    g.fillStyle = '#3b2412'; g.font = '700 10px Andika, sans-serif'; g.textAlign = 'center'; g.fillText('ai', 11.5, 15); g.fillText('ay', 30.5, 15);
+    // a little red barn with a horseshoe over the door
+    g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 2;
+    const barn = new Path2D('M6 18 L21 6 L36 18 V37 H6 Z'); g.fillStyle = '#b5462f'; g.fill(barn); g.stroke(barn);
+    g.fillStyle = '#8a3322'; g.fillRect(14, 23, 14, 14); g.strokeRect(14, 23, 14, 14);
+    g.strokeStyle = '#f5e7bf'; g.lineWidth = 1.8; g.beginPath(); g.moveTo(14, 23); g.lineTo(28, 37); g.moveTo(28, 23); g.lineTo(14, 37); g.stroke();
+    g.strokeStyle = '#3b2412'; g.lineWidth = 2; g.strokeRect(14, 23, 14, 14);
+    g.strokeStyle = '#f2c35b'; g.lineWidth = 2.6; g.lineCap = 'round'; g.beginPath(); g.arc(21, 16, 4, Math.PI * .15, Math.PI * .85, true); g.stroke();
   },
   crossword(g) {
     const cells = ['C.  ', 'AT  ', 'T#..', '. # '];
@@ -6112,7 +6193,250 @@ const BridgeGame = (() => {
   }
   return { mount, unmount, practice: PRACTICE };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame, bridge: BridgeGame };
+/* ================= Game: Stable Sort (sort words by spelling pattern) ================= */
+// Horses trot in one at a time, each wearing a word on its blanket. Lead each one to the stable for its
+// spelling pattern: short a / long a, -ck / -k, number of syllables, and more. Grown-ups choose what the
+// sort is by (localStorage 'wordy-wizard-sort-by'); "Let the game choose" picks the pattern that fits
+// most of this week's words. Words that don't fit the chosen pattern are left out of the round.
+const StableGame = (() => {
+  const letters = w => String(w).toLowerCase().replace(/[^a-z]/g, '');
+  // a rough syllable count: runs of vowels, less a silent final e ("-le" as in "table" keeps its beat, and so
+  // does the "-es" of "boxes" or "dishes")
+  function syllables(w) {
+    w = letters(w); if (!w) return 0;
+    if (w.length <= 3) return 1;
+    if (!/(?:[sxz]|ch|sh|[cg])es$/.test(w)) w = w.replace(/(?:[^laeiouy]es|[^laeiouydt]ed|[^laeiouy]e)$/, '');
+    w = w.replace(/^y/, '');
+    const g = w.match(/[aeiouy]+/g);
+    return Math.max(1, g ? g.length : 1);
+  }
+  const LONG_A = /a[^aeiouy]e\b|a[^aeiouy]e[sd]?$|ai|ay|eigh|ey$|^[^aeiou]*able$|^(great|break|steak|they|grey|obey)$/;
+  const NOT_A = /a[rlwu]|wa|qua|ea(?!k$)|oa/;    // "car", "ball", "saw", "water", "boat": a, but not a short or long a
+  function aSound(w) {
+    w = letters(w); if (!w.includes('a') && !/eigh|ey$/.test(w)) return null;
+    if (LONG_A.test(w)) return 'long';
+    if (NOT_A.test(w)) return null;
+    return /a[^aeiouy]/.test(w) || /a$/.test(w) ? 'short' : null;
+  }
+  function ckK(w) { w = letters(w); return /ck$/.test(w) ? 'ck' : /[^c]k$/.test(w) ? 'k' : null; }
+  // one-syllable words only: a long vowel (silent e, vowel teams, or an open end like "go") or a short one
+  const ODD = /^(friend|said|says|been|give|have|love|come|some|done|gone|none|one|live|were|there|where|what|was|of|to|do|who|could|would|should)$/;
+  function vowelSound(w) {
+    w = letters(w); if (syllables(w) !== 1 || ODD.test(w) || /[aeiou]r|all|alk|aw|au|oo|ou|oi|oy|ew/.test(w)) return null;   // r-controlled and other vowel sounds sit this sort out
+    if (/[aeiou][^aeiouy]e$|ai|ay|ee|ea|oa|oe|ue|ui|ie|igh|ow$|[^aeiou][eo]$|^[^aeiou]*[iy]$/.test(w)) return 'long';
+    if (/^[^aeiouy]*[aeiou][^aeiouyw]+$/.test(w)) return 'short';
+    return null;
+  }
+  function plural(w) {
+    w = letters(w); if (w.length < 3 || /(ss|us|is)$/.test(w)) return null;
+    if (/(s|x|z|ch|sh)es$/.test(w)) return 'es';
+    return /[^s]s$/.test(w) ? 's' : null;
+  }
+  const MODES = {
+    'short-long-a': { label: 'Short a or long a', sort: aSound, stables: [{ id: 'short', name: 'short a', ex: 'cat' }, { id: 'long', name: 'long a', ex: 'cake' }] },
+    'ck-k': { label: 'Ends in -ck or -k', sort: ckK, stables: [{ id: 'ck', name: 'ends in ck', ex: 'duck' }, { id: 'k', name: 'ends in k', ex: 'book' }] },
+    syllables: { label: 'Number of syllables', sort: w => { const n = syllables(w); return n ? (n >= 3 ? '3' : String(n)) : null; },
+      stables: [{ id: '1', name: '1 syllable', ex: 'cat' }, { id: '2', name: '2 syllables', ex: 'rab·bit' }, { id: '3', name: '3 or more', ex: 'el·e·phant' }] },
+    vowels: { label: 'Short or long vowel', sort: vowelSound, stables: [{ id: 'short', name: 'short vowel', ex: 'hop' }, { id: 'long', name: 'long vowel', ex: 'hope' }] },
+    plurals: { label: 'Plurals: -s or -es', sort: plural, stables: [{ id: 's', name: 'adds s', ex: 'cats' }, { id: 'es', name: 'adds es', ex: 'boxes' }] }
+  };
+  const SORT_MODES = [{ id: 'auto', label: 'Let the game choose' }].concat(Object.entries(MODES).map(([id, m]) => ({ id, label: m.label })));
+  // which words a mode can sort, and whether at least two stables get a horse
+  function fit(id, words) {
+    const m = MODES[id], got = words.map(w => ({ word: w, stable: m.sort(w) })).filter(x => x.stable);
+    return { got, ok: new Set(got.map(x => x.stable)).size >= 2 };
+  }
+  // "Let the game choose": a spelling pattern that fits most of the list, otherwise syllables (fits nearly anything)
+  function choose(words) {
+    let best = null;
+    ['short-long-a', 'ck-k', 'plurals', 'vowels'].forEach(id => {
+      const f = fit(id, words);
+      if (f.ok && f.got.length >= 4 && f.got.length >= words.length * .6 && (!best || f.got.length > best.n)) best = { id, n: f.got.length };
+    });
+    return best ? best.id : 'syllables';
+  }
+  const PRACTICE = ['horse', 'hay', 'barn', 'saddle', 'pony', 'carrot', 'gallop', 'banana', 'pineapple'];
+
+  let root, st, timers = [], keyHandler, drag = null;
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const esc = s => String(s).replace(/[<&>"]/g, c => ({ '<': '&lt;', '&': '&amp;', '>': '&gt;', '"': '&quot;' })[c]);
+  const status = t => { q('#ssStatus').textContent = t; };
+
+  const horseSVG = coat => `<svg viewBox="0 0 220 150" aria-hidden="true"><g stroke="#2a1a10" stroke-width="3" stroke-linejoin="round">
+      <path d="M44 66 Q16 66 18 104 Q28 84 42 80 Z" fill="#3b2412"/>
+      <g class="ss-legb"><rect x="58" y="92" width="13" height="50" rx="5" fill="${coat}"/><rect x="56" y="134" width="17" height="9" rx="3" fill="#2a1a10"/></g>
+      <g class="ss-legf"><rect x="138" y="92" width="13" height="50" rx="5" fill="${coat}"/><rect x="136" y="134" width="17" height="9" rx="3" fill="#2a1a10"/></g>
+      <ellipse cx="100" cy="84" rx="62" ry="30" fill="${coat}"/>
+      <g class="ss-head"><path d="M140 70 Q156 34 176 28 L190 46 Q168 56 160 86 Z" fill="${coat}"/>
+        <path d="M172 22 Q198 18 210 40 Q212 52 200 54 L178 50 Z" fill="${coat}"/><path d="M176 24 L180 8 L188 24" fill="${coat}"/>
+        <circle cx="192" cy="34" r="2.8" fill="#2a1a10" stroke="none"/><path d="M150 40 Q140 52 142 70 Q152 52 160 42" fill="#3b2412"/></g>
+      <g class="ss-legf2"><rect x="126" y="92" width="13" height="50" rx="5" fill="${coat}"/><rect x="124" y="134" width="17" height="9" rx="3" fill="#2a1a10"/></g>
+      <g class="ss-legb2"><rect x="70" y="92" width="13" height="50" rx="5" fill="${coat}"/><rect x="68" y="134" width="17" height="9" rx="3" fill="#2a1a10"/></g>
+      <path d="M58 60 H146 V104 Q124 114 102 104 Q80 114 58 104 Z" fill="#7b2d3f"/><path d="M60 64 H144" stroke="#f2c35b" stroke-width="3"/></g></svg>`;
+  const barn = `<svg viewBox="0 0 100 74" aria-hidden="true"><g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+      <path d="M6 30 L50 6 L94 30 V72 H6 Z" fill="#b5462f"/><path d="M2 32 L50 4 L98 32" fill="none" stroke-width="5" stroke="#f5e7bf"/>
+      <g class="ss-door"><rect x="30" y="38" width="40" height="34" fill="#8a3322"/><path d="M30 38 L70 72 M70 38 L30 72" stroke="#f5e7bf" stroke-width="3"/><rect x="30" y="38" width="40" height="34" fill="none"/></g>
+      <rect x="40" y="16" width="20" height="14" rx="2" fill="#f2c35b"/></g></svg>`;
+  const COATS = ['#8a5a3a', '#f1ece2', '#3b2b22', '#c9874a', '#9a9aa6', '#d9b48a'];
+
+  function mount(container, wordList) {
+    const practice = !wordList.length, words = practice ? PRACTICE : wordList;
+    let mode = 'auto'; try { mode = localStorage.getItem('wordy-wizard-sort-by') || 'auto'; } catch (e) {}
+    let note = '';
+    if (mode !== 'auto' && (!MODES[mode] || !fit(mode, words).ok || fit(mode, words).got.length < 4)) {
+      if (MODES[mode]) note = `Only a few of this week's words fit "${MODES[mode].label.toLowerCase()}", so I picked a sort that fits them better.`;
+      mode = 'auto';
+    }
+    if (mode === 'auto') mode = choose(words);
+    const M = MODES[mode], horses = shuffle(fit(mode, words).got);
+    VOICE.warm(horses.map(h => h.word));
+    st = { mode, M, horses, idx: 0, home: 0, firstTry: 0, tries: 0, busy: false, over: false, counts: {} };
+    root = document.createElement('div'); root.className = 'ss';
+    root.innerHTML = `
+      <div class="sq-top"><span id="ssCount"></span><span class="ss-by">Sorting by: <b>${esc(M.label.toLowerCase())}</b></span><span id="ssHome"></span></div>
+      <div class="ss-yard">
+        <div class="ss-horse" id="ssHorse" role="img"><div class="ss-art" id="ssArt"></div><span class="ss-word" id="ssWord"></span></div>
+        <div class="ss-side">
+          <p class="sq-status" id="ssStatus" aria-live="polite"></p>
+          <div class="sq-actions">
+            <button type="button" class="sq-btn" id="ssHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+            <button type="button" class="sq-btn primary" id="ssAgain" hidden>Sort them again</button>
+          </div>
+        </div>
+      </div>
+      <div class="ss-stables ss-n${M.stables.length}" id="ssStables" role="group" aria-label="Stables">
+        ${M.stables.map((s, i) => `<button type="button" class="ss-stable" data-id="${s.id}" aria-label="${esc(s.name)} stable, like ${esc(s.ex.replace(/·/g, ''))}">
+          <span class="ss-key" aria-hidden="true">${i + 1}</span>${barn}<b>${esc(s.name)}</b><small>like <i>${esc(s.ex)}</i></small><span class="ss-in" aria-hidden="true"></span></button>`).join('')}
+      </div>
+      ${note ? `<p class="sq-practice">${esc(note)}</p>` : ''}
+      ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}`;
+    container.appendChild(root);
+    root.querySelectorAll('.ss-stable').forEach(b => b.addEventListener('click', () => choose_(b.dataset.id)));
+    q('#ssHear').addEventListener('click', () => { if (st.horse) VOICE.speak(st.horse.word); });
+    q('#ssAgain').addEventListener('click', again);
+    if (!VOICE.canSpeak) q('#ssHear').hidden = true;
+    q('#ssHorse').addEventListener('pointerdown', dragStart);
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const n = +e.key;
+      if (n >= 1 && n <= st.M.stables.length) { e.preventDefault(); choose_(st.M.stables[n - 1].id); }
+      else if (e.key === ' ' && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); if (st.horse) VOICE.speak(st.horse.word); }
+      else if (e.key === 'Enter' && !q('#ssAgain').hidden) { e.preventDefault(); again(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    counts(); nextHorse();
+  }
+  function unmount() {
+    VOICE.cancel(); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    dragEnd(); if (root) root.remove(); root = null;
+  }
+  function counts() {
+    q('#ssCount').textContent = `Horse ${Math.min(st.idx + 1, st.horses.length)} of ${st.horses.length}`;
+    q('#ssHome').textContent = `In the stables: ${st.home}`;
+    root.querySelectorAll('.ss-stable').forEach(b => {
+      const n = st.counts[b.dataset.id] || 0, box = b.querySelector('.ss-in');
+      box.textContent = n ? '🐴'.repeat(Math.min(n, 6)) + (n > 6 ? ` +${n - 6}` : '') : '';
+    });
+  }
+  function nextHorse() {
+    if (st.idx >= st.horses.length) return finish();
+    st.horse = st.horses[st.idx]; st.tries = 0; st.busy = false;
+    const h = q('#ssHorse'), word = st.horse.word;
+    q('#ssArt').innerHTML = horseSVG(COATS[st.idx % COATS.length]);
+    const w = q('#ssWord'); w.textContent = word; w.style.fontSize = '';
+    w.classList.toggle('ss-long', word.length > 7);
+    h.setAttribute('aria-label', `A horse wearing the word ${word}`);
+    h.className = 'ss-horse ss-arrive'; h.style.transform = '';
+    root.querySelectorAll('.ss-stable').forEach(b => b.classList.remove('ss-hint', 'ss-open'));
+    counts();
+    status(`Which stable does "${word}" go in?`);
+    later(() => h.classList.remove('ss-arrive'), 700);
+    later(() => VOICE.speak(word), 350);
+  }
+  // the child picks a stable (by tapping it, a number key, or dropping the horse on it)
+  function choose_(id) {
+    if (!st.horse || st.busy || st.over) return;
+    const right = st.horse.stable, stable = q(`.ss-stable[data-id="${right}"]`), picked = q(`.ss-stable[data-id="${id}"]`);
+    if (id !== right) {
+      st.tries++;
+      const h = q('#ssHorse'); h.classList.remove('ss-no'); void h.offsetWidth; h.classList.add('ss-no');
+      root.querySelectorAll('.ss-stable').forEach(b => b.classList.remove('ss-hint'));
+      stable.classList.add('ss-hint');
+      status(`Neigh! "${st.horse.word}" goes in the ${st.M.stables.find(s => s.id === right).name} stable. Lead it there!`);
+      picked.classList.remove('ss-wrong'); void picked.offsetWidth; picked.classList.add('ss-wrong');
+      return;
+    }
+    st.busy = true; st.home++; if (!st.tries) st.firstTry++;
+    st.counts[right] = (st.counts[right] || 0) + 1;
+    status(st.tries ? `Yes, "${st.horse.word}" is home.` : `Right! "${st.horse.word}" trots into the ${st.M.stables.find(s => s.id === right).name} stable.`);
+    stable.classList.remove('ss-hint'); stable.classList.add('ss-open');
+    // the horse trots over to the stable door and in
+    const h = q('#ssHorse'), hr = h.getBoundingClientRect(), sr = stable.getBoundingClientRect();
+    const dx = sr.left + sr.width / 2 - (hr.left + hr.width / 2), dy = sr.top + sr.height * .45 - (hr.top + hr.height / 2);
+    h.classList.add('ss-trot');
+    h.animate([{ transform: h.style.transform || 'none', opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(.25)`, opacity: .2 }],
+      { duration: reduce ? 1 : 700, easing: 'ease-in', fill: 'forwards' });
+    later(() => { h.getAnimations().forEach(a => a.cancel()); h.classList.remove('ss-trot'); stable.classList.remove('ss-open'); st.idx++; counts(); nextHorse(); }, reduce ? 300 : 900);
+  }
+  function finish() {
+    st.over = true; st.horse = null;
+    // a prize rosette where the horses came in
+    const h = q('#ssHorse'); h.className = 'ss-horse ss-prize'; q('#ssWord').textContent = ''; h.setAttribute('aria-label', 'A blue prize rosette');
+    q('#ssArt').innerHTML = `<svg viewBox="0 0 220 150" aria-hidden="true"><g stroke="#2a1a10" stroke-width="3" stroke-linejoin="round">
+      <path d="M92 86 L74 146 L92 136 L102 148 L108 92 Z M128 86 L146 146 L128 136 L118 148 L112 92 Z" fill="#3d6fb6"/>
+      <g fill="#5b8ad0">${Array.from({ length: 14 }, (_, i) => { const a = i / 14 * Math.PI * 2; return `<circle cx="${(110 + Math.cos(a) * 38).toFixed(1)}" cy="${(64 + Math.sin(a) * 38).toFixed(1)}" r="14"/>`; }).join('')}</g>
+      <circle cx="110" cy="64" r="34" fill="#f2c35b"/><circle cx="110" cy="64" r="24" fill="#fff3b0"/>
+      <path d="M110 46 L115 59 L129 59 L118 67 L122 81 L110 73 L98 81 L102 67 L91 59 L105 59 Z" fill="#e8743b"/></g></svg>`;
+    status(`All ${st.horses.length} horses are home! ${st.firstTry} found their stable on the first try.`);
+    root.querySelectorAll('.ss-stable').forEach(b => b.classList.add('ss-done'));
+    q('#ssCount').textContent = `All ${st.horses.length} horses home`;
+    const a = q('#ssAgain'); a.hidden = false; q('#ssHear').hidden = true;
+    later(() => a.focus({ preventScroll: true }), 400);
+  }
+  function again() {
+    Object.assign(st, { horses: shuffle(st.horses), idx: 0, home: 0, firstTry: 0, counts: {}, over: false });
+    q('#ssAgain').hidden = true; q('#ssHear').hidden = !VOICE.canSpeak; q('#ssHorse').classList.remove('ss-prize');
+    root.querySelectorAll('.ss-stable').forEach(b => b.classList.remove('ss-done'));
+    nextHorse();
+  }
+
+  // dragging the horse onto a stable
+  function dragStart(e) {
+    if (!st.horse || st.busy || st.over || e.button > 0) return;
+    const h = q('#ssHorse');
+    drag = { x: e.clientX, y: e.clientY, moved: false, h };
+    try { h.setPointerCapture(e.pointerId); } catch (er) {}
+    h.addEventListener('pointermove', dragMove); h.addEventListener('pointerup', dragDrop); h.addEventListener('pointercancel', dragEnd);
+  }
+  function dragMove(e) {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+    drag.moved = true; drag.h.classList.add('ss-held'); drag.h.style.transform = `translate(${dx}px, ${dy}px)`;
+    const over = stableAt(e.clientX, e.clientY);
+    root.querySelectorAll('.ss-stable').forEach(b => b.classList.toggle('ss-over', b === over));
+  }
+  function dragDrop(e) {
+    if (!drag) return;
+    const moved = drag.moved, over = moved ? stableAt(e.clientX, e.clientY) : null;
+    dragEnd();
+    if (over) choose_(over.dataset.id);
+    else if (st.horse && !st.busy) q('#ssHorse').style.transform = '';
+  }
+  function dragEnd() {
+    if (!drag) return;
+    const h = drag.h; drag = null;
+    h.classList.remove('ss-held'); h.removeEventListener('pointermove', dragMove); h.removeEventListener('pointerup', dragDrop); h.removeEventListener('pointercancel', dragEnd);
+    if (root) root.querySelectorAll('.ss-stable').forEach(b => b.classList.remove('ss-over'));
+  }
+  function stableAt(x, y) { return [...root.querySelectorAll('.ss-stable')].find(b => { const r = b.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }) || null; }
+
+  return { mount, unmount, practice: PRACTICE, sortModes: SORT_MODES };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame, bridge: BridgeGame, sort: StableGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */

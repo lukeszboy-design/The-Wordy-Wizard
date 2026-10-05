@@ -1,8 +1,9 @@
 // The Wordy Wizard classroom service (a Cloudflare Worker).
 // A teacher shares the week's spelling words under a 4-digit code; families enter the code to get them.
-//   POST /classes                      { week, words }  -> { code, key }    create a class
-//   GET  /classes/:code                                 -> { code, week, words, updated }
-//   PUT  /classes/:code  (Bearer key)  { week, words }  -> { code, week, words, updated }
+//   POST /classes                      { week, words, sortBy? }  -> { code, key }    create a class
+//   GET  /classes/:code                                 -> { code, week, words, sortBy, updated }
+//   PUT  /classes/:code  (Bearer key)  { week, words, sortBy? }  -> { code, week, words, sortBy, updated }
+// sortBy is the teacher's choice for the Stable Sort game (how words are sorted), e.g. 'syllables'.
 // The code only lets someone read the words. Changing them needs the teacher's key, which only the
 // teacher's device holds; the service keeps just a fingerprint (SHA-256) of it.
 
@@ -37,11 +38,11 @@ async function readList(req) {
   if (!body || !Array.isArray(body.words) || body.words.length > MAX_WORDS) return null;
   const words = body.words.map(w => String(w).trim().replace(/\s+/g, ' '));
   if (!words.every(w => WORD_RE.test(w))) return null;
-  const week = String(body.week || '');
-  if (!WEEK_RE.test(week)) return null;
-  return { week, words };
+  const week = String(body.week || ''), sortBy = String(body.sortBy || 'auto');
+  if (!WEEK_RE.test(week) || !/^[a-z0-9-]{1,24}$/.test(sortBy)) return null;
+  return { week, words, sortBy };
 }
-const view = (code, c) => ({ code, week: c.week, words: c.words, updated: c.updated });
+const view = (code, c) => ({ code, week: c.week, words: c.words, sortBy: c.sortBy || 'auto', updated: c.updated });
 
 export default {
   async fetch(req, env) {
