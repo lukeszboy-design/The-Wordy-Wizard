@@ -561,6 +561,45 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .bw-meter-label{font-size:11px}
   .bw .px-hint,.dh .px-hint,.px .px-hint,.jo .bw-meter-label{display:none}   /* the status line above says what to do */
 }
+/* --- Gem Mine (tap the vowels) --- */
+.gm{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,44fr) minmax(0,56fr);gap:2.2cqw;color:var(--parch-ink)}
+.gm-scene{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.gm-scene svg{display:block;width:100%;height:auto;max-height:100%;border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#2b1f19}
+.gm-side{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:1.4cqw}
+.gm-rocks{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.8cqw;padding:1.4cqw;border-radius:1.4cqw;background:#5a4636;border:3px solid var(--ink);box-shadow:inset 0 .6cqw 1.2cqw rgba(0,0,0,.45)}
+.gm-gap{min-width:1.2cqw;font:700 max(18px,2.6cqw) var(--font-read);color:#fff6dc}
+.gm-rock{position:relative;display:grid;place-items:center;width:max(40px,5.4cqw);aspect-ratio:1/1.05;padding:0;border:2px solid #2a1a10;border-radius:42% 52% 38% 50%/48% 40% 56% 44%;background:radial-gradient(circle at 35% 30%,#a6968a,#7c6c60 60%,#5a4c42);box-shadow:0 .3cqw 0 #2a1a10;font:700 max(20px,2.9cqw)/1 var(--font-read);color:#fff6dc;text-shadow:0 2px 0 rgba(0,0,0,.45);text-transform:lowercase;cursor:pointer;transform:rotate(var(--r,0deg));transition:transform .15s}
+.gm-rock:hover:not(:disabled){transform:rotate(var(--r,0deg)) translateY(-2px)}
+.gm-rock:focus-visible{outline:3px solid #f2c35b;outline-offset:2px}
+.gm-rock:disabled{cursor:default}
+.gm-rock span{position:relative}
+.gm-rock svg{position:absolute;inset:8%;width:84%;height:84%}
+.gm-rock.gem{background:radial-gradient(circle at 50% 45%,#fff8e4,#e6d3a2 75%);box-shadow:0 0 0 .2cqw #f2c35b,0 0 1.4cqw .3cqw rgba(255,226,140,.8)}
+.gm-rock.gem span{color:#fff;font-size:.8em;text-shadow:0 1px 2px rgba(0,0,0,.8),0 0 4px rgba(0,0,0,.6);transform:translateY(-.15em)}
+.gm-rock.plain{background:radial-gradient(circle at 35% 30%,#d2cec8,#a6a19a 60%,#86817b);color:#6b665f;text-shadow:none}
+.gm-rock.crack{animation:gmcrack .45s ease-out}
+.gm-rock.thud{animation:gmthud .35s ease-in-out}
+@keyframes gmcrack{40%{transform:rotate(var(--r,0deg)) scale(1.2)}100%{transform:rotate(var(--r,0deg))}}
+@keyframes gmthud{25%{transform:rotate(var(--r,0deg)) translateX(-4px)}75%{transform:rotate(var(--r,0deg)) translateX(4px)}}
+.gm-fly{position:absolute;width:28px;height:28px;z-index:10;pointer-events:none}
+.gm-fly svg{width:100%;height:100%;display:block}
+.gm-dwarf{transform-box:fill-box}
+.gm-cheer .gm-dwarf{animation:gmhop .35s ease-in-out 6 alternate}
+.gm-cheer .gm-pick{transform-box:fill-box;transform-origin:0% 100%;animation:gmswing .35s ease-in-out 6 alternate}
+@keyframes gmhop{to{translate:0 -14px}}
+@keyframes gmswing{to{transform:rotate(-30deg)}}
+@media (prefers-reduced-motion: reduce){ .gm-rock.crack,.gm-rock.thud,.gm-cheer .gm-dwarf,.gm-cheer .gm-pick{animation:none} }
+@media (max-width:760px) and (orientation:portrait){
+  .gm{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .gm-scene svg{max-height:34vh;width:auto;max-width:100%}
+  .gm-rock{width:clamp(38px,11vw,54px);font-size:22px}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .gm{top:19%;bottom:2%}
+  .gm-side{gap:5px}
+  .gm-rocks{padding:6px;gap:5px}
+  .gm-rock{width:max(34px,5cqw);font-size:18px}
+}
 </style>
 
 </head>
@@ -772,7 +811,7 @@ const GAMES = {
   joust:      { name: 'The Joust', desc: 'Spell it before the knights meet', say: "The Joust! Spell the word before your knight reaches the middle, and knock the Red Knight right off his horse!" },
   spot:       { name: "The Jester's Tricks", desc: 'Catch the misspelled banner', say: "The Jester's Tricks! That rascal painted a mistake on the royal banners. Can you catch him?" },
   tiles:      { name: 'Letter Tiles', desc: 'Build the word', say: "Letter Tiles! Drag the magic tiles to build each word. This spell is still brewing!" },
-  vowels:     { name: 'Vowel Hunt', desc: 'Fill in the vowels', say: "Vowel Hunt! The vowels ran away. Help me put them back! This spell is still brewing!" },
+  vowels:     { name: 'Gem Mine', desc: 'Dig out the vowel gems', say: "Gem Mine! The dwarves need your help. Tap only the vowels to dig out the gems!" },
   memory:     { name: 'Memory Match', desc: 'Flip and find pairs', say: "Memory Match! Flip the cards and find the matching words. This spell is still brewing!" },
   sort:       { name: 'Word Sort', desc: 'Sort by sound or pattern', say: "Word Sort! Put each word in the right cauldron. This spell is still brewing!" },
   crossword:  { name: 'Crossword', desc: 'Solve the clues', say: "Crossword! Use the clues to fill in the grid. This spell is still brewing!" },
@@ -1885,8 +1924,14 @@ const ICONS = {
     [['S', 6, 6], ['P', 22, 6], ['E', 6, 22], ['L', 22, 22]].forEach(([l, x, y]) => { g.fillStyle = '#f2c35b'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8; rr(g, x, y, 14, 14, 2.5); g.fill(); g.stroke(); g.fillStyle = '#3b2412'; g.fillText(l, x + 7, y + 10.5); });
   },
   vowels(g) {
-    g.textAlign = 'center'; g.fillStyle = '#c0392b'; g.font = '700 13px Andika, sans-serif'; g.fillText('A  E', 21, 18);
-    g.fillStyle = '#3b2412'; g.font = '700 11px Andika, sans-serif'; g.fillText('I  O  U', 21, 33);
+    g.lineJoin = 'round';
+    g.fillStyle = '#8a7a6e'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
+    const rock = new Path2D('M4 30 Q3 20 11 17 Q16 9 25 12 Q36 12 38 22 Q41 32 33 36 H10 Q4 36 4 30 Z'); g.fill(rock); g.stroke(rock);
+    [[15, 24, '#e0335a', 'a'], [28, 22, '#2fbf71', 'e']].forEach(([x, y, c, l]) => {
+      const p = new Path2D(`M${x - 6} ${y - 2} L${x - 3} ${y - 6} H${x + 3} L${x + 6} ${y - 2} L${x} ${y + 7} Z`);
+      g.fillStyle = c; g.fill(p); g.lineWidth = 1.4; g.stroke(p);
+    });
+    g.fillStyle = '#fff'; g.font = '700 7px Andika, sans-serif'; g.textAlign = 'center'; g.fillText('a', 15, 24); g.fillText('e', 28, 22);
   },
   memory(g) {
     g.save(); g.translate(12, 21); g.rotate(-.14); g.fillStyle = '#fff'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8; rr(g, -7.5, -11, 15, 22, 2.5); g.fill(); g.stroke();
@@ -4472,7 +4517,196 @@ const JoustGame = (() => {
   }
   return { mount, unmount, practice: PRACTICE };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame };
+/* ================= Game: Gem Mine (tap the vowels) ================= */
+// The dwarves are mining, and the vowels in the word are gems hidden in the rock: A is a ruby, E an emerald,
+// I an amethyst, O a sapphire, U a topaz. Tap only the vowels to dig them out; a consonant just turns up a plain
+// rock. Words with no a, e, i, o or u (like "rhythm") have their y as a sparkling diamond instead.
+const GemGame = (() => {
+  const GEMS = { a: ['ruby', '#e0335a', '#ff8fa8'], e: ['emerald', '#2fbf71', '#9df0c0'], i: ['amethyst', '#9b59d0', '#d8b4f5'], o: ['sapphire', '#3d7be0', '#a9c8ff'], u: ['topaz', '#f2b33b', '#ffe29a'], y: ['diamond', '#9fd8f5', '#ffffff'] };
+  const PRACTICE = ['gem', 'rock', 'mine', 'cave', 'gold', 'dwarf'];
+  let root, st, words, practice, timers = [], keyHandler;
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  // the gem letters of a word: its a/e/i/o/u, or its y when it has none of those
+  const gemsOf = w => /[aeiou]/.test(w) ? 'aeiou' : 'y';
+
+  /* ----- sounds: a bright chime for a gem, a dull thud for a plain rock ----- */
+  function tone(f, at, dur, vol, type = 'sine', f2) {
+    const a = window.__wwAudio; if (!a) return;
+    try {
+      if (a.state === 'suspended') a.resume();
+      const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + at; o.type = type; o.frequency.setValueAtTime(f, t);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+    } catch (e) {}
+  }
+  const chime = n => [1568, 2093, 2637].forEach((f, i) => tone(f * (1 + n * .06), i * .07, .5, .05));
+  const thud = () => { tone(140, 0, .18, .12, 'sine', 60); tone(90, .02, .2, .08, 'triangle', 50); };
+  const cheerSound = () => [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .1, .35, .05, 'triangle'));
+
+  function gemSVG(l) {
+    const [, c, hi] = GEMS[l];
+    return `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 15 L14 7 H26 L32 15 L20 34 Z" fill="${c}" stroke="#2a1a10" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M8 15 H32 M14 7 L17 15 L20 34 M26 7 L23 15 L20 34" fill="none" stroke="${hi}" stroke-width="1.4" opacity=".9"/><path d="M15 9 L13 13" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></svg>`;
+  }
+  function dwarf(x, flip, beard, hat) {
+    return `<g class="gm-dwarf" transform="translate(${x} 330) scale(${flip ? -1 : 1} 1)" stroke="#2a1a10" stroke-width="2.4" stroke-linejoin="round">
+      <rect x="-15" y="-34" width="12" height="34" rx="4" fill="#4a3a6a"/><rect x="3" y="-34" width="12" height="34" rx="4" fill="#4a3a6a"/>
+      <rect x="-19" y="-6" width="16" height="8" rx="3" fill="#3b2412"/><rect x="3" y="-6" width="16" height="8" rx="3" fill="#3b2412"/>
+      <path d="M-24 -32 Q-26 -78 0 -80 Q26 -78 24 -32 Z" fill="${hat}"/><rect x="-24" y="-46" width="48" height="8" fill="#6b4226"/><rect x="-5" y="-47" width="10" height="10" rx="2" fill="#f2c35b"/>
+      <circle cx="0" cy="-96" r="20" fill="#f3c39c"/>
+      <path d="M-20 -94 Q-24 -60 0 -52 Q24 -60 20 -94 Q10 -84 0 -86 Q-10 -84 -20 -94 Z" fill="${beard}"/>
+      <ellipse cx="0" cy="-90" rx="6" ry="5" fill="#e8a080"/><circle cx="-8" cy="-100" r="2.4" fill="#2a1a10" stroke="none"/><circle cx="8" cy="-100" r="2.4" fill="#2a1a10" stroke="none"/>
+      <path d="M-22 -108 Q-22 -128 0 -130 Q22 -128 22 -108 Z" fill="#8e8aa0"/><rect x="-25" y="-111" width="50" height="7" rx="3" fill="#6e6987"/>
+      <circle cx="0" cy="-122" r="6" fill="#fff3b0"/>
+      <g class="gm-pick"><path d="M18 -60 L48 -104" stroke="#6b4226" stroke-width="5" stroke-linecap="round"/><path d="M32 -112 Q50 -112 62 -96 Q50 -104 40 -100 Z" fill="#b9b3c6"/></g>
+    </g>`;
+  }
+  function sceneSVG() {
+    return `<svg viewBox="0 0 440 400" role="img" aria-label="Two dwarves with lanterns and pickaxes in a mine, next to a minecart">
+      <defs><radialGradient id="gmGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+        <clipPath id="gmClip"><rect width="440" height="400" rx="14"/></clipPath></defs>
+      <g clip-path="url(#gmClip)">
+      <rect width="440" height="400" fill="#2b1f19"/>
+      <path d="M0 0 H440 V60 Q380 90 330 70 Q260 40 210 76 Q150 110 90 70 Q40 40 0 66 Z" fill="#46352a"/>
+      <g fill="#5a4636" stroke="#2a1a10" stroke-width="2">
+        <path d="M30 120 l18 -10 l14 12 l-8 16 l-20 2 Z"/><path d="M380 140 l20 -8 l12 16 l-14 12 l-18 -6 Z"/><path d="M200 130 l14 -8 l12 10 l-6 12 l-16 0 Z"/>
+      </g>
+      <g fill="#e0335a" stroke="#2a1a10" stroke-width="1.5"><path d="M48 112 l6 -6 l6 6 l-6 8 Z"/></g>
+      <g fill="#2fbf71" stroke="#2a1a10" stroke-width="1.5"><path d="M398 134 l5 -6 l6 6 l-5 8 Z"/></g>
+      <g fill="#3d7be0" stroke="#2a1a10" stroke-width="1.5"><path d="M212 124 l5 -5 l5 5 l-5 7 Z"/></g>
+      <g stroke="#2a1a10" stroke-width="3" stroke-linejoin="round" fill="#8a5a32">
+        <rect x="60" y="150" width="16" height="190"/><rect x="364" y="150" width="16" height="190"/><rect x="50" y="138" width="340" height="18" rx="3"/>
+      </g>
+      <circle cx="220" cy="190" r="110" fill="url(#gmGlow)"/>
+      <g stroke="#2a1a10" stroke-width="2.5"><path d="M220 156 V176" /><rect x="208" y="176" width="24" height="30" rx="5" fill="#ffcb72"/><path d="M206 176 H234" stroke-width="4"/></g>
+      <path d="M0 330 H440 V400 H0 Z" fill="#3a2a20"/>
+      <g stroke="#6b6b78" stroke-width="5"><path d="M0 352 H440"/><path d="M0 372 H440"/></g>
+      <g stroke="#5a3a22" stroke-width="7">${[20, 70, 120, 170, 220, 270, 320, 370, 420].map(x => `<path d="M${x} 346 V378"/>`).join('')}</g>
+      ${dwarf(108, false, '#e8743b', '#7b2d3f')}
+      ${dwarf(250, true, '#c9c5bf', '#2f6b4a')}
+      <g id="gmCart" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round">
+        <g id="gmPile"></g>
+        <path d="M290 270 H420 L408 336 H302 Z" fill="#7c6c60"/><path d="M296 290 H414" stroke="#5a4c42" stroke-width="4"/>
+        <circle cx="322" cy="346" r="13" fill="#3b3b44"/><circle cx="392" cy="346" r="13" fill="#3b3b44"/>
+        <text id="gmCount" x="355" y="322" text-anchor="middle" font-family="Andika, sans-serif" font-weight="700" font-size="22" fill="#fff6dc" stroke="none">0</text>
+      </g>
+      </g>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    const list = wordList.map(w => String(w)).filter(w => /[a-z]/i.test(w));
+    practice = !list.length;
+    words = shuffle(practice ? PRACTICE : list); VOICE.warm(words);
+    st = { idx: 0, gems: 0 };
+    root = document.createElement('div'); root.className = 'gm';
+    root.innerHTML = `
+      <div class="gm-scene">${sceneSVG()}</div>
+      <div class="gm-side">
+        <div class="sq-top"><span id="gmWord"></span><span id="gmTally"></span></div>
+        <div class="gm-rocks" id="gmRocks" role="group" aria-label="Rocks, one for each letter"></div>
+        <p class="sq-status" id="gmStatus" aria-live="polite"></p>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="gmHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+          <button type="button" class="sq-btn primary" id="gmNext" hidden>Next word</button>
+        </div>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    q('#gmRocks').addEventListener('click', e => { const b = e.target.closest('.gm-rock'); if (b) dig(b); });
+    q('#gmHear').addEventListener('click', () => VOICE.speak(st.word));
+    if (!VOICE.canSpeak) q('#gmHear').hidden = true;
+    q('#gmNext').addEventListener('click', next);
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target.closest && e.target.closest('input,textarea'))) return;
+      if (/^[a-z]$/i.test(e.key)) {
+        e.preventDefault();
+        const l = e.key.toLowerCase(), b = [...root.querySelectorAll('.gm-rock:not(:disabled)')].find(x => x.dataset.l === l);
+        if (b) dig(b); else if (!st.done) status(`There's no "${l}" left to dig in this word.`);
+      } else if (e.key === 'Enter' && !q('#gmNext').hidden) { e.preventDefault(); next(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    newWord();
+  }
+  function unmount() {
+    timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    VOICE.cancel(); if (root) root.remove(); root = null;
+  }
+  const status = t => { q('#gmStatus').textContent = t; };
+  function tally() { q('#gmTally').textContent = `Gems: ${st.gems}`; q('#gmCount').textContent = st.gems; }
+
+  function newWord() {
+    timers.forEach(clearTimeout); timers = [];
+    const word = words[st.idx], lw = word.toLowerCase(), set = gemsOf(lw);
+    Object.assign(st, { word, set, left: [...lw].filter(c => set.includes(c)).length, done: false });
+    q('#gmWord').textContent = `Word ${st.idx + 1} of ${words.length}`; tally();
+    q('.gm-scene svg').classList.remove('gm-cheer');
+    const box = q('#gmRocks'); box.innerHTML = '';
+    [...word].forEach((ch, i) => {
+      const lc = ch.toLowerCase();
+      if (!/[a-z]/.test(lc)) { const s = document.createElement('span'); s.className = 'gm-gap'; s.textContent = ch === ' ' ? '' : ch; box.appendChild(s); return; }
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'gm-rock'; b.dataset.l = lc;
+      b.innerHTML = `<span>${lc}</span>`; b.setAttribute('aria-label', `Rock with the letter ${lc}`);
+      b.style.setProperty('--r', `${((i * 37) % 9 - 4)}deg`);
+      box.appendChild(b);
+    });
+    q('#gmNext').hidden = true;
+    status(set === 'y' ? `This word has no a, e, i, o or u, so its "y" is hiding a diamond! Tap it.` : 'Tap only the vowels (a, e, i, o, u) to dig out the gems!');
+    if (VOICE.canSpeak) later(() => VOICE.speak(word), 400);
+  }
+  function dig(b) {
+    if (st.done || b.disabled) return;
+    const l = b.dataset.l; b.disabled = true;
+    if (st.set.includes(l)) {
+      const [name] = GEMS[l];
+      b.classList.add('gem', 'crack'); b.innerHTML = gemSVG(l) + `<span>${l}</span>`; b.setAttribute('aria-label', `${l}: a ${name}!`);
+      st.gems++; st.left--; chime(st.gems % 5); fly(b, l);
+      if (st.left > 0) status(`"${l}" is a vowel. You found ${/^[aeiou]/.test(name) ? 'an' : 'a'} ${name}!`);
+      else finish();
+    } else {
+      b.classList.add('plain', 'thud'); b.setAttribute('aria-label', `${l}: just a plain rock`); thud();
+      status(`"${l}" is a consonant, so it's just a plain rock. Keep looking for vowels!`);
+    }
+  }
+  // a gem leaps from its rock into the minecart
+  function fly(b, l) {
+    const r0 = root.getBoundingClientRect(), a = b.getBoundingClientRect(), cart = q('#gmCart').getBoundingClientRect();
+    const g = document.createElement('div'); g.className = 'gm-fly'; g.innerHTML = gemSVG(l);
+    Object.assign(g.style, { left: (a.left - r0.left + a.width / 2 - 14) + 'px', top: (a.top - r0.top + a.height / 2 - 14) + 'px' });
+    root.appendChild(g);
+    const dx = cart.left + cart.width * .5 - (a.left + a.width / 2), dy = cart.top + cart.height * .25 - (a.top + a.height / 2);
+    const anim = g.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${dx * .5}px, ${dy * .5 - 60}px) scale(1.4) rotate(180deg)` }, { transform: `translate(${dx}px, ${dy}px) scale(.8) rotate(360deg)` }],
+      { duration: reduce ? 1 : 700, easing: 'ease-in-out' });
+    anim.onfinish = () => { g.remove(); addToPile(l); };
+  }
+  function addToPile(l) {
+    if (!root) return;
+    const pile = q('#gmPile'); if (pile.children.length >= 18) pile.firstElementChild.remove();
+    const n = st.gems, x = 300 + ((n * 23) % 100), y = 246 - ((n * 7) % 14);   // heaped up over the cart's rim
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('transform', `translate(${x} ${y}) scale(.6)`);
+    g.innerHTML = gemSVG(l).replace(/^<svg[^>]*>|<\/svg>$/g, '');
+    pile.appendChild(g); tally();
+  }
+  function finish() {
+    st.done = true;
+    root.querySelectorAll('.gm-rock:not(:disabled)').forEach(b => { b.disabled = true; b.classList.add('plain'); });
+    later(() => { q('.gm-scene svg').classList.add('gm-cheer'); cheerSound(); }, 500);
+    status(`Hooray! You mined every gem in "${st.word}"!`);
+    const last = st.idx >= words.length - 1, nb = q('#gmNext');
+    nb.textContent = last ? 'Mine them all again' : 'Next word'; nb.hidden = false;
+    later(() => nb.focus({ preventScroll: true }), 800);
+  }
+  function next() {
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; } else st.idx++;
+    newWord();
+  }
+  return { mount, unmount, practice: PRACTICE };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
