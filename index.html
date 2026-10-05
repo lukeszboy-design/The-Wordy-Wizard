@@ -1250,7 +1250,7 @@ document.addEventListener('keydown', e => {
 // which refresh on their own whenever the app opens. The words live in a small service (classroom-api/, a
 // Cloudflare Worker). Only the teacher's device holds the key that can change them.
 const CLASSROOM = (() => {
-  const API = (() => { try { return localStorage.getItem('wordy-wizard-classroom-api'); } catch (e) { return null; } })() || 'https://wordy-wizard-classroom.REPLACE-ME.workers.dev';
+  const API = (() => { try { return localStorage.getItem('wordy-wizard-classroom-api'); } catch (e) { return null; } })() || 'https://wordy-wizard-classroom.classroom-api.workers.dev';
   const KEY = 'wordy-wizard-classroom';
   let me = null;   // { role: 'teacher', code, key } or { role: 'student', code, updated }
   try { me = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
