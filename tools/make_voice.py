@@ -20,6 +20,9 @@ URL = 'https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files
 CACHE = Path.home() / '.cache' / 'wordy-wizard-voice'
 VOICE, SPEED = 'bm_george', 0.9
 BITRATE = '48k'   # a touch below full quality keeps voice.txt small; speech still sounds clean
+# fixed phrases the games say in the word voice (the Emma + George blend in word-voice.bin), recorded here too so
+# they play at once; keys must match keyFor() in index.html: 'blend1|' + speed + '|' + text, at speed .82
+WORD_LINES, WORD_SPEED = ['Hear ye, hear ye! The word is:', 'Huzzah!'], 0.82
 
 def sentences(text):
     return [p.strip() for p in re.split(r'(?<=[.!?])\s+', text) if p.strip()]
@@ -69,6 +72,15 @@ def main():
             subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(raw), '-ac', '1', '-c:a', 'libmp3lame', '-b:a', BITRATE, str(mp3)], check=True)
             clips[f'{SPEED}|{line}'] = base64.b64encode(mp3.read_bytes()).decode()
             print(f'{i + 1:2}/{len(lines)}  {line}')
+        import numpy as np
+        blend = np.fromfile(ROOT / 'word-voice.bin', dtype=np.float32).reshape(-1, 1, 256)
+        for i, line in enumerate(WORD_LINES):
+            raw, mp3 = Path(tmp) / f'w{i}.wav', Path(tmp) / f'w{i}.mp3'
+            pcm, sr = tts.create(line, voice=blend, speed=WORD_SPEED, lang='en-gb')
+            sf.write(raw, trim(pcm, sr), sr)
+            subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(raw), '-ac', '1', '-c:a', 'libmp3lame', '-b:a', BITRATE, str(mp3)], check=True)
+            clips[f'blend1|{WORD_SPEED}|{line}'] = base64.b64encode(mp3.read_bytes()).decode()
+            print(f'word voice  {line}')
     (ROOT / 'voice.txt').write_text(json.dumps(clips, ensure_ascii=False, indent=0))
     print('Wrote voice.txt:', len(clips), 'clips,', (ROOT / 'voice.txt').stat().st_size // 1024, 'KB')
 

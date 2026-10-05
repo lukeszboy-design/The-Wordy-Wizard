@@ -106,6 +106,12 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .class-row input{width:5.5em;font:700 22px var(--font-read);letter-spacing:.2em;text-align:center;padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:#2a1a10}
 /* a device that joined a classroom shows the teacher's list without the tools for changing it */
 .panel-joined .tabs,.panel-joined #paneType,.panel-joined #paneCsv,.panel-joined #clearWrap,.panel-joined #pSave,.panel-joined .chip button{display:none}
+.voice-wait{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(233,210,153,.94);color:var(--parch-ink)}
+.voice-wait div{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px;text-align:center;font:700 max(16px,1.8cqw) var(--font-read)}
+.game-screen .back-btn{z-index:21}   /* children can still leave while the voice warms up */
+.vw-bar{display:block;width:min(320px,60vw);height:14px;border:2px solid var(--ink);border-radius:999px;background:#fffaf0;overflow:hidden}
+.vw-bar i{display:block;height:100%;width:4%;background:linear-gradient(90deg,#f2c35b,#e8743b);transition:width .25s}
+.voice-wait small{font:400 14px var(--font-read);color:#6b4a26}
 .list-head{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px;font-weight:700}
 .list-head span{font-size:14px;color:#6b4a26;font-variant-numeric:tabular-nums}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;min-height:44px}
@@ -907,7 +913,8 @@ const VOICE = (() => {
     const LILY = 'https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices/bf_lily.bin', realFetch = self.fetch.bind(self);
     self.fetch = (u, o) => realFetch(String(u) === LILY ? '${new URL('word-voice.bin', location.href).href}' : u, o);
     const load = caches.open('kokoro-voices').then(c => c.delete(LILY)).catch(() => {})
-      .then(() => KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', { dtype: 'q8', device: 'wasm' }));
+      .then(() => KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', { dtype: 'q8', device: 'wasm',
+        progress_callback: p => { if (p.status === 'progress' && /\.onnx$/.test(p.file || '')) postMessage({ progress: p.loaded / p.total }); } }));
     load.then(() => postMessage({ ready: true }), e => postMessage({ failed: String(e) }));
     const trim = (x, r) => { let a = 0, b = x.length - 1; while (a < b && Math.abs(x[a]) < .01) a++; while (b > a && Math.abs(x[b]) < .01) b--; return x.slice(Math.max(0, a - Math.round(r * .04)), Math.min(x.length, b + Math.round(r * .1))); };
     onmessage = async ({ data: { key, text, speed, voice } }) => {
@@ -917,7 +924,7 @@ const VOICE = (() => {
   const clips = new Map(), waiting = new Map(), pending = new Set(), hurry = new Set(), queue = [];
   let worker = null, state = 'off', busy = null, ctx = null, src = null, token = 0, ending = null;
   const once = f => { let done = !f; return () => { if (!done) { done = true; f(); } }; };
-  let upRes; const up = new Promise(r => upRes = r);   // the engine is ready (or can't run here)
+  let upRes, loaded = 0; const up = new Promise(r => upRes = r);   // the engine is ready (or can't run here); how much of it has downloaded
   const WIZARD = 'bm_george', WORDS_VOICE = 'bf_lily';   // (the word voice speaks through Lily's slot; see the worker)
   // the browser's slow-reading rates (.55–.8) map onto gentler Kokoro speeds; words go a touch slower still
   const speedFor = rate => Math.round((.35 + .65 * rate) * 100) / 100;
@@ -956,7 +963,8 @@ const VOICE = (() => {
       worker = new Worker(URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' })), { type: 'module' });
       state = 'loading';
       worker.onmessage = ({ data }) => {
-        if (data.ready) { state = 'ready'; upRes(); pump(); return; }
+        if (data.progress !== undefined) { loaded = data.progress; return; }
+        if (data.ready) { state = 'ready'; loaded = 1; upRes(); pump(); return; }
         if (data.failed) { fail(); return; }
         busy = null;
         if (data.pcm) { const a = { pcm: data.pcm, rate: data.rate }; shelve(data.key, a); deliver(data.key, a); } else deliver(data.key, null);
@@ -1042,13 +1050,19 @@ const VOICE = (() => {
   }
   // record the week's words ahead of time so "hear it" buttons answer instantly; `soon` puts them next in line
   function warm(list, rate = .8, soon = false) { const { voice, speed } = pick(rate, false), ws = (list || []).filter(Boolean).map(String); (soon ? ws.reverse() : ws).forEach(w => request(w, speed, voice, soon)); }
+  // wait until these words (at this rate) are recorded and ready to play, or the engine can't run here
+  function prepare(list, rate = .8) {
+    const { voice, speed } = pick(rate, false), ws = (list || []).filter(Boolean).map(String);
+    return Promise.all(ws.slice().reverse().map(w => new Promise(r => request(w, speed, voice, true, r))));
+  }
+  const has = (list, rate = .8) => { const { voice, speed } = pick(rate, false); return (list || []).every(w => clips.has(keyFor(String(w), speed, voice))); };
   // ready to read this list: every word already saved, or the engine up and able to make them
   function wordsReady(list) {
     const ws = (list || []).filter(Boolean).map(String), { voice, speed } = pick(.8, false);
     if (!ws.length) { start(); return up; }
     return Promise.race([up, Promise.all(ws.map(w => new Promise(r => request(w, speed, voice, false, r))))]);
   }
-  return { speak, cancel, warm, wordsReady, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); }, canSpeak: 'Worker' in window && typeof WebAssembly === 'object' };
+  return { speak, cancel, warm, wordsReady, prepare, has, get loaded() { return loaded; }, get failed() { return state === 'failed'; }, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); }, get canSpeak() { return state !== 'failed' && 'Worker' in window && typeof WebAssembly === 'object'; } };
 })();
 VOICE.warm(WORDS.words);
 /* ================= Title screen: the castle from outside while the lair, music and voice load ================= */
@@ -2604,7 +2618,7 @@ const SquireGame = (() => {
     newWord();
     const first = root.querySelector('.sq-key'); if (first) first.focus();
   }
-  return { mount, unmount };
+  return { mount, unmount, practice: SQ_SAMPLE };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
 /* ================= Game: Potion Mix-Up (word scramble) ================= */
 const PotionGame = (() => {
@@ -2909,7 +2923,7 @@ const PotionGame = (() => {
     t.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)', offset: .2 }, { opacity: 0, transform: 'translateY(-18px)' }], { duration: 1300, fill: 'forwards' });
     const c = q('#pxCauldron'); c.classList.remove('px-shake'); void c.getBBox(); c.classList.add('px-shake');
   }
-  return { mount, unmount };
+  return { mount, unmount, practice: ['potion', 'magic', 'spell', 'castle', 'wizard', 'dragon'] };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
 /* ================= Game: Dragon's Hoard (word search) ================= */
 const DragonGame = (() => {
@@ -3224,7 +3238,7 @@ const DragonGame = (() => {
     if (st.round === 0) rounds = rounds.map(shuffle);
     newRound(); const f = coins()[0]; if (f) f.focus();
   }
-  return { mount, unmount };
+  return { mount, unmount, practice: ['gold', 'dragon', 'coin', 'cave', 'wing', 'egg'] };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
 /* ================= Game: The Town Crier (listen & spell) ================= */
 const CrierGame = (() => {
@@ -3233,7 +3247,7 @@ const CrierGame = (() => {
   const q = s => root.querySelector(s);
   const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const canSpeak = VOICE.canSpeak;
+  let canSpeak = VOICE.canSpeak;
   const clean = w => w.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').trim();
 
   function sceneSVG() {
@@ -3308,7 +3322,7 @@ const CrierGame = (() => {
   }
 
   function mount(container, wordList) {
-    practice = !wordList.length;
+    practice = !wordList.length; canSpeak = VOICE.canSpeak;
     words = shuffle(practice ? ['bell', 'town', 'notice', 'crown', 'castle', 'market'] : wordList);
     st = { idx: 0, posted: 0, notes: 0 };
     root = document.createElement('div'); root.className = 'tc';
@@ -3367,7 +3381,7 @@ const CrierGame = (() => {
       return;
     }
     const n = ++st.calls;
-    const rate = n > 2 ? .55 : .75;
+    const rate = n > 2 ? .55 : .8;   // .8 is the speed every game's words are recorded at ahead of time
     later(() => {
       crier.classList.add('tc-calling'); q('#tcSayText').textContent = first ? 'Hear ye!' : 'Listen!';
       q('#tcMouth').setAttribute('ry', 5);
@@ -3387,7 +3401,11 @@ const CrierGame = (() => {
     q('#tcNail').hidden = false; q('#tcRing').hidden = false; q('#tcNext').hidden = true;
     q('#tcBrows').setAttribute('d', 'M-14 -149 L-5 -150 M1 -150 L10 -149');
     status(canSpeak ? 'Listen to the town crier, then write the word on the notice and nail it to the board.' : 'Peek at the word, then write it from memory and nail it to the board.');
-    if (canSpeak) later(() => call(first), first ? 500 : 300); else inp.focus();
+    // the first call waits until 'Hear ye, hear ye!' and the word are both ready, so they're said together
+    if (canSpeak) {
+      const w = st.word; if (!VOICE.has([CRY, w])) status('The town crier is clearing his throat…');
+      VOICE.prepare([CRY, w]).then(() => { if (root && st.word === w && !st.calls) later(() => call(first), first ? 300 : 200); });
+    } else inp.focus();
   }
   function showDiff(guess) {
     const d = q('#tcDiff'); d.innerHTML = '';
@@ -3456,7 +3474,7 @@ const CrierGame = (() => {
     if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.posted = 0; } else st.idx++;
     newWord(false);
   }
-  return { mount, unmount };
+  return { mount, unmount, practice: ['bell', 'town', 'notice', 'crown', 'castle', 'market'] };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
 /* ================= Game: Broken Castle Wall (missing letter) ================= */
 const WallGame = (() => {
@@ -3751,7 +3769,7 @@ const WallGame = (() => {
     if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.fixed = 0; } else st.idx++;
     newWord();
   }
-  return { mount, unmount };
+  return { mount, unmount, practice: ['castle', 'stone', 'tower', 'shield', 'knight', 'gate'] };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
 const JesterGame = (() => {
   const NS = 'http://www.w3.org/2000/svg';
@@ -4056,7 +4074,7 @@ const JesterGame = (() => {
     if (st.idx >= st.targets.length - 1) { st.targets = shuffle(st.targets); st.idx = 0; st.pies = 0; } else st.idx++;
     newRound();
   }
-  return { mount, unmount };
+  return { mount, unmount, practice: ['crown', 'jester', 'banner', 'royal', 'castle', 'juggle'] };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
 /* ================= Game: The Joust (spell against the clock) ================= */
 // Two knights charge at each other. Spell the word before your knight reaches the middle and the Red Knight
@@ -4350,7 +4368,7 @@ const JoustGame = (() => {
     if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.stars = 0; } else st.idx++;
     newRound();
   }
-  return { mount, unmount };
+  return { mount, unmount, practice: PRACTICE };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
 const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame };
 
@@ -4472,12 +4490,33 @@ function paintGameCanvas(key) {
   return c;
 }
 const gameScreen = document.getElementById('gameScreen');
+// A game starts once its words can be heard. On a first visit the voice is still downloading, so a
+// "warming up" card shows its progress (and the game begins on its own when it's ready).
+function launch(mod) {
+  const words = WORDS.words.slice(), list = words.length ? words : (mod.practice || []);
+  gameScreen.querySelectorAll('.voice-wait').forEach(e => e.remove());
+  if (!VOICE.canSpeak || !list.length) return mod.mount(gameScreen, words);
+  let card = null, tick = null, started = false;
+  const go = () => {
+    if (started) return; started = true; clearInterval(tick); if (card) card.remove();
+    if (ACTIVE_GAME === mod && !gameScreen.hidden) mod.mount(gameScreen, words);
+  };
+  VOICE.wordsReady(list).then(go);
+  setTimeout(() => {   // only show the card if the wait is noticeable
+    if (started) return;
+    card = document.createElement('div'); card.className = 'voice-wait'; card.setAttribute('role', 'status');
+    card.innerHTML = '<div><b>Warming up the wizard\'s voice…</b><span class="vw-bar"><i></i></span><small>This only takes a while the first time.</small></div>';
+    gameScreen.appendChild(card);
+    tick = setInterval(() => { if (!card.isConnected) return clearInterval(tick); card.querySelector('i').style.width = Math.round(Math.max(.04, VOICE.loaded) * 100) + '%'; }, 250);
+  }, 200);
+  setTimeout(go, 120000);   // never block forever
+}
 function fillGameScreen(key) {
   document.getElementById('gameTitle').textContent = GAMES[key].name;
   const gd = document.getElementById('gameDesc'); gd.textContent = GAMES[key].desc; gd.hidden = !GAME_MODULES[key];
   gameScreen.style.backgroundImage = `url(${gameCanvasTex.__canvas.toDataURL('image/jpeg', .9)})`;
   const body = gameScreen.querySelector('.game-body');
-  if (GAME_MODULES[key]) { body.hidden = true; ACTIVE_GAME = GAME_MODULES[key]; ACTIVE_GAME.mount(gameScreen, WORDS.words.slice()); return; }
+  if (GAME_MODULES[key]) { body.hidden = true; ACTIVE_GAME = GAME_MODULES[key]; launch(ACTIVE_GAME); return; }
   body.hidden = false;
   const ul = document.getElementById('gChips'); ul.innerHTML = '';
   const words = WORDS.words.length ? WORDS.words : [];
