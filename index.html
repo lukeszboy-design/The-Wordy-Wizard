@@ -600,6 +600,54 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .gm-rocks{padding:6px;gap:5px}
   .gm-rock{width:max(34px,5cqw);font-size:18px}
 }
+/* --- Shield Match (memory) --- */
+.sm{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,64fr) minmax(0,36fr);grid-template-rows:minmax(0,1fr);gap:2.2cqw;color:var(--parch-ink)}
+/* the board sizes each shield to fit both its width and height (4 across, 3 down) */
+.sm-board{min-width:0;min-height:0;container-type:size}
+.sm-grid{--gap:1.4cqmin;--cw:min(calc((100cqw - 3 * var(--gap)) / 4), calc((100cqh - (var(--rows,3) - 1) * var(--gap)) / var(--rows,3) * .83));height:100%;display:grid;grid-template-columns:repeat(4, var(--cw));grid-auto-rows:calc(var(--cw) * 1.2);gap:var(--gap);justify-content:center;align-content:center}
+.sm-card{position:relative;padding:0;border:0;background:none;cursor:pointer;perspective:600px;container-type:inline-size;border-radius:12%}
+.sm-card:focus-visible{outline:3px solid #a3401f;outline-offset:3px}
+.sm-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .45s ease}
+.sm-card.up .sm-inner{transform:rotateY(180deg)}
+.sm-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:grid;place-items:center}
+.sm-face svg{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 .5cqw 0 rgba(59,36,18,.3))}
+.sm-front{transform:rotateY(180deg)}
+.sm-word{position:relative;margin-top:-12%;max-width:94%;font:700 max(9px, min(24cqw, calc(148cqw / var(--len, 6))))/1 var(--font-read);color:#3b2412;text-align:center;white-space:nowrap}
+.sm-sound{position:relative;margin-top:-12%;width:44cqw;color:#7b2d3f}
+.sm-sound svg{position:static;width:100%;height:auto;filter:none}
+.sm-card:hover:not(.up) .sm-inner{transform:translateY(-3%)}
+.sm-card.won{cursor:default}
+.sm-card.won .sm-face svg path:first-child{stroke:#c9961a}
+.sm-card.won .sm-front{box-shadow:none}
+.sm-knight{position:absolute;left:50%;top:0;width:58%;transform:translate(-50%,0);opacity:0;pointer-events:none}
+.sm-knight svg{display:block;width:100%;height:auto}
+/* the knight pops up from behind his shield, salutes, then marches off to join the army */
+.sm-card.won .sm-knight{animation:smup 2.2s ease-in-out forwards}
+.sm-card.won .sm-arm{transform-box:fill-box;transform-origin:0% 100%;animation:smsalute .4s ease-in-out .6s 2 alternate}
+@keyframes smup{25%,75%{opacity:1;transform:translate(-50%,-62%)}to{opacity:0;transform:translate(-50%,0)}}
+@keyframes smsalute{to{transform:rotate(-55deg)}}
+.sm-side{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:1.1cqw}
+.sm .sq-top{flex-wrap:wrap}
+.sm-army{border:2px solid #3b2412;border-radius:1cqw;background:rgba(255,250,240,.55);padding:.6cqw .8cqw}
+.sm-army-head{display:flex;justify-content:space-between;gap:1cqw;font:700 max(12px,1.2cqw) var(--font-read);color:#6b4a26}
+.sm-ranks{display:flex;flex-wrap:wrap;gap:.2cqw;min-height:3.4cqw;margin-top:.4cqw}
+.sm-soldier{display:block;width:max(22px,2.8cqw);animation:smmarch .6s ease-out}
+.sm-soldier svg{display:block;width:100%;height:auto}
+@keyframes smmarch{from{transform:translateX(-40%);opacity:0}}
+.sm-cheer .sm-card.won .sm-inner{animation:smhop .5s ease-in-out 2 alternate}
+@keyframes smhop{to{transform:rotateY(180deg) translateY(-6%)}}
+@media (prefers-reduced-motion: reduce){ .sm-inner{transition:none} .sm-card.won .sm-knight{animation:none} .sm-card.won .sm-arm,.sm-soldier,.sm-cheer .sm-card.won .sm-inner{animation:none} }
+@media (max-width:760px) and (orientation:portrait){
+  .sm{position:static;display:flex;flex-direction:column-reverse;gap:12px;padding:8px 16px 20px}
+  .sm-board{width:100%;aspect-ratio:10/9}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .sm{top:19%;bottom:2%}
+  .sm-side{gap:5px}
+  .sm .sq-status{min-height:0;font-size:13px;line-height:1.25}
+  .sm-army{padding:3px 6px}
+  .sm-ranks{min-height:0}
+}
 </style>
 
 </head>
@@ -812,7 +860,7 @@ const GAMES = {
   spot:       { name: "The Jester's Tricks", desc: 'Catch the misspelled banner', say: "The Jester's Tricks! That rascal painted a mistake on the royal banners. Can you catch him?" },
   tiles:      { name: 'Letter Tiles', desc: 'Build the word', say: "Letter Tiles! Drag the magic tiles to build each word. This spell is still brewing!" },
   vowels:     { name: 'Gem Mine', desc: 'Dig out the vowel gems', say: "Gem Mine! The dwarves need your help. Tap only the vowels to dig out the gems!" },
-  memory:     { name: 'Memory Match', desc: 'Flip and find pairs', say: "Memory Match! Flip the cards and find the matching words. This spell is still brewing!" },
+  memory:     { name: 'Shield Match', desc: 'Flip shields to find pairs', say: "Shield Match! Flip two shields at a time and find the matching pairs. Every match brings a knight to your army!" },
   sort:       { name: 'Word Sort', desc: 'Sort by sound or pattern', say: "Word Sort! Put each word in the right cauldron. This spell is still brewing!" },
   crossword:  { name: 'Crossword', desc: 'Solve the clues', say: "Crossword! Use the clues to fill in the grid. This spell is still brewing!" },
   bee:        { name: 'Spelling Bee', desc: 'Spell it out loud', say: "Spelling Bee! Spell your word one letter at a time, just like a real spelling bee. This spell is still brewing!" }
@@ -1934,10 +1982,16 @@ const ICONS = {
     g.fillStyle = '#fff'; g.font = '700 7px Andika, sans-serif'; g.textAlign = 'center'; g.fillText('a', 15, 24); g.fillText('e', 28, 22);
   },
   memory(g) {
-    g.save(); g.translate(12, 21); g.rotate(-.14); g.fillStyle = '#fff'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8; rr(g, -7.5, -11, 15, 22, 2.5); g.fill(); g.stroke();
-    g.fillStyle = '#3b2412'; g.font = '700 11px Andika, sans-serif'; g.textAlign = 'center'; g.fillText('?', 0, 4); g.restore();
-    g.save(); g.translate(29, 22); g.rotate(.14); g.fillStyle = '#7b2d3f'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8; rr(g, -7.5, -11, 15, 22, 2.5); g.fill(); g.stroke();
-    g.fillStyle = '#f2c35b'; g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 2 : 5, a = i / 10 * Math.PI * 2 - Math.PI / 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.fill(); g.restore();
+    // two knights' shields: one face down (quartered, with a star), one face up showing a word
+    const sh = (x, y, s) => new Path2D(`M${x} ${y} h${16 * s} v${10 * s} q0 ${8 * s} ${-8 * s} ${11 * s} q${-8 * s} ${-3 * s} ${-8 * s} ${-11 * s} Z`);
+    g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
+    g.save(); g.translate(2, 6); g.rotate(-.12);
+    const a = sh(2, 4, 1.05); g.fillStyle = '#3d6fb6'; g.fill(a); g.save(); g.clip(a); g.fillStyle = '#f2c35b'; g.fillRect(10.4, 0, 9, 14.5); g.fillRect(0, 14.5, 10.4, 12); g.restore(); g.stroke(a);
+    g.restore();
+    g.save(); g.translate(21, 8); g.rotate(.12);
+    const b = sh(0, 2, 1.05); g.fillStyle = '#fffaf0'; g.fill(b); g.stroke(b);
+    g.fillStyle = '#3b2412'; g.font = '700 7px Andika, sans-serif'; g.textAlign = 'center'; g.fillText('cat', 8.4, 13.5);
+    g.restore();
   },
   sort(g) {
     g.fillStyle = '#7b2d3f'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
@@ -4706,7 +4760,144 @@ const GemGame = (() => {
   }
   return { mount, unmount, practice: PRACTICE };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame };
+/* ================= Game: Shield Match (memory, pairs of knights' shields) ================= */
+// Knights' shields lie face down. Flip two at a time to find the pairs: on Easy both shields of a pair show the
+// word; on Hard one shows the word and its partner is a speaker shield that says it, a listen-and-read match.
+// Each match makes both knights salute, and one more knight marches into your army.
+const ShieldGame = (() => {
+  const LEVELS = { easy: { label: 'Easy' }, hard: { label: 'Hard' } };
+  const PAIRS = 6, COLS = 4, PRACTICE = ['shield', 'knight', 'sword', 'castle', 'banner', 'horse', 'armor', 'crown'];
+  const CRESTS = [['#3d6fb6', '#f2c35b'], ['#c0392b', '#f5e7bf'], ['#2f7a4f', '#f2c35b'], ['#7b2d3f', '#f5e7bf'], ['#3b2412', '#f2c35b'], ['#5b3a8c', '#f5e7bf']];
+  const SHIELD = 'M10 8 H90 V58 Q90 98 50 114 Q10 98 10 58 Z';
+  let root, st, words, practice, timers = [], keyHandler, level = 'easy';
+  try { level = localStorage.getItem('wordy-wizard-memory-level') || 'easy'; if (!LEVELS[level]) level = 'easy'; } catch (e) {}
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const esc = s => String(s).replace(/[<&>"]/g, c => ({ '<': '&lt;', '&': '&amp;', '>': '&gt;', '"': '&quot;' })[c]);
+  const speakIco = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  // a face-down shield: quartered heraldry with a star; face up: plain parchment, ready for a word or a speaker
+  function backSVG(i) {
+    const [a, b] = CRESTS[i % CRESTS.length];
+    return `<svg viewBox="0 0 100 120" aria-hidden="true"><defs><clipPath id="smc${i}"><path d="${SHIELD}"/></clipPath></defs>
+      <g clip-path="url(#smc${i})"><rect width="100" height="120" fill="${a}"/><rect x="50" width="50" height="60" fill="${b}"/><rect y="60" width="50" height="60" fill="${b}"/></g>
+      <path d="${SHIELD}" fill="none" stroke="#2a1a10" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M50 38 L56 52 L71 53 L59 62 L63 77 L50 68 L37 77 L41 62 L29 53 L44 52 Z" fill="#fffaf0" stroke="#2a1a10" stroke-width="3" stroke-linejoin="round"/></svg>`;
+  }
+  const frontSVG = '<svg viewBox="0 0 100 120" aria-hidden="true"><path d="' + SHIELD + '" fill="#fffaf0" stroke="#2a1a10" stroke-width="5" stroke-linejoin="round"/><path d="M18 16 H82" stroke="#f2c35b" stroke-width="5" stroke-linecap="round"/></svg>';
+  // the knight behind each shield, who pops up and salutes when the pair is found
+  const knightSVG = (team) => `<svg viewBox="0 0 60 60" aria-hidden="true"><g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+      <path d="M14 58 V34 Q14 26 22 26 H38 Q46 26 46 34 V58 Z" fill="${team}"/>
+      <path d="M20 26 Q20 6 30 5 Q40 6 40 26 Z" fill="#cfcadb"/><path d="M24 15 H40" stroke-width="3"/>
+      <path d="M30 5 Q33 -2 40 1" fill="none" stroke="${team}" stroke-width="4"/>
+      <g class="sm-arm"><path d="M44 36 L54 22" stroke-width="7" stroke="#2a1a10" stroke-linecap="round"/><path d="M44 36 L54 22" stroke-width="4" stroke="#b9b3c6" stroke-linecap="round"/></g></g></svg>`;
+  const soldier = (team) => `<span class="sm-soldier">${knightSVG(team)}</span>`;
+
+  function mount(container, wordList) {
+    practice = !wordList.length;
+    words = shuffle(practice ? PRACTICE : wordList); VOICE.warm(words);
+    st = { start: 0, round: 0, army: 0, sel: [], busy: false, found: 0, cards: [] };
+    root = document.createElement('div'); root.className = 'sm';
+    root.innerHTML = `
+      <div class="sm-board"><div class="sm-grid" id="smGrid" role="grid" aria-label="Shields"></div></div>
+      <div class="sm-side">
+        <div class="sq-top"><span id="smRound"></span>
+          <div class="bw-levels" role="group" aria-label="Level">${Object.entries(LEVELS).map(([k, v]) => `<button type="button" data-level="${k}" aria-pressed="${k === level}">${v.label}</button>`).join('')}</div></div>
+        <p class="sq-status" id="smStatus" aria-live="polite"></p>
+        <div class="sm-army" aria-label="Your army"><div class="sm-army-head"><b>Your army</b><span id="smArmyN">0 knights</span></div><div class="sm-ranks" id="smRanks"></div></div>
+        <div class="sq-actions"><button type="button" class="sq-btn primary" id="smNext" hidden>Next round</button></div>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    q('#smGrid').addEventListener('click', e => { const c = e.target.closest('.sm-card'); if (c) flip(+c.dataset.i); });
+    q('#smNext').addEventListener('click', nextRound);
+    root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.level === level) return;
+      level = b.dataset.level; try { localStorage.setItem('wordy-wizard-memory-level', level); } catch (e) {}
+      root.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-pressed', x === b));
+      newRound();
+    }));
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const cards = [...root.querySelectorAll('.sm-card')], at = cards.indexOf(document.activeElement);
+      if (at >= 0 && /^Arrow/.test(e.key)) {
+        e.preventDefault();
+        const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -COLS, ArrowDown: COLS }[e.key], to = at + step;
+        if (to >= 0 && to < cards.length) focusCard(to);
+      } else if (e.key === 'Enter' && !q('#smNext').hidden && at < 0) { e.preventDefault(); nextRound(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    newRound();
+  }
+  function unmount() {
+    VOICE.cancel(); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (root) root.remove(); root = null;
+  }
+  const status = t => { q('#smStatus').textContent = t; };
+  function focusCard(i) {
+    root.querySelectorAll('.sm-card').forEach((c, j) => c.tabIndex = j === i ? 0 : -1);
+    const c = root.querySelector(`.sm-card[data-i="${i}"]`); if (c) c.focus();
+  }
+
+  // a round uses the next few words of the (shuffled) list, wrapping around to the start
+  function newRound() {
+    timers.forEach(clearTimeout); timers = []; VOICE.cancel();
+    const n = Math.min(PAIRS, words.length), pick = [];
+    for (let i = 0; i < n; i++) pick.push(words[(st.start + i) % words.length]);
+    const cards = [];
+    pick.forEach((w, p) => { cards.push({ word: w, pair: p, kind: 'word' }); cards.push({ word: w, pair: p, kind: level === 'hard' ? 'sound' : 'word' }); });
+    Object.assign(st, { cards: shuffle(cards), sel: [], busy: false, found: 0, pairs: n });
+    const grid = q('#smGrid'); grid.innerHTML = '';
+    grid.style.setProperty('--rows', Math.ceil(st.cards.length / COLS));
+    st.cards.forEach((c, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'sm-card'; b.dataset.i = i; b.tabIndex = i === 0 ? 0 : -1;
+      const front = c.kind === 'word' ? `<span class="sm-word" style="--len:${Math.max(4, c.word.length)}">${esc(c.word)}</span>` : `<span class="sm-sound">${speakIco}</span>`;
+      b.innerHTML = `<span class="sm-knight">${knightSVG(CRESTS[c.pair % CRESTS.length][0])}</span>
+        <span class="sm-inner"><span class="sm-face sm-back">${backSVG(i)}</span><span class="sm-face sm-front">${frontSVG}${front}</span></span>`;
+      label(b, c, false); grid.appendChild(b);
+    });
+    q('#smRound').textContent = `Round ${st.round + 1}`;
+    q('#smNext').hidden = true;
+    status(level === 'hard' ? 'Flip two shields. Find each word and the speaker shield that says it!' : 'Flip two shields at a time. Find the pairs that show the same word!');
+  }
+  function label(b, c, up) {
+    const n = +b.dataset.i + 1;
+    b.setAttribute('aria-label', !up ? `Shield ${n}, face down` : c.kind === 'word' ? `Shield ${n}: ${c.word}` : `Shield ${n}: speaker, says ${c.word}`);
+  }
+  function flip(i) {
+    const c = st.cards[i], b = root.querySelector(`.sm-card[data-i="${i}"]`);
+    if (st.busy || !c || c.done || st.sel.includes(i)) return;
+    b.classList.add('up'); label(b, c, true); st.sel.push(i);
+    VOICE.speak(c.word);   // a word shield is read aloud too, and a speaker shield says its word
+    if (st.sel.length < 2) return;
+    const [a, z] = st.sel.map(j => st.cards[j]);
+    st.busy = true;
+    if (a.pair === z.pair) later(() => match(st.sel.slice()), 700);
+    else { status('Not a pair. Remember where they are!'); later(() => {
+      st.sel.forEach(j => { const el = root.querySelector(`.sm-card[data-i="${j}"]`); el.classList.remove('up'); label(el, st.cards[j], false); });
+      st.sel = []; st.busy = false;
+    }, 1300); }
+  }
+  function match(pair) {
+    pair.forEach(j => { st.cards[j].done = true; root.querySelector(`.sm-card[data-i="${j}"]`).classList.add('won'); });
+    const w = st.cards[pair[0]].word, team = CRESTS[st.cards[pair[0]].pair % CRESTS.length][0];
+    st.sel = []; st.busy = false; st.found++; st.army++;
+    const ranks = q('#smRanks'); ranks.insertAdjacentHTML('beforeend', soldier(team));
+    if (ranks.children.length > 24) ranks.firstElementChild.remove();
+    q('#smArmyN').textContent = `${st.army} knight${st.army === 1 ? '' : 's'}`;
+    if (st.found < st.pairs) { status(`A match: "${w}"! Both knights salute and join your army.`); return; }
+    st.round++; st.start = (st.start + st.pairs) % words.length;
+    if (st.start < st.pairs && words.length > st.pairs) words = shuffle(words);   // a fresh order once the list has gone round
+    status(`Huzzah! You found every pair. Your army has ${st.army} knight${st.army === 1 ? '' : 's'}!`);
+    root.classList.remove('sm-cheer'); void root.offsetWidth; root.classList.add('sm-cheer');
+    const nb = q('#smNext'); nb.hidden = false; later(() => nb.focus({ preventScroll: true }), 600);
+  }
+  function nextRound() { newRound(); }
+  return { mount, unmount, practice: PRACTICE };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
