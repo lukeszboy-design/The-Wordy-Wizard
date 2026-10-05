@@ -679,6 +679,39 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .fg-tray{min-height:0;padding:5px;gap:5px}
   .fg-piece{min-width:34px;min-height:36px;font-size:16px}
 }
+/* --- The Royal Court (spell before the queen) --- */
+.rc{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,46fr) minmax(0,54fr);gap:2.2cqw;color:var(--parch-ink)}
+.rc-scene{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.rc-scene svg{display:block;width:100%;height:auto;max-height:100%;border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#4a3f63}
+.rc-side{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:1.1cqw}
+.rc .sq-top{flex-wrap:wrap}
+.rc-rank{display:flex;align-items:center;gap:.45cqw;white-space:nowrap}
+.rc-rank b{color:#7b2d3f}
+.rc-rank i{display:block;width:1cqw;height:1cqw;min-width:9px;min-height:9px;border-radius:50%;border:2px solid #7a5210;background:#fffaf0}
+.rc-rank i.on{background:#f2c35b}
+.rc-del{grid-column:span 2}
+.rc .sq-slot.won{background:#fff1b8;border-color:#a3401f}
+.rc-star,.rc-poof,.rc-pop{transform-box:fill-box;transform-origin:center}
+.rc-poof{animation:rcpoof .7s ease-out forwards}
+@keyframes rcpoof{from{transform:scale(.3);opacity:1}to{transform:scale(1.4);opacity:0}}
+.rc-pop{animation:rcpop .5s ease-out both}
+@keyframes rcpop{from{transform:scale(.2);opacity:0}60%{transform:scale(1.1);opacity:1}to{transform:none}}
+.rc-banner{transform-box:fill-box;transform-origin:50% 0}
+.rc-wave{animation:rcwave .5s ease-in-out infinite alternate}
+@keyframes rcwave{from{transform:skewX(-6deg)}to{transform:skewX(6deg)}}
+@media (prefers-reduced-motion: reduce){ .rc-poof,.rc-pop,.rc-wave{animation:none} }
+@media (max-width:760px) and (orientation:portrait){
+  .rc{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .rc-scene svg{max-height:38vh;width:auto;max-width:100%}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .rc{top:19%;bottom:2%;grid-template-columns:minmax(0,40fr) minmax(0,60fr)}
+  .rc-side{gap:5px}
+  .rc-side > *{flex-shrink:0}
+  .rc .sq-top{flex-wrap:nowrap;gap:6px;font-size:11px}
+  .rc .bw-levels button{font-size:11px;padding:2px 7px}
+  .rc-long{display:none}
+}
 </style>
 
 </head>
@@ -894,7 +927,7 @@ const GAMES = {
   memory:     { name: 'Shield Match', desc: 'Flip shields to find pairs', say: "Shield Match! Flip two shields at a time and find the matching pairs. Every match brings a knight to your army!" },
   sort:       { name: 'Word Sort', desc: 'Sort by sound or pattern', say: "Word Sort! Put each word in the right cauldron. This spell is still brewing!" },
   crossword:  { name: 'Crossword', desc: 'Solve the clues', say: "Crossword! Use the clues to fill in the grid. This spell is still brewing!" },
-  bee:        { name: 'Spelling Bee', desc: 'Spell it out loud', say: "Spelling Bee! Spell your word one letter at a time, just like a real spelling bee. This spell is still brewing!" }
+  bee:        { name: 'The Royal Court', desc: 'Spell before the queen', say: "The Royal Court! Stand before the queen and spell each word. Spell well, and she will knight you!" },
 };
 /* Each spread is two facing pages: games[0..1] on the left page, games[2..3] on the right. Add more spreads here as games are added. */
 const SPREADS = [
@@ -2044,12 +2077,13 @@ const ICONS = {
     }
   },
   bee(g) {
-    g.fillStyle = 'rgba(170,215,255,.9)'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.4;
-    [[16, 13, -.5], [26, 13, .5]].forEach(([x, y, r]) => { g.beginPath(); g.ellipse(x, y, 5, 7, r, 0, 7); g.fill(); g.stroke(); });
-    g.fillStyle = '#f2c35b'; g.lineWidth = 2; g.beginPath(); g.ellipse(21, 25, 11, 8, 0, 0, 7); g.fill(); g.stroke();
-    g.save(); g.beginPath(); g.ellipse(21, 25, 11, 8, 0, 0, 7); g.clip(); g.fillStyle = '#3b2412'; g.fillRect(17, 16, 3.5, 18); g.fillRect(24, 16, 3.5, 18); g.restore();
-    g.fillStyle = '#3b2412'; g.beginPath(); g.moveTo(32, 25); g.lineTo(37, 25); g.lineTo(32, 22); g.fill();
-  }
+    // a crown above a little throne
+    g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
+    const throne = new Path2D('M12 38 V22 Q12 15 21 14 Q30 15 30 22 V38 Z'); g.fillStyle = '#c9962e'; g.fill(throne); g.stroke(throne);
+    const seat = new Path2D('M15 37 V24 Q15 19 21 18.5 Q27 19 27 24 V37 Z'); g.fillStyle = '#7b2d3f'; g.fill(seat); g.stroke(seat);
+    const crown = new Path2D('M10 13 L11 3 L16 8 L21 1 L26 8 L31 3 L32 13 Z'); g.fillStyle = '#f2c35b'; g.fill(crown); g.stroke(crown);
+    g.fillStyle = '#c0392b'; g.beginPath(); g.arc(21, 9, 1.8, 0, 7); g.fill();
+  },
 };
 function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); }
 function paintSpread(g, idx, hover) {
@@ -5166,7 +5200,306 @@ const ForgeGame = (() => {
   }
   return { mount, unmount, practice: PRACTICE };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame };
+/* ================= Game: The Royal Court (spell before the queen) ================= */
+// The child stands before the throne and spells each word, either by typing it or by spelling it out loud
+// and then checking (honor system, no microphone). A right answer and the queen knights them with a sparkle.
+// Three right in a row moves them up a title: Page, Squire, Knight, then Royal Wizard.
+const CourtGame = (() => {
+  const ABC = 'abcdefghijklmnopqrstuvwxyz', NS = 'http://www.w3.org/2000/svg';
+  const TITLES = ['Page', 'Squire', 'Knight', 'Royal Wizard'], STREAK = 3;
+  const MODES = { type: 'Type it', say: 'Say it out loud' };
+  const PRACTICE = ['crown', 'queen', 'royal', 'throne', 'castle', 'knight'];
+  const KID = { x: 220, y: 362 }, HAND = { x: 252, y: 166 };   // where the child stands, and the queen's sword hand
+  let root, st, words, practice, timers = [], raf = 0, keyHandler, mode = 'type';
+  try { mode = localStorage.getItem('wordy-wizard-court-mode') || 'type'; if (!MODES[mode]) mode = 'type'; } catch (e) {}
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const ease = u => u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+  // a small tween: calls f(eased 0..1) every frame for `ms`, then resolves
+  const run = (ms, f) => new Promise(res => {
+    if (reduce || !root) { f(1); return res(); }
+    const t0 = performance.now();
+    const step = now => { if (!root) return res(); const u = Math.min(1, (now - t0) / ms); f(ease(u)); if (u < 1) raf = requestAnimationFrame(step); else res(); };
+    raf = requestAnimationFrame(step);
+  });
+
+  /* ----- a few quiet sounds: a fanfare for a new title, a chime for a knighting ----- */
+  function tone(f, at, dur, vol, type = 'sine') {
+    const a = window.__wwAudio; if (!a) return;
+    try {
+      if (a.state === 'suspended') a.resume();
+      const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + at; o.type = type; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+    } catch (e) {}
+  }
+  const chime = () => [1047, 1319, 1568].forEach((f, i) => tone(f, i * .09, .6, .05));
+  const fanfare = big => [[392, 0, .14], [523, .15, .14], [659, .3, .14], [784, .45, big ? .8 : .45]].concat(big ? [[1047, .7, .9]] : []).forEach(([f, at, d]) => tone(f, at, d, .05, 'sawtooth'));
+
+  /* ----- the throne room ----- */
+  function kidSVG() {
+    // seen from behind, facing the queen; one outfit per title
+    return `<g id="rcKid" transform="translate(${KID.x} ${KID.y})"><g id="rcKidBody" stroke="#2a1a10" stroke-width="2.2" stroke-linejoin="round">
+      <ellipse cx="0" cy="1" rx="17" ry="4" fill="#000" opacity=".18" stroke="none"/>
+      <g class="rc-fit" data-t="0"><path d="M-5 -16 V0 M5 -16 V0" stroke="#5e3a1a" stroke-width="5" stroke-linecap="round"/>
+        <path d="M-12 -46 Q0 -50 12 -46 L14 -14 H-14 Z" fill="#2f9e57"/><path d="M-13 -26 H13" stroke="#7a4f27" stroke-width="3"/>
+        <circle cx="0" cy="-58" r="11" fill="#f3c39c"/><path d="M-11 -59 Q-10 -71 0 -71 Q10 -71 11 -59 Q6 -52 0 -53 Q-6 -52 -11 -59 Z" fill="#7a4f27"/>
+        <path d="M-9 -66 Q0 -76 9 -66 L6 -63 Q0 -68 -6 -63 Z" fill="#2f6b4a"/></g>
+      <g class="rc-fit" data-t="1" hidden><path d="M-5 -16 V0 M5 -16 V0" stroke="#3b2412" stroke-width="5" stroke-linecap="round"/>
+        <path d="M-12 -46 Q0 -50 12 -46 L14 -14 H-14 Z" fill="#a8743f"/><path d="M-13 -26 H13" stroke="#3b2412" stroke-width="3"/>
+        <circle cx="-15" cy="-30" r="8" fill="#3d6fb6"/><path d="M-15 -36 V-24 M-21 -30 H-9" stroke="#f2c35b" stroke-width="2"/>
+        <circle cx="0" cy="-58" r="11" fill="#f3c39c"/><path d="M-11 -59 Q-10 -71 0 -71 Q10 -71 11 -59 Q6 -52 0 -53 Q-6 -52 -11 -59 Z" fill="#7a4f27"/></g>
+      <g class="rc-fit" data-t="2" hidden><path d="M-5 -16 V0 M5 -16 V0" stroke="#8e8aa0" stroke-width="6" stroke-linecap="round"/>
+        <path d="M-13 -47 Q0 -51 13 -47 L14 -14 H-14 Z" fill="#b9b3c6"/><path d="M-11 -40 H11 M-12 -30 H12 M-13 -20 H13" stroke="#8e8aa0" stroke-width="2"/>
+        <path d="M-14 -44 L-24 -38 L-22 -16 L-14 -14 Z" fill="#c0392b"/>
+        <path d="M-12 -55 Q-12 -72 0 -73 Q12 -72 12 -55 Q0 -50 -12 -55 Z" fill="#cfcadb"/><path d="M-3 -73 Q4 -88 14 -84 Q6 -80 4 -72 Z" fill="#c0392b"/></g>
+      <g class="rc-fit" data-t="3" hidden><path d="M-15 0 L-10 -46 Q0 -50 10 -46 L15 0 Z" fill="#6b3fa0"/>
+        <g fill="#f2c35b" stroke="none"><circle cx="-6" cy="-30" r="2"/><circle cx="5" cy="-18" r="2"/><circle cx="7" cy="-36" r="1.6"/><circle cx="-4" cy="-10" r="1.6"/></g>
+        <circle cx="0" cy="-56" r="10" fill="#f3c39c"/><path d="M-12 -58 Q0 -54 12 -58 L4 -92 Q2 -96 -2 -92 Z" fill="#6b3fa0"/>
+        <path d="M-1 -78 l1.6 3.4 3.6.4-2.7 2.4.8 3.6-3.3-1.9-3.3 1.9.8-3.6-2.7-2.4 3.6-.4Z" fill="#f2c35b" stroke="none"/>
+        <path d="M14 -40 L24 -62" stroke="#7a4f27" stroke-width="3"/><circle cx="25" cy="-64" r="3" fill="#bfe8ff"/></g>
+    </g></g>`;
+  }
+  function sceneSVG() {
+    return `<svg viewBox="0 0 440 400" role="img" aria-label="A queen sits on her throne at the end of a red carpet, and a child stands before her">
+      <defs><clipPath id="rcClip"><rect width="440" height="400" rx="14"/></clipPath>
+        <linearGradient id="rcWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a3f63"/><stop offset="1" stop-color="#6a5b85"/></linearGradient></defs>
+      <g clip-path="url(#rcClip)">
+      <rect width="440" height="400" fill="url(#rcWall)"/>
+      <g stroke="#3a3150" stroke-width="2" opacity=".55" fill="none">${[40, 90, 140, 190].map((y, i) => `<path d="M0 ${y} H440"/>${[0, 1, 2, 3, 4, 5, 6, 7].map(k => `<path d="M${(k * 60 + (i % 2) * 30)} ${y - 50} V${y}"/>`).join('')}`).join('')}</g>
+      <rect x="0" y="232" width="440" height="168" fill="#8a6a4a"/><path d="M0 232 H440" stroke="#2a1a10" stroke-width="2.5"/>
+      <g stroke="#5e4630" stroke-width="2" opacity=".6">${[262, 296, 336, 382].map(y => `<path d="M0 ${y} H440"/>`).join('')}</g>
+      <g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M150 400 L192 232 H248 L290 400 Z" fill="#b8323a"/><path d="M160 400 L198 240 M280 400 L242 240" stroke="#f2c35b" stroke-width="3"/>
+        ${[[56, '#3d6fb6'], [384, '#7b2d3f']].map(([x, c]) => `<rect x="${x - 3}" y="18" width="6" height="12" fill="#a8743f"/><path class="rc-banner" d="M${x - 26} 28 H${x + 26} V140 L${x} 122 L${x - 26} 140 Z" fill="${c}"/>
+          <path d="M${x - 10} 64 l10 -16 10 16 -10 16Z" fill="#f2c35b"/><path d="M${x - 32} 28 H${x + 32}" stroke-width="5"/>`).join('')}
+        <path d="M168 232 V96 Q168 62 220 54 Q272 62 272 96 V232 Z" fill="#c9962e"/><path d="M182 226 V104 Q182 78 220 72 Q258 78 258 104 V226 Z" fill="#7b2d3f"/>
+        <circle cx="220" cy="52" r="9" fill="#f2c35b"/><rect x="158" y="176" width="22" height="56" rx="5" fill="#c9962e"/><rect x="260" y="176" width="22" height="56" rx="5" fill="#c9962e"/>
+        <rect x="174" y="226" width="92" height="12" rx="4" fill="#a8743f"/>
+      </g>
+      <g id="rcQueen" stroke="#2a1a10" stroke-width="2.4" stroke-linejoin="round">
+        <path d="M196 226 Q194 176 204 152 H236 Q246 176 244 226 Z" fill="#9b59b6"/><path d="M204 152 Q220 164 236 152" fill="none" stroke="#f2c35b" stroke-width="3"/>
+        <path d="M206 154 Q196 176 186 196" fill="none" stroke="#9b59b6" stroke-width="9" stroke-linecap="round"/><circle cx="185" cy="198" r="5" fill="#f3c39c"/>
+        <path d="M234 156 L250 166" fill="none" stroke="#9b59b6" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="220" cy="134" r="17" fill="#f3c39c"/><path d="M203 132 Q202 112 220 112 Q238 112 237 132 Q236 122 220 120 Q204 122 203 132 Z" fill="#e8a43a"/>
+        <path d="M206 116 L208 100 L214 110 L220 96 L226 110 L232 100 L234 116 Z" fill="#f2c35b"/><circle cx="220" cy="104" r="2.5" fill="#c0392b" stroke="none"/>
+        <circle cx="214" cy="133" r="1.8" fill="#2a1a10" stroke="none"/><circle cx="226" cy="133" r="1.8" fill="#2a1a10" stroke="none"/>
+        <path id="rcSmile" d="M214 141 Q220 146 226 141" fill="none" stroke-width="2"/>
+      </g>
+      <g transform="translate(${HAND.x} ${HAND.y})"><g id="rcSword" stroke="#2a1a10" stroke-width="2" stroke-linejoin="round">
+        <path d="M-3 -8 H3 V-80 L0 -86 L-3 -80 Z" fill="#dfe4ee"/><rect x="-10" y="-11" width="20" height="5" rx="2" fill="#f2c35b"/>
+        <rect x="-2.5" y="-6" width="5" height="10" rx="2" fill="#7a4f27"/><circle cx="0" cy="0" r="5" fill="#f3c39c"/></g></g>
+      ${kidSVG()}
+      <g id="rcFx"></g>
+      </g>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    const list = wordList.filter(w => /[a-z]/i.test(w));
+    practice = !list.length;
+    words = shuffle(practice ? PRACTICE : list); VOICE.warm(words);
+    st = { idx: 0, rank: 0, streak: 0, right: 0 };
+    root = document.createElement('div'); root.className = 'rc';
+    const hear = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    root.innerHTML = `
+      <div class="rc-scene">${sceneSVG()}</div>
+      <div class="rc-side">
+        <div class="sq-top"><span id="rcCount"></span>
+          <div class="bw-levels" role="group" aria-label="How to answer">${Object.entries(MODES).map(([k, v]) => `<button type="button" data-mode="${k}" aria-pressed="${k === mode}">${v}</button>`).join('')}</div>
+          <span class="rc-rank" id="rcRank"></span></div>
+        <div class="sq-slots" id="rcSlots" aria-label="The spelling"></div>
+        <p class="sq-status" id="rcStatus" aria-live="polite"></p>
+        <div class="sq-keys" id="rcKeys" role="group" aria-label="Letters"></div>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="rcHear">${hear}Hear the word</button>
+          <button type="button" class="sq-btn primary" id="rcCheck">Present it<span class="rc-long"> to the queen</span></button>
+          <button type="button" class="sq-btn primary" id="rcShow">Show the spelling</button>
+          <button type="button" class="sq-btn primary" id="rcYes">I got it right</button>
+          <button type="button" class="sq-btn" id="rcNo">Not this time</button>
+          <button type="button" class="sq-btn primary" id="rcNext">Next word</button>
+        </div>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    const keys = q('#rcKeys');
+    [...ABC].forEach(l => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sq-key'; b.textContent = l; b.dataset.l = l; b.setAttribute('aria-label', `Letter ${l}`); keys.appendChild(b); });
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'sq-key rc-del'; del.textContent = '⌫'; del.setAttribute('aria-label', 'Rub out the last letter'); keys.appendChild(del);
+    keys.addEventListener('click', e => { const b = e.target.closest('.sq-key'); if (!b) return; if (b.dataset.l) type(b.dataset.l); else rubOut(); });
+    q('#rcHear').addEventListener('click', () => { if (VOICE.canSpeak) VOICE.speak(st.word); else peek(); });
+    q('#rcCheck').addEventListener('click', present);
+    q('#rcShow').addEventListener('click', reveal);
+    q('#rcYes').addEventListener('click', () => judged(true));
+    q('#rcNo').addEventListener('click', () => judged(false));
+    q('#rcNext').addEventListener('click', next);
+    root.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.mode === mode) return;
+      mode = b.dataset.mode; try { localStorage.setItem('wordy-wizard-court-mode', mode); } catch (e) {}
+      root.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x === b));
+      // a fresh word in the new way of answering, so switching can't give a second look at this one
+      st.idx = (st.idx + 1) % words.length; newWord();
+    }));
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target.closest && e.target.closest('input,textarea'))) return;
+      if (e.key === 'Enter') { const b = ['#rcNext', '#rcCheck', '#rcShow'].map(s => q(s)).find(x => !x.hidden && !x.disabled); if (b && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); b.click(); } return; }
+      if (mode !== 'type') return;   // spelling out loud: the keys aren't used
+      if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); type(e.key.toLowerCase()); }
+      else if (e.key === 'Backspace') { e.preventDefault(); rubOut(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    newWord();
+  }
+  function unmount() {
+    VOICE.cancel(); cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (root) root.remove(); root = null;
+  }
+  const status = t => { q('#rcStatus').textContent = t; };
+  const show = (...ids) => ['#rcCheck', '#rcShow', '#rcYes', '#rcNo', '#rcNext'].forEach(s => { q(s).hidden = !ids.includes(s); });
+  const setKeys = on => root.querySelectorAll('#rcKeys .sq-key').forEach(b => b.disabled = !on);
+
+  function rank() {
+    const r = q('#rcRank'), pips = st.rank >= TITLES.length - 1 ? '' : [0, 1, 2].map(i => `<i class="${i < st.streak ? 'on' : ''}"></i>`).join('');
+    r.innerHTML = `<b>${TITLES[st.rank]}</b>${pips}`;
+    r.setAttribute('aria-label', st.rank >= TITLES.length - 1 ? `Title: ${TITLES[st.rank]}` : `Title: ${TITLES[st.rank]}. ${st.streak} of ${STREAK} right in a row toward ${TITLES[st.rank + 1]}`);
+    // (SVG groups need the real attribute: setting .hidden on them from script does nothing)
+    root.querySelectorAll('.rc-fit').forEach(g => g.toggleAttribute('hidden', +g.dataset.t !== st.rank));
+  }
+  // the slots: typed letters, the spelling being revealed, or blanks
+  function slots(letters, marks) {
+    const box = q('#rcSlots'); box.innerHTML = ''; let n = 0;
+    st.chars.forEach(ch => {
+      const s = document.createElement('span'); s.className = 'sq-slot';
+      if (/[a-z]/.test(ch)) { const i = n++; s.textContent = letters[i] || ''; if (marks && marks[i]) s.classList.add(marks[i]); }
+      else { s.classList.add(ch === ' ' ? 'space' : 'punct'); s.textContent = ch === ' ' ? '' : ch; }
+      box.appendChild(s);
+    });
+  }
+
+  function newWord() {
+    VOICE.cancel(); cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = [];
+    const word = words[st.idx];
+    Object.assign(st, { word, chars: [...word.toLowerCase()], typed: [], over: false, busy: false });
+    st.need = st.chars.filter(c => /[a-z]/.test(c));
+    q('#rcFx').innerHTML = ''; q('#rcKid').setAttribute('transform', `translate(${KID.x} ${KID.y})`); q('#rcSword').removeAttribute('transform');
+    q('#rcCount').textContent = `Word ${st.idx + 1} of ${words.length}`;
+    rank(); slots([]);
+    q('#rcKeys').hidden = mode !== 'type';
+    if (mode === 'type') { show('#rcCheck'); q('#rcCheck').disabled = true; setKeys(true); status('Listen to the word, then spell it and present it to the queen.'); }
+    else { show('#rcShow'); status('Listen to the word, then spell it out loud. Tap "Show the spelling" when you\'re done.'); }
+    if (VOICE.canSpeak) later(() => VOICE.speak(st.word), 450); else peek();
+  }
+  // no voice on this device: a quick look at the word, then it hides
+  function peek() {
+    if (st.over) return;
+    slots(st.need); later(() => { if (!st.over) slots(st.typed); }, 2600);
+  }
+
+  function type(l) {
+    if (mode !== 'type' || st.over || st.typed.length >= st.need.length) return;
+    st.typed.push(l); slots(st.typed); q('#rcCheck').disabled = st.typed.length < st.need.length;
+  }
+  function rubOut() { if (mode !== 'type' || st.over) return; st.typed.pop(); slots(st.typed); q('#rcCheck').disabled = true; }
+  function present() {
+    if (st.over || st.typed.length < st.need.length) return;
+    st.over = true; setKeys(false);
+    if (st.typed.join('') === st.need.join('')) return win();
+    const marks = st.need.map((c, i) => st.typed[i] === c ? '' : 'missed');
+    slots(st.typed, marks);
+    status(`Not quite! Here's how the queen spells "${st.word}":`);
+    later(() => spellOut(marks, () => miss()), 900);
+  }
+  // say-it-out-loud: show the spelling one letter at a time, then the child says how they did
+  function reveal() {
+    if (st.over) return;
+    st.over = true; show(); status('Here is the spelling. Did yours match?');
+    spellOut(null, () => { show('#rcYes', '#rcNo'); later(() => q('#rcYes').focus({ preventScroll: true }), 50); });
+  }
+  function spellOut(marks, done) {
+    let i = 0;
+    const step = () => { i++; slots(st.need.slice(0, i), marks); if (i < st.need.length) later(step, reduce ? 0 : 220); else done(); };
+    step();
+  }
+  function judged(right) { show(); if (right) win(); else miss(); }
+
+  function win() {
+    st.right++; st.streak++;
+    let promoted = false;
+    if (st.streak >= STREAK && st.rank < TITLES.length - 1) { st.rank++; st.streak = 0; promoted = true; }
+    if (st.rank >= TITLES.length - 1) st.streak = Math.min(st.streak, STREAK);
+    slots(st.need, st.need.map(() => 'won'));
+    status(promoted ? (st.rank === TITLES.length - 1 ? 'The whole court cheers… you are now a ROYAL WIZARD!' : `Three in a row! The queen names you ${TITLES[st.rank]}!`) : `Well spelled! The queen knights you for "${st.word}".`);
+    st.busy = true; knighting(promoted).then(() => { if (!root) return; st.busy = false; rank(); done(); });
+    if (!promoted) rank();
+  }
+  function miss() {
+    st.streak = 0; rank();
+    slots(st.need, st.need.map((c, i) => mode === 'type' && st.typed[i] !== c ? 'missed' : ''));
+    status(`That's all right! "${st.word}" is spelled ${st.need.join('-')}. Keep practicing, brave ${TITLES[st.rank].toLowerCase()}!`);
+    if (VOICE.canSpeak) later(() => VOICE.speak(st.word), 300);
+    done();
+  }
+  function done() {
+    const last = st.idx >= words.length - 1, nb = q('#rcNext');
+    nb.textContent = last ? 'Hold court again' : 'Next word'; show('#rcNext');
+    later(() => nb.focus({ preventScroll: true }), 300);
+  }
+
+  // the child walks up the carpet and kneels; the queen taps a shoulder with her sword; sparkles
+  async function knighting(promoted) {
+    const kid = q('#rcKid'), body = q('#rcKidBody'), sword = q('#rcSword');
+    const at = (k, s) => kid.setAttribute('transform', `translate(${KID.x} ${(KID.y - 72 * k).toFixed(1)}) scale(${(1 - .12 * k).toFixed(3)})`);
+    chime();
+    await run(650, u => at(u, 1));
+    body.setAttribute('transform', 'translate(0 4) scale(1 .88)');   // kneel
+    await run(420, u => sword.setAttribute('transform', `rotate(${(193 * u).toFixed(1)})`));
+    for (const a of [178, 193, 178, 193]) { const from = a === 178 ? 193 : 178; await run(130, u => sword.setAttribute('transform', `rotate(${(from + (a - from) * u).toFixed(1)})`)); }
+    sparkle(KID.x + 12, KID.y - 72 - 44, promoted ? 16 : 9);
+    if (promoted) { fanfare(st.rank === TITLES.length - 1); poof(); later(rank, 250); }
+    await run(380, u => sword.setAttribute('transform', `rotate(${(193 * (1 - u)).toFixed(1)})`));
+    sword.removeAttribute('transform');
+    body.removeAttribute('transform');
+    if (promoted && st.rank === TITLES.length - 1) await ceremony();
+    await run(600, u => at(1 - u, 1));
+  }
+  function sparkle(x, y, n) {
+    const fx = q('#rcFx');
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2 + Math.random() * .4, r = 30 + Math.random() * 26, g = document.createElementNS(NS, 'g');
+      g.setAttribute('transform', `translate(${x} ${y})`);
+      g.innerHTML = `<path class="rc-star" d="M0 -7 L2 -2 L7 0 L2 2 L0 7 L-2 2 L-7 0 L-2 -2 Z" fill="${['#fff3b0', '#f2c35b', '#bfe8ff'][i % 3]}" stroke="#e8a43a" stroke-width="1"/>`;
+      fx.appendChild(g);
+      const p = g.firstElementChild;
+      if (!reduce) p.animate([{ transform: 'scale(.2)', opacity: 1 }, { transform: `translate(${(Math.cos(a) * r).toFixed(1)}px, ${(Math.sin(a) * r).toFixed(1)}px) scale(1) rotate(90deg)`, opacity: 0 }], { duration: 900, easing: 'ease-out', fill: 'forwards' });
+      later(() => g.remove(), 950);
+    }
+  }
+  // a puff of smoke while the outfit changes for a new title
+  function poof() {
+    const g = document.createElementNS(NS, 'g'); g.setAttribute('transform', `translate(${KID.x} ${KID.y - 72 - 36})`);
+    g.innerHTML = '<g class="rc-poof"><circle cx="-12" cy="0" r="16" fill="#fff"/><circle cx="12" cy="-4" r="18" fill="#fff"/><circle cx="0" cy="10" r="16" fill="#fff"/></g>';
+    q('#rcFx').appendChild(g); later(() => g.remove(), 700);
+  }
+  // Royal Wizard: the queen stands, the banners wave, the court cheers
+  async function ceremony() {
+    const fx = q('#rcFx'), g = document.createElementNS(NS, 'g');
+    g.innerHTML = `<g class="rc-pop"><rect x="96" y="12" width="248" height="44" rx="10" fill="#fff3b0" stroke="#7a5210" stroke-width="3"/>
+      <text x="220" y="43" text-anchor="middle" font-family="Uncial Antiqua, serif" font-size="24" fill="#7b2d3f">Royal Wizard!</text></g>`;
+    fx.appendChild(g);
+    root.querySelectorAll('.rc-banner').forEach(b => b.classList.add('rc-wave'));
+    for (let i = 0; i < 4; i++) { sparkle(60 + Math.random() * 320, 70 + Math.random() * 150, 8); await run(260, () => {}); }
+    later(() => { g.remove(); root.querySelectorAll('.rc-banner').forEach(b => b.classList.remove('rc-wave')); }, 2600);
+  }
+
+  function next() {
+    if (st.busy) return;
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; } else st.idx++;
+    newWord();
+  }
+  return { mount, unmount, practice: PRACTICE };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
