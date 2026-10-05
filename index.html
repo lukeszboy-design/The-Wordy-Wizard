@@ -712,6 +712,60 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .rc .bw-levels button{font-size:11px;padding:2px 7px}
   .rc-long{display:none}
 }
+/* --- Feed the Baby Dragon (one letter at a time) --- */
+.fd{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,46fr) minmax(0,54fr);gap:2.2cqw;color:var(--parch-ink)}
+.fd-scene{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:.8cqw}
+.fd-scene svg{display:block;width:100%;height:auto;max-height:calc(100% - 3.6cqw);border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#2b1f33}
+.fd-grow{display:flex;align-items:center;gap:.8cqw;font:700 max(12px,1.15cqw) var(--font-read);color:#6b4a26;white-space:nowrap}
+.fd-bar{flex:1;min-width:40px;height:1.2cqw;min-height:9px;border:2px solid #3b2412;border-radius:999px;background:#fffaf0;overflow:hidden}
+.fd-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#9be38a,#2f9e57);transition:width .6s}
+.fd-side{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:1.1cqw}
+.fd .sq-top{flex-wrap:wrap}
+.fd-snacks{display:flex;flex-wrap:wrap;justify-content:center;gap:1.1cqw;min-height:6cqw;padding:.9cqw;border-radius:1.2cqw;background:rgba(122,74,34,.12);border:2px dashed #b89a62}
+.fd-snack,.fd-fly{width:5.6cqw;height:5.6cqw;min-width:48px;min-height:48px;border-radius:50%;border:2px solid #3b2412;display:grid;place-items:center;padding:0;
+  background:radial-gradient(circle at 35% 30%,var(--b1,#ffd9e8),var(--b2,#e8577e) 55%,var(--b3,#a3264f));font:700 max(20px,2.6cqw)/1 var(--font-read);color:#fff;
+  text-shadow:0 1px 0 rgba(0,0,0,.4),0 0 3px rgba(0,0,0,.35);text-transform:lowercase;box-shadow:0 .3cqw 0 rgba(59,36,18,.25)}
+.fd-snack{cursor:pointer;transition:transform .15s}
+.fd-snack:hover{transform:translateY(-2px) scale(1.05)}
+.fd-snack:focus-visible{outline:3px solid #a3401f;outline-offset:3px}
+.fd-snack.fd-hint{animation:fdhint .5s ease-in-out 3}
+@keyframes fdhint{25%{transform:rotate(-14deg) scale(1.12)}75%{transform:rotate(14deg) scale(1.12)}}
+.fd-fly{position:absolute;left:0;top:0;z-index:10;pointer-events:none}
+/* the dragon: idle bob, hungry mouth, munch, sneeze, happy dance, growing up */
+#fdHead,#fdBody,#fdMaw,.fd-eyes,.fd-puff{transform-box:fill-box}
+#fdHead{transform-origin:30% 80%}
+#fdBody{transform-origin:50% 100%}
+#fdMaw{transform-origin:50% 0;transform:scaleY(.3)}
+.fd-eyes{transform-origin:center;animation:fdblink 5s infinite}
+@keyframes fdblink{0%,95%,100%{transform:none}97%{transform:scaleY(.1)}}
+.fd-hungry #fdHead{animation:fdbob 2.4s ease-in-out infinite}
+@keyframes fdbob{50%{transform:translateY(-4px) rotate(-3deg)}}
+.fd-hungry #fdMaw{transform:scaleY(.75)}
+.fd-munch #fdMaw{animation:fdchomp .23s ease-in-out 3}
+@keyframes fdchomp{0%,100%{transform:scaleY(.15)}50%{transform:scaleY(1)}}
+.fd-munch #fdHead{animation:fdnod .23s ease-in-out 3}
+@keyframes fdnod{50%{transform:translateY(3px) rotate(4deg)}}
+.fd-sneeze #fdHead{animation:fdsneeze .8s ease-in-out}
+@keyframes fdsneeze{30%{transform:rotate(-14deg) translateY(-6px)}45%{transform:rotate(10deg) translateY(4px)}70%{transform:rotate(-3deg)}100%{transform:none}}
+.fd-puff{transform-origin:center;animation:fdpuff 1s ease-out forwards;opacity:0}
+@keyframes fdpuff{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:translate(26px,-20px) scale(2.2)}}
+.fd-dance #fdBody{animation:fddance .4s ease-in-out 4}
+@keyframes fddance{25%{transform:translateY(-14px) rotate(-6deg)}75%{transform:translateY(-14px) rotate(6deg)}}
+.fd-grew #fdBody{animation:fdgrew .9s ease-out}
+@keyframes fdgrew{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:none}}
+@media (prefers-reduced-motion: reduce){ .fd-eyes,.fd-hungry #fdHead,.fd-munch #fdMaw,.fd-munch #fdHead,.fd-sneeze #fdHead,.fd-dance #fdBody,.fd-grew #fdBody,.fd-snack.fd-hint{animation:none} .fd-puff{animation-duration:.01s} }
+@media (max-width:760px) and (orientation:portrait){
+  .fd{position:relative;left:auto;right:auto;top:auto;bottom:auto;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .fd-scene svg{max-height:38vh;width:auto;max-width:100%;margin:0 auto}
+  .fd-snack{width:52px;height:52px;font-size:22px}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .fd{top:19%;bottom:2%}
+  .fd-side{gap:5px}
+  .fd-snacks{min-height:0;padding:4px;gap:6px}
+  .fd-snack,.fd-fly{min-width:40px;min-height:40px;font-size:18px}
+  .fd-grow{font-size:11px}
+}
 </style>
 
 </head>
@@ -915,6 +969,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ================= Speech & menu logic (works with or without WebGL) ================= */
 const GAMES = {
+  feed:       { name: 'Feed the Baby Dragon', desc: 'One letter at a time', say: "Feed the Baby Dragon! It's hungry for letters. Toss in the right next letter, one at a time, and watch it grow!" },
   wordsearch: { name: "Dragon's Hoard", desc: 'Find words in the gold', say: "Word Search! Your words are hiding in a grid of letters. This spell is still brewing in my cauldron. Check back soon!" },
   hangman:    { name: 'Save the Squire', desc: 'Guess letters, build the ladder', say: "Hangman! Guess the letters one at a time before the picture is done. This spell is still brewing. Check back soon!" },
   scramble:   { name: 'Potion Mix-Up', desc: 'Put the jars in order to brew', say: "Word Scramble! I've jumbled up your letters. Can you put them back in order? This spell is still brewing!" },
@@ -2030,6 +2085,17 @@ const ICONS = {
     [[5, 37, 35, 7, '#3d6fb6'], [37, 37, 7, 7, '#c0392b']].forEach(([x1, y1, x2, y2, c]) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.strokeStyle = '#3b2412'; g.lineWidth = 5.5; g.stroke(); g.strokeStyle = c; g.lineWidth = 3; g.stroke(); });
     const p = new Path2D('M14 17 H28 V27 Q28 35 21 38 Q14 35 14 27 Z'); g.fillStyle = '#f2c35b'; g.strokeStyle = '#3b2412'; g.lineWidth = 2; g.fill(p); g.stroke(p);
     g.fillStyle = '#7b2d3f'; g.fillRect(19.5, 20, 3, 14); g.fillRect(16, 24.5, 10, 3);
+  },
+  feed(g) {
+    g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
+    const dot = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+    g.fillStyle = '#5fc48a'; g.beginPath(); g.ellipse(19, 16, 10, 9, 0, 0, 7); g.fill(); g.stroke();
+    g.beginPath(); g.ellipse(27, 19, 7, 5, 0, 0, 7); g.fill(); g.stroke();
+    dot(16, 14, 3.2, '#fff'); dot(22.5, 13.5, 2.8, '#fff'); dot(16.8, 14.4, 1.6, '#2a1a10'); dot(23, 14, 1.4, '#2a1a10');
+    const egg = new Path2D('M7 23 L11 27 L15 22 L20 27 L25 22 L29 27 L34 23 Q37 39 21 40 Q5 39 7 23 Z');
+    g.fillStyle = '#fbf3dc'; g.fill(egg); g.stroke(egg);
+    dot(15, 33, 2, '#e8c77a'); dot(27, 34, 2.4, '#e8c77a');
+    g.fillStyle = '#e8577e'; g.beginPath(); g.arc(36, 8, 3.6, 0, 7); g.fill(); g.stroke();
   },
   tiles(g) {
     g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
@@ -5499,7 +5565,275 @@ const CourtGame = (() => {
   }
   return { mount, unmount, practice: PRACTICE };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame };
+/* ================= Game: Feed the Baby Dragon (one letter at a time) ================= */
+// A hungry little dragon wants the word one letter at a time. Toss in the right next letter (a berry with the
+// letter on it) and it munches happily; toss in a wrong one and it sneezes a puff of smoke. Every word spelled
+// feeds it, and over the week it grows from an egg to a grown dragon (saved on this device; a new week of words
+// brings a new egg), which gives children a reason to come back each day.
+const FeedGame = (() => {
+  const PRACTICE = ['dragon', 'egg', 'fire', 'cave', 'wing', 'snack'];
+  // words spelled this week -> stage; tuned so a few words a day over a week grows it all the way up
+  const STAGES = [{ at: 0, name: 'Egg', scale: .6 }, { at: 1, name: 'Hatchling', scale: .68 }, { at: 5, name: 'Baby dragon', scale: .8 },
+    { at: 12, name: 'Young dragon', scale: .92 }, { at: 25, name: 'Grown dragon', scale: 1.02 }];
+  const KEY = 'wordy-wizard-baby-dragon', ABC = 'abcdefghijklmnopqrstuvwxyz', NS = 'http://www.w3.org/2000/svg';
+  const BERRIES = [['#ffd9e8', '#e8577e', '#a3264f'], ['#e6dcff', '#8a6ad8', '#4b2f91'], ['#ffe9c2', '#f29a3a', '#a8560f'],
+    ['#d8f5ff', '#3fa9d8', '#1d5f87'], ['#e2ffd0', '#5fbf4a', '#2c7a1f'], ['#fff6c2', '#e0ad2a', '#a8740f']];
+  let root, st, words, practice, timers = [], keyHandler;
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  /* ----- growth over the week ----- */
+  const week = () => WORDS.week || isoMonday();
+  function fedThisWeek() { let g = null; try { g = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {} return g && g.week === week() ? Math.max(0, g.fed | 0) : 0; }
+  function saveFed(n) { try { localStorage.setItem(KEY, JSON.stringify({ week: week(), fed: n })); } catch (e) {} }
+  const stageOf = n => STAGES.reduce((s, x, i) => n >= x.at ? i : s, 0);
+
+  /* ----- the dragon, drawn for its stage (it faces right; its feet are at 0,0) ----- */
+  function dragon(stage) {
+    const body = '#5fc48a', dark = '#3f9a66', belly = '#fde7a8', wing = '#9fe0b8', ink = '#2a1a10';
+    const ws = [0, 0, .7, .9, 1.15][stage];
+    const wingPath = 'M0 0 Q-44 -56 -70 -10 Q-54 -8 -48 4 Q-36 -6 -26 8 Q-18 -2 -4 14 Z';
+    const spikes = stage >= 1 ? `<path d="M-30 -104 L-40 -116 L-40 -98 L-50 -106 L-48 -86 L-60 -90 L-52 -70 Z" fill="${dark}"/>` : '';
+    const horns = stage >= 3 ? `<path d="M-20 -26 L-30 -${stage >= 4 ? 60 : 50} L-8 -32 Z M8 -32 L10 -${stage >= 4 ? 64 : 54} L22 -30 Z" fill="#fff3b0"/>` : '';
+    const egg = stage === 0;
+    return `<g stroke="${ink}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round">
+      ${stage >= 2 ? `<g class="fd-wings"><g transform="translate(-26 -92) scale(${ws})"><path d="${wingPath}" fill="${wing}"/></g><g transform="translate(30 -92) scale(${-ws} ${ws})"><path d="${wingPath}" fill="${wing}"/></g></g>` : ''}
+      ${egg ? '' : `<path d="M-42 -30 Q-100 -18 -96 -60 Q-92 -84 -72 -80 Q-86 -60 -74 -48 Q-62 -40 -40 -48 Z" fill="${body}"/><path d="M-74 -80 L-86 -96 L-62 -90 Z" fill="${dark}"/>`}
+      ${spikes}
+      <ellipse cx="0" cy="-60" rx="50" ry="48" fill="${body}"/>
+      <ellipse cx="6" cy="-52" rx="30" ry="34" fill="${belly}"/>
+      <path d="M-16 -70 Q6 -64 28 -70 M-20 -52 Q6 -46 32 -52 M-16 -34 Q6 -28 28 -34" fill="none" stroke="#e0b860" stroke-width="2"/>
+      ${egg ? '' : `<ellipse cx="-28" cy="-6" rx="17" ry="9" fill="${body}"/><ellipse cx="34" cy="-6" rx="17" ry="9" fill="${body}"/>
+      <path d="M-36 -2 V2 M-28 -1 V3 M-20 -2 V2 M26 -2 V2 M34 -1 V3 M42 -2 V2" stroke-width="2"/>
+      <ellipse cx="-30" cy="-74" rx="9" ry="14" fill="${body}" transform="rotate(30 -30 -74)"/><ellipse cx="42" cy="-74" rx="9" ry="14" fill="${body}" transform="rotate(-30 42 -74)"/>`}
+      ${egg ? `<path d="M-60 0 Q-68 -70 -42 -98 L-30 -86 L-18 -102 L-4 -88 L10 -104 L24 -88 L38 -100 L50 -86 Q68 -60 60 0 Z" fill="#fbf3dc"/>
+        <g fill="#e8c77a" stroke="none"><circle cx="-30" cy="-40" r="7"/><circle cx="24" cy="-24" r="9"/><circle cx="34" cy="-62" r="5"/></g>` : ''}
+      ${stage === 1 ? `<path d="M-92 0 L-88 -14 L-80 -6 L-72 -18 L-64 -4 L-62 0 Z M66 0 L70 -12 L78 -4 L86 -16 L92 0 Z" fill="#fbf3dc"/>` : ''}
+      <g transform="translate(16 -${egg ? 112 : 124})"><g id="fdHead">
+        ${horns}
+        <ellipse cx="0" cy="0" rx="40" ry="34" fill="${body}"/>
+        <ellipse id="fdMaw" cx="38" cy="22" rx="13" ry="8" fill="#7b2d3f"/>
+        <ellipse cx="30" cy="8" rx="24" ry="16" fill="${body}"/>
+        <circle cx="40" cy="3" r="2.2" fill="${dark}" stroke="none"/><circle cx="48" cy="5" r="2.2" fill="${dark}" stroke="none"/>
+        <ellipse cx="-20" cy="12" rx="7" ry="4" fill="#ff9fb4" stroke="none" opacity=".7"/>
+        <g class="fd-eyes"><ellipse cx="-10" cy="-8" rx="10" ry="12" fill="#fff"/><ellipse cx="16" cy="-10" rx="9" ry="11" fill="#fff"/>
+          <circle cx="-7" cy="-6" r="5" fill="${ink}" stroke="none"/><circle cx="18" cy="-8" r="4.5" fill="${ink}" stroke="none"/>
+          <circle cx="-5" cy="-9" r="1.8" fill="#fff" stroke="none"/><circle cx="20" cy="-11" r="1.6" fill="#fff" stroke="none"/></g>
+        <circle id="fdMouth" cx="40" cy="22" r="1" fill="none" stroke="none"/>
+        <g id="fdSmoke"></g>
+      </g></g>
+    </g>`;
+  }
+  function sceneSVG() {
+    return `<svg viewBox="0 0 420 400" role="img" aria-label="A little dragon in its nest in a cave, waiting to be fed">
+      <defs><radialGradient id="fdGlow" cx=".5" cy=".75" r=".6"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".55"/><stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/></radialGradient>
+        <clipPath id="fdClip"><rect width="420" height="400" rx="14"/></clipPath></defs>
+      <g clip-path="url(#fdClip)">
+      <rect width="420" height="400" fill="#2b1f33"/>
+      <path d="M0 400 V130 Q50 36 210 28 Q370 36 420 130 V400 Z" fill="#3d2c49"/>
+      <rect width="420" height="400" fill="url(#fdGlow)"/>
+      <g stroke="#2a1a10" stroke-width="2" stroke-linejoin="round">
+        <path d="M24 300 L36 250 L48 300 Z M44 300 L58 266 L68 300 Z" fill="#7fe0e8"/><path d="M360 296 L374 236 L388 296 Z M384 296 L396 262 L406 296 Z" fill="#c99bff"/>
+        <path d="M120 92 L130 70 L138 94 Z M300 88 L312 62 L318 90 Z" fill="#7fe0e8" opacity=".8"/>
+      </g>
+      <path d="M0 322 Q210 296 420 322 V400 H0 Z" fill="#4a3654"/>
+      <ellipse cx="210" cy="350" rx="128" ry="28" fill="#b8893f" stroke="#2a1a10" stroke-width="2.5"/>
+      <path d="M100 344 Q140 330 170 346 M180 352 Q220 336 256 352 M250 344 Q290 332 320 348 M120 360 Q160 372 200 362 M220 364 Q262 374 300 360" stroke="#7a5420" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <g id="fdPos" transform="translate(210 348) scale(.6)"><g id="fdBody"></g></g>
+      <g id="fdFx"></g>
+      </g>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    practice = !wordList.length;
+    words = shuffle(practice ? PRACTICE : wordList.filter(w => /[a-z]/i.test(w))); VOICE.warm(words);
+    st = { idx: 0, fed: fedThisWeek() };
+    root = document.createElement('div'); root.className = 'fd';
+    root.innerHTML = `
+      <div class="fd-scene">${sceneSVG()}
+        <div class="fd-grow" id="fdGrow"><span id="fdStage"></span><span class="fd-bar" role="progressbar" aria-label="How close your dragon is to growing" aria-valuemin="0" aria-valuemax="100" id="fdMeter"><i id="fdMeterBar"></i></span><span id="fdNext"></span></div>
+      </div>
+      <div class="fd-side">
+        <div class="sq-top"><span id="fdCount"></span><span id="fdFedCount"></span></div>
+        <div class="sq-slots" id="fdSlots" aria-label="The word so far"></div>
+        <p class="sq-status" id="fdStatus" aria-live="polite"></p>
+        <div class="fd-snacks" id="fdSnacks" role="group" aria-label="Letter berries to feed the dragon"></div>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="fdHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+          <button type="button" class="sq-btn primary" id="fdNextBtn" hidden>Next word</button>
+        </div>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    q('#fdSnacks').addEventListener('click', e => { const b = e.target.closest('.fd-snack'); if (b) toss(b.dataset.l, b); });
+    q('#fdHear').addEventListener('click', () => { if (VOICE.canSpeak) VOICE.speak(st.word); else peek(); });
+    q('#fdNextBtn').addEventListener('click', next);
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target.closest && e.target.closest('input,textarea'))) return;
+      if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); const l = e.key.toLowerCase(); toss(l, q(`.fd-snack[data-l="${l}"]`)); }
+      else if (e.key === 'Enter' && !q('#fdNextBtn').hidden) { e.preventDefault(); next(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    drawDragon(); growth(); newWord();
+  }
+  function unmount() {
+    VOICE.cancel(); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (root) root.remove(); root = null;
+  }
+  const status = t => { q('#fdStatus').textContent = t; };
+  function drawDragon() {
+    const s = stageOf(st.fed);
+    q('#fdBody').innerHTML = dragon(s);
+    q('#fdPos').setAttribute('transform', `translate(210 348) scale(${STAGES[s].scale})`);
+    q('.fd-scene svg').classList.add('fd-hungry');
+  }
+  function growth() {
+    const s = stageOf(st.fed), cur = STAGES[s], nx = STAGES[s + 1];
+    q('#fdStage').textContent = cur.name;
+    const k = nx ? (st.fed - cur.at) / (nx.at - cur.at) : 1;
+    q('#fdMeterBar').style.width = Math.round(k * 100) + '%'; q('#fdMeter').setAttribute('aria-valuenow', Math.round(k * 100));
+    const left = nx ? nx.at - st.fed : 0;
+    q('#fdNext').textContent = nx ? `${left} more word${left === 1 ? '' : 's'} to grow` : 'All grown up! ★';
+    q('#fdFedCount').textContent = `Words fed this week: ${st.fed}`;
+  }
+  function slots() {
+    const box = q('#fdSlots'); box.innerHTML = ''; let n = 0;
+    st.chars.forEach(ch => {
+      const s = document.createElement('span'); s.className = 'sq-slot';
+      if (/[a-z]/.test(ch)) { s.textContent = st.typed[n++] || ''; }
+      else { s.classList.add(ch === ' ' ? 'space' : 'punct'); s.textContent = ch === ' ' ? '' : ch; }
+      box.appendChild(s);
+    });
+  }
+  // the right next letter plus four others (two from the word itself when it has them), shuffled
+  function choices() {
+    const box = q('#fdSnacks'); box.innerHTML = '';
+    if (st.over) return;
+    const right = st.need[st.typed.length];
+    const fromWord = shuffle([...new Set(st.need.filter(c => c !== right))]).slice(0, 2);
+    const others = shuffle([...ABC].filter(c => c !== right && !fromWord.includes(c))).slice(0, 4 - fromWord.length);
+    shuffle([right, ...fromWord, ...others]).forEach((l, i) => {
+      const [a, b, c] = BERRIES[(i + st.typed.length) % BERRIES.length];
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fd-snack'; btn.dataset.l = l; btn.textContent = l;
+      btn.style.setProperty('--b1', a); btn.style.setProperty('--b2', b); btn.style.setProperty('--b3', c);
+      btn.setAttribute('aria-label', `Feed the letter ${l}`);
+      box.appendChild(btn);
+    });
+  }
+
+  function newWord() {
+    VOICE.cancel(); timers.forEach(clearTimeout); timers = [];
+    const word = words[st.idx];
+    Object.assign(st, { word, chars: [...word.toLowerCase()], typed: [], over: false, busy: false, misses: 0 });
+    st.need = st.chars.filter(c => /[a-z]/.test(c));
+    q('#fdCount').textContent = `Word ${st.idx + 1} of ${words.length}`;
+    q('#fdNextBtn').hidden = true; q('#fdHear').hidden = false;
+    q('.fd-scene svg').classList.remove('fd-dance');
+    slots(); choices();
+    if (VOICE.canSpeak) { status('Listen! Which letter does the dragon want first?'); later(() => VOICE.speak(word), 400); }
+    else peek();
+  }
+  // no voice on this device: show the word for a moment, then hide it
+  function peek() {
+    if (st.over) return;
+    const typed = st.typed.slice(); st.typed = st.need.slice(); slots(); status('Look closely at the word…');
+    later(() => { st.typed = typed; slots(); status('Which letter does the dragon want?'); }, 2600);
+  }
+
+  // throw a letter berry in an arc into the dragon's mouth
+  function toss(l, from) {
+    if (!root || st.over || st.busy) return;
+    st.busy = true;
+    const R = root.getBoundingClientRect(), m = q('#fdMouth').getBoundingClientRect();
+    const fb = from ? from.getBoundingClientRect() : q('#fdSnacks').getBoundingClientRect();
+    const x0 = fb.left + fb.width / 2 - R.left, y0 = fb.top + fb.height / 2 - R.top, x1 = m.left + m.width / 2 - R.left, y1 = m.top + m.height / 2 - R.top;
+    const fly = document.createElement('span'); fly.className = 'fd-fly'; fly.textContent = l;
+    if (from) ['--b1', '--b2', '--b3'].forEach(v => fly.style.setProperty(v, from.style.getPropertyValue(v)));
+    root.appendChild(fly);
+    if (from) from.style.visibility = 'hidden';
+    const mid = `translate(${((x0 + x1) / 2).toFixed(0)}px, ${(Math.min(y0, y1) - 90).toFixed(0)}px) translate(-50%, -50%) scale(.85) rotate(200deg)`;
+    const a = fly.animate([
+      { transform: `translate(${x0}px, ${y0}px) translate(-50%, -50%)` }, { transform: mid, offset: .5 },
+      { transform: `translate(${x1}px, ${y1}px) translate(-50%, -50%) scale(.35) rotate(400deg)` }],
+      { duration: reduce ? 1 : 520, easing: 'linear', fill: 'forwards' });
+    a.onfinish = () => { if (!root) return; fly.remove(); st.busy = false; if (st.over) return; l === st.need[st.typed.length] ? munch(l) : sneeze(l, from); };
+  }
+  function play(cls, ms) { const svg = q('.fd-scene svg'); svg.classList.remove(cls); void svg.getBBox(); svg.classList.add(cls); later(() => svg.classList.remove(cls), ms); }
+  function munch(l) {
+    play('fd-munch', 700);
+    st.typed.push(l); st.misses = 0; slots();
+    // the last letter: the word is finished now, so a berry already in the air can't land on it
+    if (st.typed.length === st.need.length) { st.over = true; q('#fdSnacks').innerHTML = ''; return later(done, 450); }
+    status(['Yum!', 'Crunch!', 'Delicious!', 'Nom nom!'][st.typed.length % 4] + ' What letter comes next?');
+    choices();
+  }
+  function sneeze(l, from) {
+    play('fd-sneeze', 900);
+    // a small grey puff from its nose
+    const smoke = q('#fdSmoke');
+    for (let i = 0; i < 3; i++) {
+      const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', 50 + i * 8); c.setAttribute('cy', 2 - i * 6); c.setAttribute('r', 7 - i);
+      c.setAttribute('fill', '#cfcadb'); c.setAttribute('class', 'fd-puff'); c.style.animationDelay = (i * .08) + 's';
+      smoke.appendChild(c); later(() => c.remove(), 1200);
+    }
+    if (from) from.style.visibility = '';
+    st.misses++;
+    status(`Achoo! The dragon doesn't want "${l}" yet. Try another letter.`);
+    if (st.misses >= 3) {   // a nudge toward the right berry
+      const right = q(`.fd-snack[data-l="${st.need[st.typed.length]}"]`);
+      if (right) { right.classList.remove('fd-hint'); void right.offsetWidth; right.classList.add('fd-hint'); }
+      status('Achoo! Psst: the dragon wants the wiggling berry.');
+    }
+  }
+  function done() {
+    st.over = true; q('#fdSnacks').innerHTML = '';
+    const before = stageOf(st.fed); st.fed++; saveFed(st.fed);
+    const after = stageOf(st.fed);
+    play('fd-dance', 1600); hearts();
+    if (VOICE.canSpeak) later(() => VOICE.speak(st.word), 300);
+    if (after > before) {
+      later(() => { drawDragon(); sparkle(); play('fd-grew', 900); growth(); }, reduce ? 50 : 1300);
+      status(`You spelled "${st.word}"! Your dragon ate so well it grew into a ${STAGES[after].name.toLowerCase()}!`);
+    } else { growth(); status(`You spelled "${st.word}"! The dragon is full and happy.`); }
+    const last = st.idx >= words.length - 1, nb = q('#fdNextBtn');
+    q('#fdHear').hidden = true; nb.textContent = last ? 'Feed it the words again' : 'Next word'; nb.hidden = false;
+    later(() => nb.focus({ preventScroll: true }), 900);
+  }
+  function hearts() {
+    const fx = q('#fdFx');
+    for (let i = 0; i < 6; i++) {
+      const g = document.createElementNS(NS, 'path');
+      g.setAttribute('d', 'M0 4 C-8 -4 -4 -12 0 -6 C4 -12 8 -4 0 4 Z');
+      g.setAttribute('fill', ['#ff7aa2', '#f2c35b', '#ff9fb4'][i % 3]); g.setAttribute('stroke', '#2a1a10'); g.setAttribute('stroke-width', '1.2');
+      const x = 150 + Math.random() * 120, y = 200 + Math.random() * 60;
+      g.setAttribute('transform', `translate(${x.toFixed(0)} ${y.toFixed(0)}) scale(1.6)`);
+      fx.appendChild(g);
+      g.animate([{ opacity: 0, transform: `translate(${x}px, ${y}px) scale(.6)` }, { opacity: 1, offset: .2 }, { opacity: 0, transform: `translate(${x + (Math.random() - .5) * 40}px, ${y - 110}px) scale(1.8)` }],
+        { duration: reduce ? 1 : 1400, delay: i * 90, easing: 'ease-out', fill: 'forwards' });
+      later(() => g.remove(), 2000);
+    }
+  }
+  function sparkle() {
+    const fx = q('#fdFx');
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2, g = document.createElementNS(NS, 'text');
+      g.textContent = '★'; g.setAttribute('font-size', '20'); g.setAttribute('fill', '#f2c35b'); g.setAttribute('stroke', '#7a5210'); g.setAttribute('text-anchor', 'middle');
+      fx.appendChild(g);
+      g.animate([{ transform: 'translate(210px, 260px) scale(.3)', opacity: 1 }, { transform: `translate(${(210 + Math.cos(a) * 150).toFixed(0)}px, ${(260 + Math.sin(a) * 120).toFixed(0)}px) scale(1.2)`, opacity: 0 }],
+        { duration: reduce ? 1 : 1100, easing: 'ease-out', fill: 'forwards' });
+      later(() => g.remove(), 1300);
+    }
+  }
+  function next() {
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; } else st.idx++;
+    newWord();
+  }
+  return { mount, unmount, practice: PRACTICE };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
