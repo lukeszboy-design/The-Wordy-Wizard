@@ -368,7 +368,8 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .bw-meter{height:1.4cqw;min-height:10px;border-radius:999px;border:2px solid #3b2412;background:#fffaf0;overflow:hidden}
 .bw-meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#f2c35b,#e8743b,#c0392b);transition:width .25s linear}
 .bw-meter-label{font:700 max(11px,1.05cqw) var(--font-read);color:#6b4a26;text-align:center}
-.bw-side{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1cqw}
+.bw-side{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:.7cqw}
+.bw .px-hint{margin:0;font-size:max(11px,1cqw);line-height:1.3}   /* keeps the help line inside the frame */
 .bw-top{display:flex;justify-content:space-between;align-items:center;gap:1cqw;flex-wrap:wrap;font:700 max(12px,1.2cqw) var(--font-read);color:#6b4a26;font-variant-numeric:tabular-nums}
 .bw-levels{display:flex;gap:.4cqw}
 .bw-levels button{font:700 max(11px,1.1cqw) var(--font-read);padding:.3cqw .9cqw;border:2px solid #3b2412;border-radius:999px;background:#fffaf0;color:#3b2412;cursor:pointer}
@@ -1086,8 +1087,8 @@ const GAMES = {
 const SPREADS = [
   { heads: ['Choose', 'a Spell'], games: ['wordsearch', 'hangman', 'scramble', 'missing'] },
   { heads: ['More', 'Spells'], games: ['listen', 'spot', 'joust', 'tiles'] },
-  { heads: ['Rare', 'Spells'], games: ['vowels', 'memory', 'sort', 'crossword'] },
-  { heads: ['Secret', 'Spells'], games: ['bee'] }
+  { heads: ['Rare', 'Spells'], games: ['vowels', 'memory', 'sort', 'bee'] },
+  { heads: ['Secret', 'Spells'], games: ['feed', 'bridge', 'crossword'] }
 ];
 let mPage = 0, turnHook = null, gameHook = null;
 function chooseGame(k) { if (gameHook) gameHook(k); else say(GAMES[k].say); }
