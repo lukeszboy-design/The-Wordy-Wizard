@@ -1,0 +1,8 @@
+# The Wordy Wizard classroom service. Publish with:  npx wrangler deploy   (from this folder)
+name = "wordy-wizard-classroom"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+[[kv_namespaces]]
+binding = "CLASSES"
+id = "set-after-creating-the-namespace"

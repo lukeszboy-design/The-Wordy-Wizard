@@ -97,6 +97,15 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .drop input{position:absolute;width:1px;height:1px;opacity:0}
 .fmt{display:flex;gap:12px;align-items:flex-start;margin-top:10px;font-size:13px;color:#6b4a26}
 .fmt pre{margin:0;padding:8px 12px;background:#fffaf0;border:1px solid #c9a660;border-radius:8px;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;color:#3b2412}
+.class-box{border:2px solid var(--ink);border-radius:12px;padding:4px 12px 8px;margin:0 0 12px}
+.class-box legend{font-weight:700;padding:0 6px}
+.class-box p{margin:6px 0 0;font-size:14px;line-height:1.4;color:#6b4a26}
+.class-box .msg{margin-top:6px;min-height:0}
+.class-code{font:400 36px/1.1 var(--font-display);letter-spacing:.14em;color:#5a2414}
+.class-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.class-row input{width:5.5em;font:700 22px var(--font-read);letter-spacing:.2em;text-align:center;padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:#2a1a10}
+/* a device that joined a classroom shows the teacher's list without the tools for changing it */
+.panel-joined .tabs,.panel-joined #paneType,.panel-joined #paneCsv,.panel-joined #clearWrap,.panel-joined #pSave,.panel-joined .chip button{display:none}
 .list-head{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px;font-weight:700}
 .list-head span{font-size:14px;color:#6b4a26;font-variant-numeric:tabular-nums}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;min-height:44px}
@@ -691,6 +700,7 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
     <h2 id="panelTitle">This week's spelling words</h2>
     <p class="sub">Add the words your child is practicing. Every game in the spellbook will use this list.</p>
     <label class="field">Week of <input type="date" id="pWeek"></label>
+    <fieldset class="class-box"><legend>Classroom</legend><div id="classBody"></div><p class="msg" id="classMsg" role="status"></p></fieldset>
     <div class="tabs" role="tablist">
       <button type="button" class="tab" role="tab" id="tabType" aria-selected="true" aria-controls="paneType">Type words</button>
       <button type="button" class="tab" role="tab" id="tabCsv" aria-selected="false" aria-controls="paneCsv">Upload a CSV</button>
@@ -1166,7 +1176,7 @@ function renderList() {
 function openPanel() {
   draft = WORDS.words.slice(); $('pWeek').value = WORDS.week || isoMonday();
   $('pMsg').textContent = ''; $('csvResult').innerHTML = ''; selectTab('type');
-  renderList(); panel.hidden = false; setTimeout(() => $('pWord').focus(), 30);
+  renderList(); CLASSROOM.render(); panel.hidden = false; setTimeout(() => (CLASSROOM.joined ? $('pCancel') : $('pWord')).focus(), 30);
 }
 function selectTab(which) {
   const t = which === 'type';
@@ -1224,12 +1234,99 @@ $('pSave').addEventListener('click', () => {
   try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) { saved = false; }
   closeModal(panel); onWordsChanged(); VOICE.warm(WORDS.words);
   const n = WORDS.words.length;
+  if (CLASSROOM.teaching) {
+    CLASSROOM.share().then(() => true, () => false).then(ok => say(ok ? "Splendid! I've written your spelling words into my spellbook, and sent them to your classroom." : "I've written your words into my spellbook, but I couldn't reach your classroom. Press Save again when you're online."));
+    return;
+  }
   say(n ? "Splendid! I've written your spelling words into my spellbook for this week." + (saved ? '' : " This browser won't let me remember them after you close the page.") : "My word list is empty now. Add some words when you're ready!");
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (!panel.hidden) closeModal(panel); else if (!gate.hidden) closeModal(gate);
 });
+
+/* ================= Classroom: a teacher shares the week's words under a 4-digit code ================= */
+// The teacher enters words once and makes a code; each family enters the code in Grown-ups and gets the words,
+// which refresh on their own whenever the app opens. The words live in a small service (classroom-api/, a
+// Cloudflare Worker). Only the teacher's device holds the key that can change them.
+const CLASSROOM = (() => {
+  const API = (() => { try { return localStorage.getItem('wordy-wizard-classroom-api'); } catch (e) { return null; } })() || 'https://wordy-wizard-classroom.REPLACE-ME.workers.dev';
+  const KEY = 'wordy-wizard-classroom';
+  let me = null;   // { role: 'teacher', code, key } or { role: 'student', code, updated }
+  try { me = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  const keep = () => { try { me ? localStorage.setItem(KEY, JSON.stringify(me)) : localStorage.removeItem(KEY); } catch (e) {} };
+  const msg = (t, ok) => { const m = $('classMsg'); m.className = 'msg' + (ok ? ' ok' : ''); m.textContent = t; };
+  async function call(method, path, body, key) {
+    const headers = {}; if (body) headers['Content-Type'] = 'application/json'; if (key) headers.Authorization = 'Bearer ' + key;
+    let r; try { r = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: 'no-store' }); }
+    catch (e) { throw Object.assign(new Error("The classroom couldn't be reached. Check the internet connection and try again."), { status: 0 }); }
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(j.error ? j.error[0].toUpperCase() + j.error.slice(1) + '.' : 'Something went wrong. Please try again.'), { status: r.status });
+    return j;
+  }
+  // a classroom's list becomes this device's list
+  function useWords(c) {
+    WORDS = { week: c.week || isoMonday(), words: c.words.slice() };
+    try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
+    onWordsChanged(); VOICE.warm(WORDS.words);
+  }
+  function render() {
+    const body = $('classBody'), role = me && me.role;
+    panel.classList.toggle('panel-joined', role === 'student');
+    $('pWeek').disabled = role === 'student'; $('pCancel').textContent = role === 'student' ? 'Close' : 'Cancel';
+    if (role === 'teacher') body.innerHTML = `<p>Your classroom code</p><div class="class-code">${me.code}</div>
+      <p>Families enter this code here in Grown-ups to get your words. Each time you press <b>Save words</b>, your class gets the new list.</p>
+      <div class="class-row"><button type="button" class="btn" id="classForget">Stop sharing from this device</button></div>`;
+    else if (role === 'student') body.innerHTML = `<p>These words come from classroom</p><div class="class-code">${me.code}</div>
+      <p>They update on their own when the teacher changes them.</p>
+      <div class="class-row"><button type="button" class="btn" id="classLeave">Leave classroom</button></div>`;
+    else body.innerHTML = `<p><b>Teachers:</b> enter the words below, then make a code so your class gets them automatically.</p>
+      <div class="class-row"><button type="button" class="btn primary" id="classMake">Create a classroom code</button></div>
+      <p><b>Joining a class?</b> Enter the 4-digit code from the teacher.</p>
+      <form class="class-row" id="classJoin" autocomplete="off"><input id="classCode" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" aria-label="Classroom code"><button type="submit" class="btn">Join</button></form>`;
+    const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+    on('classMake', 'click', create); on('classLeave', 'click', leave); on('classForget', 'click', forget);
+    on('classJoin', 'submit', e => { e.preventDefault(); join($('classCode').value.trim()); });
+  }
+  async function create() {
+    if (!draft.length) { msg('Add some words first, then make the code.'); return; }
+    const b = $('classMake'); b.disabled = true; msg('Making your classroom…', true);
+    try {
+      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft });
+      me = { role: 'teacher', code: r.code, key: r.key }; keep();
+      WORDS = { week, words: draft.slice() }; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
+      onWordsChanged(); VOICE.warm(WORDS.words);
+      render(); msg(`Done! Give families the code ${r.code}.`, true);
+    } catch (e) { b.disabled = false; msg(e.message); }
+  }
+  async function join(code) {
+    if (!/^\d{4}$/.test(code)) { msg('Classroom codes are 4 numbers, like 4821.'); return; }
+    msg('Finding the classroom…', true);
+    try {
+      const c = await call('GET', '/classes/' + code);
+      me = { role: 'student', code, updated: c.updated }; keep(); useWords(c);
+      draft = WORDS.words.slice(); $('pWeek').value = WORDS.week; renderList(); render();
+      msg(`Joined! ${c.words.length} word${c.words.length === 1 ? '' : 's'} for this week.`, true);
+    } catch (e) { msg(e.status === 404 ? 'No classroom has that code. Check the numbers and try again.' : e.message); }
+  }
+  function leave() { me = null; keep(); render(); msg('You left the classroom. The words stay here, and you can change them.', true); }
+  function forget() { me = null; keep(); render(); msg('This device no longer updates the classroom. Families keep the last words you sent.', true); }
+  // a teacher's Save sends the new list to the class
+  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words }, me.key) : Promise.resolve(); }
+  // a family's device picks up the teacher's latest words when the app opens (and again later in the day)
+  let lastSync = 0;
+  async function sync() {
+    if (!me || me.role !== 'student' || Date.now() - lastSync < 10 * 60e3) return;
+    lastSync = Date.now();
+    try {
+      const c = await call('GET', '/classes/' + me.code);
+      if (c.updated !== me.updated) { me.updated = c.updated; keep(); useWords(c); }
+    } catch (e) {}
+  }
+  sync();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+  return { render, share, get teaching() { return !!me && me.role === 'teacher'; }, get joined() { return !!me && me.role === 'student'; } };
+})();
 document.getElementById('k-wizard').addEventListener('click', quip);
 const monday = (() => { const n = new Date(), m = new Date(n); m.setDate(n.getDate() - ((n.getDay() + 6) % 7)); return m.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
 

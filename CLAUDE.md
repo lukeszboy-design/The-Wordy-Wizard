@@ -11,6 +11,7 @@ Spelling games for elementary students. Parents enter the week's words by hand o
   - Spelling words are recorded in the browser: the Kokoro model (~90 MB, kokoro-js from jsdelivr, model from Hugging Face) runs in a Web Worker, and finished clips are saved in the browser's cache so later visits don't need the model. The browser's own voice is the fallback.
 - Hosted on GitHub Pages from the `main` branch at https://lukeszboy-design.github.io/The-Wordy-Wizard/ (repo: lukeszboy-design/The-Wordy-Wizard).
 - Word lists and progress are saved in the browser with localStorage. Don't break existing saved data when changing its format.
+- Classrooms: in Grown-ups a teacher can create a 4-digit classroom code; families enter it to get the teacher's words, which refresh whenever the app opens. The lists live in a small Cloudflare Worker with KV storage in `classroom-api/` (publish with `npx wrangler deploy` from that folder). Only the teacher's device holds the key that can change a class's words; the code alone can only read them. The app's `CLASSROOM` module talks to it.
 
 ## Design direction
 - Opening scene is a real 3D cartoon wizard's castle lair (chosen over 2.5D).
