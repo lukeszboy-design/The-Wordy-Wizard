@@ -766,6 +766,38 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .fd-snack,.fd-fly{min-width:40px;min-height:40px;font-size:18px}
   .fd-grow{font-size:11px}
 }
+/* --- Drawbridge Dash (letter by letter) --- */
+.db{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,47fr) minmax(0,53fr);gap:2.2cqw;color:var(--parch-ink)}
+.db-scene{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.db-scene svg{display:block;width:100%;height:auto;max-height:100%;border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25);background:#9fd3ff}
+.db-side{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:1.1cqw}
+.db-plank{fill:rgba(255,250,240,.35);stroke:#7a5a3a;stroke-width:1.2;stroke-dasharray:3 2}
+.db-plank.lit{fill:#a8743f;stroke:#2a1a10;stroke-width:1.6;stroke-dasharray:none}
+.db .sq-slots.db-many .sq-slot{box-sizing:border-box;width:2.4cqw;height:3.4cqw;min-width:18px;min-height:26px;font-size:max(14px,2cqw);border-bottom-width:4px}
+.db .sq-slots.db-lots{gap:.35cqw}
+.db .sq-slots.db-lots .sq-slot{border-width:1.5px;border-bottom-width:3px;width:1.75cqw;height:2.7cqw;min-width:14px;min-height:22px;font-size:max(12px,1.6cqw)}
+.db .sq-slot.db-hint{color:#a3401f;opacity:.55}
+.db-monster{transform-box:fill-box}
+.db-blub{font:700 16px var(--font-read);fill:#22577a;stroke:#fff;stroke-width:3;paint-order:stroke}
+.db-spark{font-size:16px}
+.db-running .db-leg-a{transform-box:fill-box;transform-origin:50% 0;animation:dbleg .16s ease-in-out infinite alternate}
+.db-running .db-leg-b{transform-box:fill-box;transform-origin:50% 0;animation:dbleg .16s ease-in-out infinite alternate-reverse}
+@keyframes dbleg{from{transform:rotate(-28deg)}to{transform:rotate(28deg)}}
+.db-won #dbFlag{transform-box:fill-box;transform-origin:0 50%;animation:flag .5s ease-in-out infinite alternate}
+@media (prefers-reduced-motion: reduce){ .db-running .db-leg-a,.db-running .db-leg-b,.db-won #dbFlag{animation:none} }
+@media (max-width:760px) and (orientation:portrait){
+  .db{position:static;display:flex;flex-direction:column;gap:12px;padding:8px 16px 20px}
+  .db-scene svg{max-height:none}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .db{top:19%;bottom:2%}
+  .db-side{gap:4px}
+  .db-side > *{flex-shrink:0}   /* nothing squashes into its neighbour on short screens */
+  .db .sq-slots{min-height:0}
+  .db .sq-slots.db-many .sq-slot{height:auto;min-height:20px;min-width:14px;font-size:12px;border-bottom-width:3px}
+  .db .sq-slots.db-lots .sq-slot{min-height:18px;min-width:12px;font-size:11px}
+  .db .sq-key{min-height:25px}
+}
 </style>
 
 </head>
@@ -969,6 +1001,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ================= Speech & menu logic (works with or without WebGL) ================= */
 const GAMES = {
+  bridge:     { name: 'Drawbridge Dash', desc: 'Lower the bridge letter by letter', say: "Drawbridge Dash! Every right letter lowers the drawbridge one plank, so the knight can cross the moat!" },
   feed:       { name: 'Feed the Baby Dragon', desc: 'One letter at a time', say: "Feed the Baby Dragon! It's hungry for letters. Toss in the right next letter, one at a time, and watch it grow!" },
   wordsearch: { name: "Dragon's Hoard", desc: 'Find words in the gold', say: "Word Search! Your words are hiding in a grid of letters. This spell is still brewing in my cauldron. Check back soon!" },
   hangman:    { name: 'Save the Squire', desc: 'Guess letters, build the ladder', say: "Hangman! Guess the letters one at a time before the picture is done. This spell is still brewing. Check back soon!" },
@@ -2096,6 +2129,15 @@ const ICONS = {
     g.fillStyle = '#fbf3dc'; g.fill(egg); g.stroke(egg);
     dot(15, 33, 2, '#e8c77a'); dot(27, 34, 2.4, '#e8c77a');
     g.fillStyle = '#e8577e'; g.beginPath(); g.arc(36, 8, 3.6, 0, 7); g.fill(); g.stroke();
+  },
+  bridge(g) {
+    g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
+    g.fillStyle = '#4fa3d1'; g.fillRect(4, 30, 34, 9);
+    g.fillStyle = '#b9b3c6'; g.fill(new Path2D('M27 8 H38 V30 H27 Z')); g.stroke(new Path2D('M27 8 H38 V30 H27 Z'));
+    g.fillStyle = '#1d1426'; g.fill(new Path2D('M29 30 V22 Q32.5 18 36 22 V30 Z'));
+    g.fillStyle = '#a8743f'; const p = new Path2D('M29 30 L6 24 L6 27.5 L29 33.5 Z'); g.fill(p); g.stroke(p);
+    g.strokeStyle = '#4a4458'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(27, 10); g.lineTo(7, 24); g.stroke();
+    g.fillStyle = '#5fbf7a'; g.beginPath(); g.arc(17, 36, 4, Math.PI, 0); g.fill(); g.fillStyle = '#fff'; g.fillRect(14.5, 33.5, 2, 2); g.fillRect(18, 33.5, 2, 2);
   },
   tiles(g) {
     g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.8;
@@ -5833,7 +5875,244 @@ const FeedGame = (() => {
   }
   return { mount, unmount, practice: PRACTICE };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame };
+/* ================= Game: Drawbridge Dash (spell it letter by letter) ================= */
+// The wizard says a word and the child spells it in order. Each right letter lowers the drawbridge one plank
+// across the moat; a wrong letter just makes the friendly moat monster peek up and blow bubbles (he never
+// catches anyone). When the word is done the knight dashes across and the castle gate opens.
+const BridgeGame = (() => {
+  const ABC = 'abcdefghijklmnopqrstuvwxyz', NS = 'http://www.w3.org/2000/svg';
+  const HINGE = [306, 300], LEN = 172;   // the bridge pivots at the gate's foot and reaches the far bank when down
+  const PRACTICE = ['bridge', 'moat', 'castle', 'knight', 'gate', 'tower'];
+  let root, st, words, practice, timers = [], keyHandler, raf = 0;
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  function sceneSVG() {
+    return `<svg viewBox="0 0 440 400" role="img" aria-label="A knight waits by a moat while a castle's drawbridge is raised">
+      <defs><linearGradient id="dbSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fd3ff"/><stop offset="1" stop-color="#fff0d2"/></linearGradient>
+        <linearGradient id="dbWater" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fa3d1"/><stop offset="1" stop-color="#22577a"/></linearGradient>
+        <clipPath id="dbClip"><rect width="440" height="400" rx="14"/></clipPath>
+        <clipPath id="dbGateClip"><path d="M316 300 V244 Q316 214 346 214 Q376 214 376 244 V300 Z"/></clipPath></defs>
+      <g clip-path="url(#dbClip)">
+      <rect width="440" height="400" fill="url(#dbSky)"/>
+      <circle cx="70" cy="56" r="22" fill="#fff3b0"/>
+      <g fill="#fff" opacity=".9"><ellipse cx="190" cy="60" rx="34" ry="11"/><ellipse cx="216" cy="52" rx="22" ry="10"/></g>
+      <path d="M0 230 Q90 205 180 222 Q240 230 300 215 V260 H0 Z" fill="#8cc777"/>
+      <g stroke="#2a1a10" stroke-width="2.5" stroke-linejoin="round">
+        <rect x="380" y="70" width="52" height="240" fill="#b9b3c6"/>
+        <path d="M376 72 h8 v-14 h10 v14 h8 v-14 h10 v14 h8 v-14 h10 v14 h6" fill="#b9b3c6"/>
+        <rect x="300" y="140" width="140" height="170" fill="#c9c3d6"/>
+        <path d="M300 142 h10 v-14 h12 v14 h12 v-14 h12 v14 h12 v-14 h12 v14 h12 v-14 h12 v14 h12 v-14 h12 v14 h10" fill="#c9c3d6"/>
+        <path d="M398 70 V30" stroke-width="3"/><path id="dbFlag" d="M399 32 L428 40 L399 50 Z" fill="#c0392b"/>
+        <rect x="396" y="110" width="12" height="20" rx="6" fill="#3b2412"/>
+        <path d="M316 300 V244 Q316 214 346 214 Q376 214 376 244 V300 Z" fill="#1d1426"/>
+        <g clip-path="url(#dbGateClip)"><g id="dbPort" stroke="#6b6b78" stroke-width="3"><path d="M326 300 V214 M338 300 V214 M350 300 V214 M362 300 V214 M318 240 H374 M318 262 H374 M318 284 H374"/></g></g>
+        <path d="M316 300 V244 Q316 214 346 214 Q376 214 376 244 V300" fill="none"/>
+      </g>
+      <g stroke="#6b5a4a" stroke-width="1.2" opacity=".6"><path d="M310 170 H360 M330 190 H380 M396 160 H430 M404 200 H436 M386 250 H430 M310 280 H306"/></g>
+      <path d="M0 300 H134 L130 400 H0 Z" fill="#7db86a" stroke="#2a1a10" stroke-width="2.5"/>
+      <path d="M0 300 H134" stroke="#2a1a10" stroke-width="2.5"/>
+      <rect x="296" y="300" width="148" height="100" fill="#8b7f99" stroke="#2a1a10" stroke-width="2.5"/>
+      <g id="dbChains" stroke="#4a4458" stroke-width="2.5" stroke-dasharray="4 3" fill="none"><path id="dbChainA"/></g>
+      <g transform="translate(222 360)"><g class="db-monster" id="dbMonster">
+        <g stroke="#2a1a10" stroke-width="2.4" stroke-linejoin="round">
+          <path d="M-30 30 Q-32 -8 0 -12 Q32 -8 30 30 Z" fill="#5fbf7a"/>
+          <path d="M-22 -6 L-28 -22 L-14 -10 M22 -6 L28 -22 L14 -10" fill="#5fbf7a"/>
+          <circle cx="-10" cy="2" r="8" fill="#fff"/><circle cx="10" cy="2" r="8" fill="#fff"/>
+          <circle cx="-8" cy="4" r="3.5" fill="#2a1a10" stroke="none"/><circle cx="12" cy="4" r="3.5" fill="#2a1a10" stroke="none"/>
+          <path d="M-8 16 Q0 21 8 16" fill="none"/>
+        </g>
+      </g></g>
+      <rect x="132" y="312" width="166" height="88" fill="url(#dbWater)"/>
+      <path d="M132 312 q10 -5 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t6 0" fill="none" stroke="#bfe6ff" stroke-width="2"/>
+      <path d="M132 312 V400 M298 312 V400" stroke="#2a1a10" stroke-width="2.5"/>
+      <g id="dbBubbles"></g>
+      <g id="dbBridge" transform="rotate(90 ${HINGE[0]} ${HINGE[1]})"><g id="dbPlanks"></g></g>
+      <g id="dbKnight" transform="translate(70 300)">
+        <g class="db-legs" stroke="#2a1a10" stroke-width="2.4" stroke-linejoin="round">
+          <rect class="db-leg db-leg-a" x="-8" y="-24" width="7" height="24" rx="3" fill="#b9b3c6"/>
+          <rect class="db-leg db-leg-b" x="2" y="-24" width="7" height="24" rx="3" fill="#b9b3c6"/>
+        </g>
+        <g stroke="#2a1a10" stroke-width="2.4" stroke-linejoin="round">
+          <rect x="-11" y="-56" width="22" height="34" rx="6" fill="#b9b3c6"/>
+          <rect x="-11" y="-50" width="22" height="24" rx="3" fill="#3d6fb6"/><path d="M0 -46 V-31 M-5 -39 H5" stroke="#f2c35b" stroke-width="3"/>
+          <path d="M-12 -56 Q-12 -78 0 -80 Q12 -78 12 -56 Z" fill="#cfcadb"/><path d="M1 -67 H12" stroke-width="2.6"/>
+          <path d="M-4 -79 Q-20 -94 -26 -76 Q-14 -86 -4 -74 Z" fill="#3d6fb6"/>
+          <path d="M8 -50 H24 V-38 Q24 -28 16 -24 Q8 -28 8 -38 Z" fill="#3d6fb6"/><circle cx="16" cy="-39" r="3.5" fill="#f2c35b"/>
+        </g>
+      </g>
+      <g id="dbFx"></g>
+      </g>
+    </svg>`;
+  }
+
+  function mount(container, wordList) {
+    const usable = wordList.filter(w => /[a-z]/i.test(w));
+    practice = !usable.length;
+    words = shuffle(practice ? PRACTICE : usable); VOICE.warm(words);
+    st = { idx: 0, crossed: 0 };
+    root = document.createElement('div'); root.className = 'db';
+    root.innerHTML = `
+      <div class="db-scene">${sceneSVG()}</div>
+      <div class="db-side">
+        <div class="sq-top"><span id="dbCount"></span><span id="dbCrossed"></span></div>
+        <div class="sq-slots" id="dbSlots" aria-label="Your spelling"></div>
+        <p class="sq-status" id="dbStatus" aria-live="polite"></p>
+        <div class="sq-keys" id="dbKeys" role="group" aria-label="Letters"></div>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="dbHear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hear the word</button>
+          <button type="button" class="sq-btn primary" id="dbNext" hidden>Next word</button>
+        </div>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    const keys = q('#dbKeys');
+    [...ABC].forEach(l => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sq-key'; b.textContent = l; b.dataset.l = l; b.setAttribute('aria-label', `Letter ${l}`); keys.appendChild(b); });
+    keys.addEventListener('click', e => { const b = e.target.closest('.sq-key'); if (b) guess(b.dataset.l); });
+    q('#dbHear').addEventListener('click', () => { if (VOICE.canSpeak) VOICE.speak(st.word); else peek(); });
+    q('#dbNext').addEventListener('click', next);
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target.closest && e.target.closest('input,textarea'))) return;
+      if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); guess(e.key.toLowerCase()); }
+      else if (e.key === 'Enter' && !q('#dbNext').hidden) { e.preventDefault(); next(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    newWord();
+  }
+  function unmount() {
+    VOICE.cancel(); cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (root) root.remove(); root = null;
+  }
+  const status = t => { q('#dbStatus').textContent = t; };
+
+  // the bridge: one plank per letter, lit as each right letter is spelled; it lowers a step per letter
+  function buildPlanks() {
+    const g = q('#dbPlanks'), n = st.need.length, w = LEN / n;
+    g.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const r = document.createElementNS(NS, 'rect');
+      r.setAttribute('x', (HINGE[0] - (i + 1) * w + .6).toFixed(1)); r.setAttribute('y', HINGE[1] - 9);
+      r.setAttribute('width', Math.max(1, w - 1.2).toFixed(1)); r.setAttribute('height', 11); r.setAttribute('rx', Math.min(2, w / 4).toFixed(1));
+      r.setAttribute('class', 'db-plank'); g.appendChild(r);
+    }
+  }
+  const angleFor = k => 90 * (1 - k / st.need.length);
+  function setAngle(a) {
+    st.angle = a;
+    q('#dbBridge').setAttribute('transform', `rotate(${a.toFixed(2)} ${HINGE[0]} ${HINGE[1]})`);
+    const r = a * Math.PI / 180, tx = HINGE[0] - LEN * Math.cos(r), ty = HINGE[1] - LEN * Math.sin(r);
+    q('#dbChainA').setAttribute('d', `M304 150 L${tx.toFixed(1)} ${(ty - 4).toFixed(1)}`);
+  }
+  function lowerTo(a) {
+    cancelAnimationFrame(raf);
+    const a0 = st.angle, t0 = performance.now(), D = reduce ? 1 : 420;
+    const step = ms => { if (!root) return; const u = Math.min(1, (ms - t0) / D), e = 1 - (1 - u) * (1 - u); setAngle(a0 + (a - a0) * e); if (u < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+  }
+  function slots() {
+    const box = q('#dbSlots'); box.innerHTML = ''; let n = 0;
+    box.classList.toggle('db-many', st.chars.length > 10); box.classList.toggle('db-lots', st.chars.length > 18);   // long words get smaller boxes
+    st.chars.forEach(ch => {
+      const s = document.createElement('span'); s.className = 'sq-slot';
+      if (/[a-z]/.test(ch)) { const i = n++; s.textContent = i < st.got ? ch : (i === st.got && st.hint ? ch : ''); if (i === st.got && st.hint) s.classList.add('db-hint'); }
+      else { s.classList.add(ch === ' ' ? 'space' : 'punct'); s.textContent = ch === ' ' ? '' : ch; }
+      box.appendChild(s);
+    });
+  }
+  function newWord() {
+    VOICE.cancel(); cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = [];
+    const word = words[st.idx];
+    Object.assign(st, { word, chars: [...word.toLowerCase()], got: 0, misses: 0, hint: false, over: false });
+    st.need = st.chars.filter(c => /[a-z]/.test(c));
+    root.querySelectorAll('#dbKnight, #dbPort, #dbFlag, #dbMonster').forEach(e => e.getAnimations().forEach(a => a.cancel()));
+    q('#dbKnight').setAttribute('transform', 'translate(70 300)'); q('#dbKnight').style.opacity = '';
+    q('.db-scene svg').classList.remove('db-won', 'db-running');
+    q('#dbFx').innerHTML = ''; q('#dbBubbles').innerHTML = '';
+    buildPlanks(); setAngle(90); slots();
+    q('#dbCount').textContent = `Word ${st.idx + 1} of ${words.length}`;
+    q('#dbCrossed').textContent = `Knights across: ${st.crossed}`;
+    q('#dbNext').hidden = true; q('#dbHear').hidden = false;
+    root.querySelectorAll('#dbKeys .sq-key').forEach(b => { b.disabled = false; b.classList.remove('right', 'wrong'); });
+    status('Listen, then spell it to lower the bridge.');
+    if (VOICE.canSpeak) later(() => VOICE.speak(st.word), 450); else peek();
+  }
+  // no voice on this device: show the word for a moment, then hide it
+  function peek() {
+    if (st.over) return;
+    const box = q('#dbSlots'); [...box.children].forEach((s, i) => { if (st.chars[i] && /[a-z]/.test(st.chars[i])) s.textContent = st.chars[i]; });
+    later(slots, 2600);
+  }
+  function guess(l) {
+    if (!st || st.over) return;
+    if (l === st.need[st.got]) {
+      st.got++; st.misses = 0; st.hint = false; slots();
+      const plank = q('#dbPlanks').children[st.got - 1]; if (plank) plank.classList.add('lit');
+      lowerTo(angleFor(st.got));
+      if (st.got === st.need.length) return won();
+      status(st.got === 1 ? 'Clank! The drawbridge is coming down. Keep going!' : ['Clank!', 'Another plank!', 'Down it comes!', 'Nice!'][st.got % 4]);
+    } else {
+      st.misses++; monster();
+      if (st.misses >= 3) { st.hint = true; slots(); status(`Blub! The moat monster whispers: the next letter is "${st.need[st.got]}".`); }
+      else status(st.misses === 1 ? 'Blub! That letter splashed into the moat. Try another one.' : 'Blub blub! Listen to the word again if you need to.');
+    }
+  }
+  // the friendly moat monster pops up, blows bubbles and sinks again
+  function monster() {
+    const m = q('#dbMonster');
+    m.getAnimations().forEach(a => a.cancel());
+    m.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-58px)', offset: .25 }, { transform: 'translateY(-54px)', offset: .75 }, { transform: 'translateY(0)' }], { duration: reduce ? 900 : 1300, easing: 'ease-in-out' });
+    const b = q('#dbBubbles'); b.innerHTML = '';
+    [[-14, 0], [6, .15], [18, .3]].forEach(([dx, d]) => {
+      const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', 222 + dx); c.setAttribute('cy', 316); c.setAttribute('r', 4 + Math.random() * 3);
+      c.setAttribute('fill', 'none'); c.setAttribute('stroke', '#e6f6ff'); c.setAttribute('stroke-width', 2); b.appendChild(c);
+      if (!reduce) c.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-46px)', opacity: 0 }], { duration: 1100, delay: 250 + d * 1000, fill: 'both' });
+    });
+    const t = document.createElementNS(NS, 'text'); t.setAttribute('x', 262); t.setAttribute('y', 292); t.setAttribute('class', 'db-blub'); t.textContent = 'blub!';
+    b.appendChild(t); later(() => { if (t.isConnected) t.remove(); }, 1300);
+  }
+  function won() {
+    st.over = true; st.crossed++;
+    root.querySelectorAll('#dbKeys .sq-key').forEach(b => b.disabled = true);
+    q('#dbCrossed').textContent = `Knights across: ${st.crossed}`;
+    status('You spelled it! The bridge is down and the knight dashes across.');
+    q('#dbHear').hidden = true;
+    const port = q('#dbPort'), knight = q('#dbKnight'), svg = q('.db-scene svg');
+    later(() => {
+      port.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-82px)' }], { duration: reduce ? 1 : 700, easing: 'ease-out', fill: 'forwards' });
+      svg.classList.add('db-running');
+      // the dash: across the bank, over the bridge, through the gate
+      const t0 = performance.now(), D = reduce ? 1 : 1700;
+      const run = ms => {
+        if (!root) return;
+        const u = Math.min(1, (ms - t0) / D), x = 70 + (352 - 70) * (u * u * (3 - 2 * u)), hop = reduce ? 0 : Math.abs(Math.sin(u * 18)) * 3;
+        knight.setAttribute('transform', `translate(${x.toFixed(1)} ${(300 - hop).toFixed(1)})`);
+        if (u > .85) knight.style.opacity = String(Math.max(0, (1 - u) / .15));
+        if (u < 1) { raf = requestAnimationFrame(run); return; }
+        svg.classList.remove('db-running'); svg.classList.add('db-won'); cheer();
+      };
+      raf = requestAnimationFrame(run);
+    }, 500);
+    const last = st.idx >= words.length - 1, nb = q('#dbNext');
+    nb.textContent = last ? 'Cross them all again' : 'Next word'; nb.hidden = false;
+    later(() => nb.focus({ preventScroll: true }), 900);
+  }
+  function cheer() {
+    const fx = q('#dbFx');
+    for (let i = 0; i < 10; i++) {
+      const s = document.createElementNS(NS, 'text'); s.setAttribute('x', 330 + (Math.random() - .5) * 120); s.setAttribute('y', 200); s.setAttribute('class', 'db-spark'); s.textContent = '★';
+      s.setAttribute('fill', ['#f2c35b', '#e8743b', '#fff3b0'][i % 3]); fx.appendChild(s);
+      if (!reduce) s.animate([{ transform: 'translateY(0) scale(.4)', opacity: 1 }, { transform: `translateY(${-50 - Math.random() * 60}px) scale(1)`, opacity: 0 }], { duration: 900 + Math.random() * 500, delay: i * 60, fill: 'both' });
+    }
+  }
+  function next() {
+    if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.crossed = 0; } else st.idx++;
+    newWord();
+  }
+  return { mount, unmount, practice: PRACTICE };
+})();
+const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame, bridge: BridgeGame };
 
 let ACTIVE_GAME = null;
 /* ================= Wand wave, sparkles, and the water-swirl transition ================= */
