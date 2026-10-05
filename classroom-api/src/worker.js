@@ -6,7 +6,7 @@
 // The code only lets someone read the words. Changing them needs the teacher's key, which only the
 // teacher's device holds; the service keeps just a fingerprint (SHA-256) of it.
 
-const WORD_RE = /^[A-Za-z][A-Za-z'’\- ]{0,29}$/, WEEK_RE = /^(\d{4}-\d{2}-\d{2})?$/, MAX_WORDS = 50;
+const WORD_RE = /^[A-Za-z][A-Za-z'’\- ]{0,29}$/, WEEK_RE = /^(\d{4}-\d{2}-\d{2})?$/, MAX_WORDS = 150;
 const CREATES_PER_HOUR = 5;   // per network address, so nobody can fill the service with junk classes
 
 function allowedOrigin(origin) {

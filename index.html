@@ -722,7 +722,7 @@ wizard
 potion</pre><span>One word per row in the first column. A header row such as “word” is fine. Other columns are ignored.</span></div>
       <div id="csvResult"></div>
     </div>
-    <div class="list-head">Word list <span id="pCount">0 of 50</span></div>
+    <div class="list-head">Word list <span id="pCount">0 of 150</span></div>
     <ul class="chips" id="pList"></ul>
     <p class="msg" id="pMsg" role="status"></p>
     <div class="row-end">
@@ -842,7 +842,7 @@ function say(text) {
 const quip = () => say(QUIPS[qi++ % QUIPS.length]);
 
 /* ================= Grown-ups lock: spelled-out math gate + word list ================= */
-const WORDS_KEY = 'wordy-wizard-words-v1', MAX_WORDS = 50;
+const WORDS_KEY = 'wordy-wizard-words-v1', MAX_WORDS = 150;
 const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
 const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
 const numWords = n => n < 20 ? ONES[n] : n < 100 ? TENS[(n / 10) | 0] + (n % 10 ? '-' + ONES[n % 10] : '') : ONES[(n / 100) | 0] + ' hundred' + (n % 100 ? ' ' + numWords(n % 100) : '');
