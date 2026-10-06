@@ -2885,12 +2885,21 @@ turnHook = turnPage;
 
 /* ================= Game: Save the Squire (hangman) ================= */
 const SQ_SAMPLE = ['castle', 'knight', 'wizard', 'potion', 'dragon', 'tower'];
+// When Next is tapped before a round's effects finish: cancels the animations the game started (so their
+// onfinish never runs into the new round) and empties its effect layers. CSS animations are left running.
+function endEffects(root, ...layers) {
+  if (root.getAnimations) root.getAnimations({ subtree: true }).forEach(a => {
+    if (!(window.CSSAnimation && a instanceof CSSAnimation) && !(window.CSSTransition && a instanceof CSSTransition)) a.cancel();
+  });
+  layers.forEach(sel => { const el = root.querySelector(sel); if (el) el.innerHTML = ''; });
+}
 const SquireGame = (() => {
   const MAX_WRONG = 6, LETTERS = 'abcdefghijklmnopqrstuvwxyz';
   const B = { x: 158, y: 420 }, T = { x: 226, y: 132 };   // ladder base and top
   const LOOSE = [[1, 0], [3, 2], [5, 1], [6, 3], [8, 0], [10, 2]];
   const HAY = { x: 376, y: 350 };   // where the squire lands in the hay cart
-  let root, st, keyHandler, words, practice, raf = 0;
+  let root, st, keyHandler, words, practice, raf = 0, timers = [];
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
   const q = sel => root.querySelector(sel);
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -3031,7 +3040,7 @@ const SquireGame = (() => {
   }
   function unmount() {
     if (keyHandler) document.removeEventListener('keydown', keyHandler);
-    cancelAnimationFrame(raf); VOICE.cancel();
+    cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = []; VOICE.cancel();
     if (root) root.remove(); root = null;
   }
   const speak = w => VOICE.speak(w);
@@ -3051,8 +3060,10 @@ const SquireGame = (() => {
     });
     root.querySelectorAll('.sq-key').forEach(k => { k.disabled = false; k.className = 'sq-key'; });
     q('#sqNext').hidden = true;
-    // reset scene
-    root.querySelectorAll('.sq-stone').forEach(s => { s.getAnimations().forEach(a => a.cancel()); s.style.transform = ''; s.style.opacity = ''; });
+    // reset scene (stopping anything still moving from the last word)
+    cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = []; endEffects(root, '#sqFx');
+    q('#sqTower').classList.remove('sq-shake');
+    root.querySelectorAll('.sq-stone').forEach(s => { s.style.transform = ''; s.style.opacity = ''; });
     q('#sqCracks').innerHTML = ''; q('#sqRungs').innerHTML = ''; q('#sqFx').innerHTML = '';
     setRails(0); drawGhostRungs(letters.length);
     q('#sqLegs').setAttribute('opacity', 0);
@@ -3131,7 +3142,7 @@ const SquireGame = (() => {
     const cracks = q('#sqCracks'), cx = bx + bw / 2, cy = by + 6;
     cracks.insertAdjacentHTML('beforeend', `<path d="M${cx} ${cy} l${side * 6} -9 l${side * -3} -7 M${cx} ${cy + 14} l${side * -7} 8"/>`);
     const tower = q('#sqTower'); tower.classList.remove('sq-shake'); void tower.getBBox(); tower.classList.add('sq-shake');
-    setTimeout(() => puff(cx + dx, 428), 600);
+    later(() => puff(cx + dx, 428), 600);
   }
   function puff(x, y) {
     const fx = q('#sqFx'); if (!fx) return;
@@ -3162,14 +3173,14 @@ const SquireGame = (() => {
     root.querySelectorAll('.sq-key').forEach(k => k.disabled = true);
     const last = st.idx >= words.length - 1;
     const nb = q('#sqNext'); nb.textContent = last ? 'Play again' : 'Next word'; nb.hidden = false;
-    setTimeout(() => { if (root && !nb.hidden) nb.focus(); }, 50);
+    later(() => { if (!nb.hidden) nb.focus(); }, 50);
   }
   function win() {
     st.saved++; q('#sqSaved').textContent = `Squires saved: ${st.saved}`;
     revealAll(false); q('#sqSlots').classList.add('won');
     placeKnight(.9);
     const sq = q('#sqSquire'); sq.setAttribute('class', ''); setMood('happy');
-    setTimeout(() => { if (!root) return; q('#sqSquireInner').setAttribute('class', 'sq-hop'); sparkleBurst(282, 80); sparkleBurst(226, 110); }, 650);
+    later(() => { q('#sqSquireInner').setAttribute('class', 'sq-hop'); sparkleBurst(282, 80); sparkleBurst(226, 110); }, 650);
     status(`You saved the squire! The word was "${st.word}".`);
     speak(st.word);
     endRound();
@@ -3201,7 +3212,7 @@ const SquireGame = (() => {
   function next() {
     if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.saved = 0; }
     else st.idx++;
-    newWord();
+    VOICE.cancel(); newWord();
     const first = root.querySelector('.sq-key'); if (first) first.focus();
   }
   return { mount, unmount, practice: SQ_SAMPLE };   // (practice: the words used when no list is set; the launcher readies the voice for them)
@@ -3983,8 +3994,14 @@ const CrierGame = (() => {
     }, 900);
   }
   function newWord(first) {
+    // stop the last word's calls and cheers; a notice still on its way is nailed up at once
+    timers.forEach(clearTimeout); timers = [];
+    if (st.notePending) postNote();
+    endEffects(root, '#tcFx');
+    q('.tc-scene svg').classList.remove('tc-ringing'); q('#tcCrier').classList.remove('tc-calling');
+    q('#tcSayText').textContent = 'Hear ye!'; q('#tcMouth').setAttribute('ry', 1.5);
     const word = words[st.idx];
-    Object.assign(st, { word, answer: clean(word), tries: 0, over: false, calls: 0 });
+    Object.assign(st, { word, answer: clean(word), tries: 0, over: false, calls: 0, notePending: false });
     VOICE.warm([CRY, 'Huzzah!'], .8, true); VOICE.warm([word], .55);
     q('#tcCount').textContent = `Word ${st.idx + 1} of ${words.length}`;
     q('#tcPosted').textContent = `Notices posted: ${st.posted}`;
@@ -4035,7 +4052,7 @@ const CrierGame = (() => {
     q('#tcForm').classList.remove('wobble'); void q('#tcForm').offsetWidth; q('#tcForm').classList.add('posted');
     q('#tcBrows').setAttribute('d', 'M-14 -151 Q-10 -154 -5 -151 M1 -151 Q5 -154 10 -151');
     status(`Huzzah! "${st.word}" is posted on the town board.`);
-    later(postNote, 450);
+    st.notePending = true; later(postNote, 450);
     later(() => { const c = q('#tcCrier'); c.classList.add('tc-calling'); q('#tcSayText').textContent = 'Huzzah!'; if (canSpeak) say(st.word, .8, null, 'Huzzah!'); }, 900);
     later(() => q('#tcCrier').classList.remove('tc-calling'), 2600);
     const last = st.idx >= words.length - 1, nb = q('#tcNext');
@@ -4044,6 +4061,7 @@ const CrierGame = (() => {
     later(() => nb.focus(), 700);
   }
   function postNote() {
+    st.notePending = false;
     const notes = q('#tcNotes');
     if (notes.children.length >= SLOTS.length) notes.firstElementChild.remove();
     const [x, y] = SLOTS[st.notes++ % SLOTS.length];
@@ -4065,7 +4083,7 @@ const CrierGame = (() => {
   }
   function next() {
     if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.posted = 0; } else st.idx++;
-    newWord(false);
+    VOICE.cancel(); newWord(false);
   }
   return { mount, unmount, practice: ['bell', 'town', 'notice', 'crown', 'castle', 'market'] };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
@@ -4234,7 +4252,7 @@ const WallGame = (() => {
   function status(t) { q('#bwStatus').textContent = t; }
 
   function newWord() {
-    stopTimer();
+    stopTimer(); timers.forEach(clearTimeout); timers = []; endEffects(root, '#bwFx');
     const word = words[st.idx], chars = [...word.toLowerCase()];
     const letterIdx = chars.map((c, i) => /[a-z]/.test(c) ? i : -1).filter(i => i >= 0);
     const L = LEVELS[level];
@@ -4360,7 +4378,7 @@ const WallGame = (() => {
   }
   function next() {
     if (st.idx >= words.length - 1) { words = shuffle(words); st.idx = 0; st.fixed = 0; } else st.idx++;
-    newWord();
+    VOICE.cancel(); newWord();
   }
   return { mount, unmount, practice: ['castle', 'stone', 'tower', 'shield', 'knight', 'gate'] };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
@@ -4539,7 +4557,7 @@ const JesterGame = (() => {
   function status(t) { q('#jtStatus').textContent = t; }
 
   function newRound() {
-    timers.forEach(clearTimeout); timers = [];
+    timers.forEach(clearTimeout); timers = []; endEffects(root, '#jtFx');
     const word = st.targets[st.idx], trick = misspell(word), n = LEVELS[level].banners;
     if (!trick) { st.targets.splice(st.idx, 1); if (!st.targets.length) st.targets = ['crown']; if (st.idx >= st.targets.length) st.idx = 0; return newRound(); }
     const others = shuffle([...new Set(words.filter(w => w !== word))]);
@@ -4665,7 +4683,7 @@ const JesterGame = (() => {
 
   function next() {
     if (st.idx >= st.targets.length - 1) { st.targets = shuffle(st.targets); st.idx = 0; st.pies = 0; } else st.idx++;
-    newRound();
+    VOICE.cancel(); newRound();
   }
   return { mount, unmount, practice: ['crown', 'jester', 'banner', 'royal', 'castle', 'juggle'] };   // (practice: the words used when no list is set; the launcher readies the voice for them)
 })();
@@ -5437,8 +5455,7 @@ const ForgeGame = (() => {
     Object.assign(st, { word, chars, need: chars.filter(c => /[a-z]/.test(c)), done: 0, over: false, tries: 0 });
     q('#fgCount').textContent = `Sword ${st.idx + 1} of ${words.length}`;
     q('#fgNext').hidden = true; q('#fgHint').hidden = false;
-    q('#fgSword').getAnimations().forEach(a => a.cancel()); q('#fgSword').classList.remove('fg-glow');
-    q('#fgFx').innerHTML = ''; q('#fgHammer').setAttribute('transform', `translate(418 ${BLADE.y + 40})`);   // the hammer rests by the anvil
+    endEffects(root, '#fgFx'); q('#fgSword').classList.remove('fg-glow'); q('#fgHammer').setAttribute('transform', `translate(418 ${BLADE.y + 40})`);   // the hammer rests by the anvil
     // the pieces, shuffled (never already in order)
     let order = shuffle(st.need);
     for (let n = 0; n < 6 && st.need.length > 1 && order.join('') === st.need.join(''); n++) order = shuffle(st.need);
