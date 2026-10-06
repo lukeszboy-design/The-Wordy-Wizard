@@ -19,7 +19,7 @@ Spelling games for elementary students. Parents enter the week's words by hand o
 - Opening scene is a real 3D cartoon wizard's castle lair (chosen over 2.5D).
 - Players pick games from an open spellbook.
 - Current games: Dragon's Hoard, Save the Squire, Potion Mix-Up, Broken Castle Wall, The Town Crier, The Jester's Tricks, The Joust, Forge the Sword, Gem Mine, Shield Match, Stable Sort (grown-ups pick the sort; it travels with a classroom), The Royal Court, Feed the Baby Dragon (grows over the week) and Drawbridge Dash. Crossword is the one placeholder left.
-- Each game is a module (`const XGame = (() => { ... return { mount, unmount, practice } })()`) listed in `GAME_MODULES`, with an entry in `GAMES`, an icon in `ICONS` and a place in `SPREADS`. Games start through `launch()`, which waits for the voice before mounting.
+- Each game is a module (`const XGame = (() => { ... return { mount, unmount, practice } })()`) listed in `GAME_MODULES`, with an entry in `GAMES`, an icon in `ICONS` and a place in `SPREADS`. Games start through `launch()`, which waits for the voice before mounting. The game modules and `launch()` sit before the WebGL check (`if (!window.THREE) { fail(); return; }`) so they still work on devices without 3D, where `openFlat()` opens a game straight from the list of spells. Keep game code free of three.js and put new games there too.
 - The wizard's room has easter eggs: tap Webster the spider or a potion (`EGGS`).
 
 ## Style
