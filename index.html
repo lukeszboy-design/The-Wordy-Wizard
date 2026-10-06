@@ -106,13 +106,19 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .class-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .class-row input{width:5.5em;font:700 22px var(--font-read);letter-spacing:.2em;text-align:center;padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:#2a1a10}
 /* a device that joined a classroom shows the teacher's list without the tools for changing it */
-.panel-joined .tabs,.panel-joined #paneType,.panel-joined #paneCsv,.panel-joined #clearWrap,.panel-joined #pSave,.panel-joined .chip button{display:none}
+.panel-joined .tabs,.panel-joined #paneType,.panel-joined #paneCsv,.panel-joined #clearWrap,.panel-joined #pSave,.panel-joined .chip button:not(.hear){display:none}
 .voice-wait{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(233,210,153,.94);color:var(--parch-ink)}
 .voice-wait div{display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px;text-align:center;font:700 max(16px,1.8cqw) var(--font-read)}
 .game-screen .back-btn{z-index:21}   /* children can still leave while the voice warms up */
 .vw-bar{display:block;width:min(320px,60vw);height:14px;border:2px solid var(--ink);border-radius:999px;background:#fffaf0;overflow:hidden}
 .vw-bar i{display:block;height:100%;width:4%;background:linear-gradient(90deg,#f2c35b,#e8743b);transition:width .25s}
 .voice-wait small{font:400 14px var(--font-read);color:#6b4a26}
+.chip .hear{background:transparent;font-size:15px}
+.say-fix{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0;font-size:15px}
+.say-fix input{width:9em;font:16px var(--font-read);padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:#2a1a10}
+.say-fix .hint{flex-basis:100%;margin:0}
+.voice-note{margin-top:10px}
+.panel-joined .say-fix{display:none}
 .list-head{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px;font-weight:700}
 .list-head span{font-size:14px;color:#6b4a26;font-variant-numeric:tabular-nums}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none;min-height:44px}
@@ -1033,6 +1039,10 @@ potion</pre><span>One word per row in the first column. A header row such as “
     </div>
     <div class="list-head">Word list <span id="pCount">0 of 150</span></div>
     <ul class="chips" id="pList"></ul>
+    <form class="say-fix" id="sayFix" hidden autocomplete="off">"<b id="sayWord"></b>" sounds wrong? Say it like:
+      <input id="sayAs" placeholder="e.g. red" aria-label="How the word should sound" autocapitalize="off" spellcheck="false" maxlength="30"> <button type="submit" class="btn">Re-record</button>
+      <span class="hint" id="sayMsg" role="status"></span></form>
+    <p class="hint voice-note">Tap 🔊 to hear a word. To read the words aloud, your spelling words are sent to the Wordy Wizard's voice server, which records each word once.</p>
     <p class="msg" id="pMsg" role="status"></p>
     <div class="row-end">
       <span id="clearWrap"><button type="button" class="btn danger" id="pClear">Clear list</button></span>
@@ -1207,7 +1217,9 @@ const MUSIC = (() => {
   return { duck: () => { base = GAME; apply(); }, lair: () => { base = LAIR; apply(); }, talk: v => { if (talking !== v) { talking = v; apply(); } }, unlock, ready: readyP };
 })();
 
-/* ================= Voices: real voices for any word, made in the browser, with the device's own voice as backup ================= */
+// the Wordy Wizard service (a Cloudflare Worker in classroom-api/): classrooms, and the recorded spelling-word voice
+const SERVICE = (() => { try { return localStorage.getItem('wordy-wizard-classroom-api'); } catch (e) { return null; } })() || 'https://wordy-wizard-classroom.classroom-api.workers.dev';
+/* ================= Voices: the wizard's own voice, the recorded spelling-word voice, and the device's own voice as backup ================= */
 // Two voices from the Kokoro speech engine: the wizard's own (George), whose everyday lines come pre-recorded in
 // voice.txt (made by tools/make_voice.py), and the word voice that reads spelling words in every game, a warm
 // British blend of Emma and George (word-voice.bin, made by tools/make_word_voice.py). The engine (~90 MB,
@@ -1215,6 +1227,8 @@ const MUSIC = (() => {
 // answer instantly without loading it at all.
 // Phones, tablets and Chromebooks can't run the engine well (big download, slow, memory), and school filters often
 // block it, so there (and on any computer while the engine isn't ready in time) the device's own voice reads the word.
+// Spelling words in the games are read by MeloTTS: the service records each word once (when a word list is saved)
+// and every device plays that recording; the device's own voice covers any word that isn't recorded yet.
 const VOICE = (() => {
   // iPhone/iPad: play voices as "playback" audio so the ring/silent switch doesn't mute them (iOS 16.4+)
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
@@ -1276,9 +1290,32 @@ const VOICE = (() => {
   const WIZARD = 'bm_george', WORDS_VOICE = 'bf_lily';   // (the word voice speaks through Lily's slot; see the worker)
   // the browser's slow-reading rates (.55–.8) map onto gentler Kokoro speeds; words go a touch slower still
   const speedFor = rate => Math.round((.35 + .65 * rate) * 100) / 100;
-  const pick = (rate, wizard) => wizard ? { voice: WIZARD, speed: speedFor(rate) } : { voice: WORDS_VOICE, speed: Math.round(speedFor(rate) * .94 * 100) / 100 };
-  // clip names: George's keep their original "speed|text"; the word voice's say which blend made them
-  const keyFor = (text, speed, voice) => (voice === WIZARD ? '' : 'blend1|') + speed + '|' + text;
+  // ---- the spelling-word voice: MeloTTS recordings from the service ----
+  // (a grown-up can change how a word is said, e.g. "read" said like "red": WORDS.say maps the word to that spelling)
+  const CLOUD = 'melo', SAY_RE = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, PHRASES = ['Hear ye, hear ye! The word is:', 'Huzzah!'];
+  const sayAs = t => (WORDS.say || {})[String(t).toLowerCase()] || String(t);
+  const cloudable = t => SAY_RE.test(t) || PHRASES.includes(t);
+  const decoder = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 24000);
+  // ask the service to record words it doesn't have yet (a few at a time, as the service asks)
+  async function record(list) {
+    const ws = [...new Set((list || []).map(sayAs).filter(cloudable))];
+    for (let i = 0; i < ws.length; i += 4) {
+      try { await fetch(SERVICE + '/voices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ words: ws.slice(i, i + 4) }) }); } catch (e) { return; }
+    }
+  }
+  async function cloud(text) {
+    const t = sayAs(text); if (!cloudable(t)) return null;
+    const get = () => fetch(SERVICE + '/voices/' + encodeURIComponent(t)).then(r => r.status === 200 ? r.arrayBuffer() : r.status === 204 ? 404 : null);   // 204: not recorded yet
+    try {
+      let b = await get();
+      if (b === 404) { await record([t]); b = await get(); }
+      if (!b || b === 404) return null;
+      return await new Promise((ok, no) => decoder.decodeAudioData(b, buf => ok({ pcm: buf.getChannelData(0), rate: buf.sampleRate }), no));
+    } catch (e) { return null; }
+  }
+  const pick = (rate, wizard) => wizard ? { voice: WIZARD, speed: speedFor(rate) } : { voice: CLOUD, speed: 1 };
+  // clip names: George's keep their original "speed|text"; the spelling-word voice's are "melo1|" + what's said
+  const keyFor = (text, speed, voice) => voice === CLOUD ? 'melo1|' + sayAs(text) : (voice === WIZARD ? '' : 'blend1|') + speed + '|' + text;
   // the shelf: finished clips kept as 16-bit sound in the browser's cache; ones unused for 60 days are swept away
   const shelf = ('caches' in window ? caches.open('wordy-wizard-voice-v1') : Promise.resolve(null)).catch(() => null);
   const slot = key => new Request('wizard-voice/' + encodeURIComponent(key));
@@ -1341,6 +1378,7 @@ const VOICE = (() => {
     pending.add(key);
     bundle.then(() => clips.get(key) || fromShelf(key)).then(a => {
       if (a) { deliver(key, a); return; }
+      if (voice === CLOUD) { cloud(text).then(c => { if (c) shelve(key, c); deliver(key, c); }); return; }
       if (state === 'failed') { deliver(key, null); return; }
       const job = { key, text, speed, voice }; hurry.has(key) ? queue.unshift(job) : queue.push(job);
       start(); pump();
@@ -1398,10 +1436,10 @@ const VOICE = (() => {
       else onend();
     };
     full.slice().reverse().forEach(t => request(t, speed, voice, true, a => { if (a && have()) go('clip'); else if (!a && !synth) go('none'); }));
-    // a saved clip arrives in moments; a fresh one takes a second or two once the engine is running. The device's
+    // a saved clip arrives in moments; a new recording or the wizard's engine takes a second or two. The device's
     // voice steps in if it isn't here quickly, so a child is never left waiting in silence.
-    start();
-    setTimeout(() => go('native'), synth ? (state === 'ready' ? 1800 : 700) : (state === 'ready' ? 10000 : 60000));
+    if (wizard) start();
+    setTimeout(() => go('native'), !wizard ? (synth ? 2500 : 15000) : synth ? (state === 'ready' ? 1800 : 700) : (state === 'ready' ? 10000 : 60000));
     return true;
   }
   // record the week's words ahead of time so "hear it" buttons answer instantly; `soon` puts them next in line
@@ -1416,11 +1454,11 @@ const VOICE = (() => {
   // ready to read this list: every word already saved, or the engine up and able to make them
   function wordsReady(list) {
     const ws = (list || []).filter(Boolean).map(String), { voice, speed } = pick(.8, false);
-    const soon = new Promise(r => setTimeout(r, synth ? 1500 : 120000));   // with the device's voice as backup, games never wait long
-    if (!ws.length) { start(); return Promise.race([up, soon]); }
-    return Promise.race([up, soon, Promise.all(ws.map(w => new Promise(r => request(w, speed, voice, false, r))))]);
+    const soon = new Promise(r => setTimeout(r, synth ? 2500 : 20000));   // with the device's voice as backup, games never wait long
+    if (!ws.length) return Promise.resolve();
+    return Promise.race([soon, Promise.all(ws.map(w => new Promise(r => request(w, speed, voice, false, r))))]);
   }
-  return { speak, cancel, warm, wordsReady, prepare, has, get loaded() { return loaded; }, get failed() { return state === 'failed'; }, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); nativeUnlock(); }, get canSpeak() { return !!synth || (ENGINE && state !== 'failed'); }, get native() { return !!synth && (!ENGINE || state !== 'ready'); } };
+  return { speak, cancel, warm, wordsReady, prepare, has, get loaded() { return loaded; }, get failed() { return state === 'failed'; }, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); nativeUnlock(); }, record, get canSpeak() { return !!synth || navigator.onLine !== false; }, get native() { return !!synth && (!ENGINE || state !== 'ready'); } };
 })();
 VOICE.warm(WORDS.words);
 /* ================= Title screen: the castle from outside while the lair, music and voice load ================= */
@@ -1512,7 +1550,8 @@ $('gateCancel').addEventListener('click', () => closeModal(gate));
 lockBtn.addEventListener('click', openGate);
 
 /* ----- word panel ----- */
-let draft = [];
+let draft = [], draftSay = {};   // draftSay: words a grown-up asked to be said differently, e.g. { read: 'red' }
+const pruneSay = list => { const out = {}; list.forEach(w => { const k = w.toLowerCase(); if (draftSay[k]) out[k] = draftSay[k]; }); return out; };
 const WORD_RE = /^[A-Za-z][A-Za-z'’\- ]{0,29}$/;
 function cleanWord(w) { return w.replace(/^[\s"']+|[\s"']+$/g, '').replace(/\s+/g, ' '); }
 function addWords(list, replace) {
@@ -1538,14 +1577,32 @@ function renderList() {
   draft.forEach((w, i) => {
     const li = document.createElement('li'); li.className = 'chip';
     const s = document.createElement('span'); s.textContent = w;
+    const h = document.createElement('button'); h.type = 'button'; h.className = 'hear'; h.textContent = '🔊'; h.setAttribute('aria-label', 'Hear ' + w);
+    h.addEventListener('click', () => hearWord(w));
     const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + w);
     x.addEventListener('click', () => { draft.splice(i, 1); renderList(); $('pMsg').textContent = ''; });
-    li.append(s, x); ul.appendChild(li);
+    li.append(s, h, x); ul.appendChild(li);
   });
   $('pCount').textContent = `${draft.length} of ${MAX_WORDS}`;
   resetClear();
 }
+// hear a word as the games will say it; if it sounds wrong (like "read" or "wind"), type how it should sound
+let fixing = null;
+function hearWord(w) {
+  const as = draftSay[w.toLowerCase()];
+  VOICE.speak(as || w);
+  fixing = w; $('sayFix').hidden = false; $('sayWord').textContent = w; $('sayAs').value = as || ''; $('sayMsg').textContent = '';
+}
+$('sayFix').addEventListener('submit', async e => {
+  e.preventDefault(); if (!fixing) return;
+  const as = $('sayAs').value.trim(), k = fixing.toLowerCase();
+  if (!as) { delete draftSay[k]; $('sayMsg').textContent = 'Back to the normal sound. Press Save words to keep it.'; VOICE.speak(fixing); return; }
+  if (!/^[A-Za-z][A-Za-z'’\-]{0,29}$/.test(as)) { $('sayMsg').textContent = 'Type one word, like "red" or "reed".'; return; }
+  $('sayMsg').textContent = 'Recording…'; await VOICE.record([as]);
+  draftSay[k] = as; VOICE.speak(as); $('sayMsg').textContent = `Now "${fixing}" is said like "${as}". Press Save words to keep it.`;
+});
 function openPanel() {
+  draftSay = Object.assign({}, WORDS.say || {}); fixing = null; $('sayFix').hidden = true;
   draft = WORDS.words.slice(); $('pWeek').value = WORDS.week || isoMonday();
   $('pMsg').textContent = ''; $('csvResult').innerHTML = ''; selectTab('type');
   renderList(); CLASSROOM.render(); showSortChoice(); panel.hidden = false; setTimeout(() => (CLASSROOM.joined ? $('pCancel') : $('pWord')).focus(), 30);
@@ -1609,10 +1666,10 @@ function askClear() {
 }
 $('pCancel').addEventListener('click', () => closeModal(panel));
 $('pSave').addEventListener('click', () => {
-  WORDS = { week: $('pWeek').value || isoMonday(), words: draft.slice() };
+  WORDS = { week: $('pWeek').value || isoMonday(), words: draft.slice(), say: pruneSay(draft) };
   let saved = true;
   try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) { saved = false; }
-  closeModal(panel); onWordsChanged(); VOICE.warm(WORDS.words);
+  closeModal(panel); onWordsChanged(); VOICE.record(WORDS.words).then(() => VOICE.warm(WORDS.words));   // new words are recorded once, then ready
   const n = WORDS.words.length;
   if (CLASSROOM.teaching) {
     CLASSROOM.share().then(() => true, () => false).then(ok => say(ok ? "Splendid! I've written your spelling words into my spellbook, and sent them to your classroom." : "I've written your words into my spellbook, but I couldn't reach your classroom. Press Save again when you're online."));
@@ -1630,7 +1687,7 @@ document.addEventListener('keydown', e => {
 // which refresh on their own whenever the app opens. The words live in a small service (classroom-api/, a
 // Cloudflare Worker). Only the teacher's device holds the key that can change them.
 const CLASSROOM = (() => {
-  const API = (() => { try { return localStorage.getItem('wordy-wizard-classroom-api'); } catch (e) { return null; } })() || 'https://wordy-wizard-classroom.classroom-api.workers.dev';
+  const API = SERVICE;
   const KEY = 'wordy-wizard-classroom';
   let me = null;   // { role: 'teacher', code, key } or { role: 'student', code, updated }
   try { me = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
@@ -1647,7 +1704,7 @@ const CLASSROOM = (() => {
   // a classroom's list becomes this device's list
   function useWords(c) {
     if (c.sortBy) sortBy(c.sortBy);
-    WORDS = { week: c.week || isoMonday(), words: c.words.slice() };
+    WORDS = { week: c.week || isoMonday(), words: c.words.slice(), say: c.say || {} };
     try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
     onWordsChanged(); VOICE.warm(WORDS.words);
   }
@@ -1673,10 +1730,10 @@ const CLASSROOM = (() => {
     if (!draft.length) { msg('Add some words first, then make the code.'); return; }
     const b = $('classMake'); b.disabled = true; msg('Making your classroom…', true);
     try {
-      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft, sortBy: sortBy() });
+      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft, sortBy: sortBy(), say: pruneSay(draft) });
       me = { role: 'teacher', code: r.code, key: r.key }; keep();
-      WORDS = { week, words: draft.slice() }; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
-      onWordsChanged(); VOICE.warm(WORDS.words);
+      WORDS = { week, words: draft.slice(), say: pruneSay(draft) }; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
+      onWordsChanged(); VOICE.record(WORDS.words).then(() => VOICE.warm(WORDS.words));
       render(); msg(`Done! Give families the code ${r.code}.`, true);
     } catch (e) { b.disabled = false; msg(e.message); }
   }
@@ -1693,7 +1750,7 @@ const CLASSROOM = (() => {
   function leave() { me = null; keep(); render(); showSortChoice(); msg('You left the classroom. The words stay here, and you can change them.', true); }
   function forget() { me = null; keep(); render(); msg('This device no longer updates the classroom. Families keep the last words you sent.', true); }
   // a teacher's Save sends the new list to the class
-  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words, sortBy: sortBy() }, me.key) : Promise.resolve(); }
+  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words, sortBy: sortBy(), say: WORDS.say || {} }, me.key) : Promise.resolve(); }
   // a family's device picks up the teacher's latest words when the app opens (and again later in the day)
   let lastSync = 0;
   async function sync() {
