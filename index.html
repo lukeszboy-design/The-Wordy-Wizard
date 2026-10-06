@@ -1207,13 +1207,53 @@ const MUSIC = (() => {
   return { duck: () => { base = GAME; apply(); }, lair: () => { base = LAIR; apply(); }, talk: v => { if (talking !== v) { talking = v; apply(); } }, unlock, ready: readyP };
 })();
 
-/* ================= Voices: real voices for any word, made in the browser (never the device's own) ================= */
+/* ================= Voices: real voices for any word, made in the browser, with the device's own voice as backup ================= */
 // Two voices from the Kokoro speech engine: the wizard's own (George), whose everyday lines come pre-recorded in
 // voice.txt (made by tools/make_voice.py), and the word voice that reads spelling words in every game, a warm
 // British blend of Emma and George (word-voice.bin, made by tools/make_word_voice.py). The engine (~90 MB,
 // cached after the first visit) runs in a background worker, and every clip it makes is saved, so later visits
-// answer instantly without loading it at all. Until it's ready, words simply wait for it.
+// answer instantly without loading it at all.
+// Phones, tablets and Chromebooks can't run the engine well (big download, slow, memory), and school filters often
+// block it, so there (and on any computer while the engine isn't ready in time) the device's own voice reads the word.
 const VOICE = (() => {
+  // iPhone/iPad: play voices as "playback" audio so the ring/silent switch doesn't mute them (iOS 16.4+)
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  const UA = navigator.userAgent || '';
+  const LITE = /iPhone|iPad|iPod|Android|CrOS|Silk|Kindle/i.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1) || (navigator.deviceMemory > 0 && navigator.deviceMemory < 4);
+  const ENGINE = !LITE && 'Worker' in window && typeof WebAssembly === 'object';
+  // ---- the device's own voice (speechSynthesis) ----
+  const synth = ('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') ? window.speechSynthesis : null;
+  let nVoice = null, nUtter = null, nTimer = null, nUnlocked = false;
+  function pickNative() {
+    try {
+      const vs = synth.getVoices().filter(v => /^en([-_]|$)/i.test(v.lang)); if (!vs.length) return;
+      const score = v => (/GB/i.test(v.lang) ? 40 : /US/i.test(v.lang) ? 25 : 10)
+        + (/Serena|Kate|Martha|Stephanie|Libby|Sonia|Google UK English Female|Samantha|Ava|Allison|Susan|Zira|Aria|Jenny/i.test(v.name) ? 30 : 0)
+        + (/Enhanced|Premium|Natural|Neural|Online/i.test(v.name) ? 15 : 0) + (v.localService ? 5 : 0)
+        - (/Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Wobble|Jester|Organ|Superstar|Trinoids|Whisper|Zarvox|Fred|Junior|Ralph|Grandpa|Grandma|Rocko|Shelley|Flo|Eddy|Reed|Sandy/i.test(v.name) ? 100 : 0);
+      nVoice = vs.sort((a, b) => score(b) - score(a))[0];
+    } catch (e) {}
+  }
+  if (synth) { pickNative(); try { synth.addEventListener('voiceschanged', pickNative); } catch (e) { synth.onvoiceschanged = pickNative; } }
+  // iOS and Android only let a page talk after it has spoken once inside a tap
+  function nativeUnlock() {
+    if (!synth || nUnlocked) return; nUnlocked = true;
+    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); } catch (e) {}
+  }
+  function nativeSay(text, rate, wizard, onend) {
+    const fin = once(onend || (() => {}));
+    try {
+      if (synth.speaking || synth.pending) synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if (nVoice) { u.voice = nVoice; u.lang = nVoice.lang; } else u.lang = 'en-GB';
+      u.rate = Math.max(.5, Math.min(1, rate)); u.pitch = wizard ? .8 : 1.05;
+      nUtter = u;   // keep hold of it: some browsers drop the end event of an utterance nobody references
+      u.onend = u.onerror = () => { if (nUtter === u) { nUtter = null; clearTimeout(nTimer); } fin(); };
+      clearTimeout(nTimer); nTimer = setTimeout(() => { if (nUtter === u) nUtter = null; fin(); }, 2500 + text.length * 170 / u.rate);
+      synth.speak(u);
+      if (synth.paused) synth.resume();
+    } catch (e) { fin(); }
+  }
   const WORKER = `
     import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js';
     // the word voice is our own blend, so it borrows the slot of a British voice we never use ("Lily"): her
@@ -1266,6 +1306,7 @@ const VOICE = (() => {
     const cbs = waiting.get(key) || []; waiting.delete(key); cbs.forEach(cb => cb(audio));
   }
   function start() {
+    if (!ENGINE && state !== 'failed') { fail(); return; }
     if (worker || state === 'failed') return;
     try {
       worker = new Worker(URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' })), { type: 'module' });
@@ -1313,7 +1354,7 @@ const VOICE = (() => {
     try { if (!ctx) ctx = window.__wwAudio = window.__wwAudio || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
   }
   let tapped = false;
-  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { tapped = true; unlock(); }, { capture: true, passive: true }));
+  ['pointerdown', 'keydown', 'touchstart', 'click'].forEach(ev => document.addEventListener(ev, () => { tapped = true; unlock(); nativeUnlock(); }, { capture: true, passive: true }));
   const awake = () => tapped || !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
   function play(audio, text, rate, onend) {
     try {
@@ -1328,6 +1369,7 @@ const VOICE = (() => {
     token++;
     const f = ending; ending = null; if (f) f();   // a line cut off by the next one still finishes tidily
     if (src) { const s = src; src = null; s.onended = null; try { s.stop(); } catch (e) {} }
+    if (nUtter) { nUtter = null; clearTimeout(nTimer); try { synth.cancel(); } catch (e) {} }
   }
   // a few clips (e.g. "Hear ye, hear ye! The word is:" + the word) are stitched together with a short breath
   function join(parts, speed, voice) {
@@ -1343,17 +1385,23 @@ const VOICE = (() => {
     cancel();
     if (!awake()) { if (onend) setTimeout(onend, 0); return false; }
     unlock(); onend = ending = once(onend);
-    const parts = [].concat(text), me = token, { voice, speed } = pick(rate, wizard);
-    if (intro) { if (clips.has(keyFor(intro, speed, voice)) || state === 'failed') parts.unshift(intro); else request(intro, speed, voice, true); }
-    const all = parts.join(' ');
-    const have = () => parts.every(t => clips.has(keyFor(t, speed, voice)));
-    if (have()) { play(join(parts, speed, voice), all, rate, onend); return true; }
+    const me = token, { voice, speed } = pick(rate, wizard), full = (intro ? [intro] : []).concat(text);
+    const all = full.join(' ');
+    const have = () => full.every(t => clips.has(keyFor(t, speed, voice)));
+    if (have()) { play(join(full, speed, voice), all, rate, onend); return true; }
     let done = false;
-    const give = ok => { if (done || me !== token) return; done = true; if (ok) play(join(parts, speed, voice), all, rate, onend); else onend(); };
-    parts.slice().reverse().forEach(t => request(t, speed, voice, true, a => { if (!a) give(false); else if (have()) give(true); }));
-    // a saved clip arrives in moments and a fresh one in a few seconds; while the engine is still loading on a
-    // first visit, wait for it (no stand-in voice), but never forever
-    start(); setTimeout(() => give(false), state === 'ready' ? 10000 : 60000);
+    // `clip`: play the recordings; otherwise the device's own voice reads it (or, with no voice at all, just finish)
+    const go = how => {
+      if (done || me !== token) return; done = true;
+      if (how === 'clip' && have()) play(join(full, speed, voice), all, rate, onend);
+      else if (synth) nativeSay(all, rate, wizard, onend);
+      else onend();
+    };
+    full.slice().reverse().forEach(t => request(t, speed, voice, true, a => { if (a && have()) go('clip'); else if (!a && !synth) go('none'); }));
+    // a saved clip arrives in moments; a fresh one takes a second or two once the engine is running. The device's
+    // voice steps in if it isn't here quickly, so a child is never left waiting in silence.
+    start();
+    setTimeout(() => go('native'), synth ? (state === 'ready' ? 1800 : 700) : (state === 'ready' ? 10000 : 60000));
     return true;
   }
   // record the week's words ahead of time so "hear it" buttons answer instantly; `soon` puts them next in line
@@ -1361,16 +1409,18 @@ const VOICE = (() => {
   // wait until these words (at this rate) are recorded and ready to play, or the engine can't run here
   function prepare(list, rate = .8) {
     const { voice, speed } = pick(rate, false), ws = (list || []).filter(Boolean).map(String);
-    return Promise.all(ws.slice().reverse().map(w => new Promise(r => request(w, speed, voice, true, r))));
+    const all = Promise.all(ws.slice().reverse().map(w => new Promise(r => request(w, speed, voice, true, r))));
+    return Promise.race([all, new Promise(r => setTimeout(r, synth ? 2000 : 20000))]);   // never wait forever
   }
   const has = (list, rate = .8) => { const { voice, speed } = pick(rate, false); return (list || []).every(w => clips.has(keyFor(String(w), speed, voice))); };
   // ready to read this list: every word already saved, or the engine up and able to make them
   function wordsReady(list) {
     const ws = (list || []).filter(Boolean).map(String), { voice, speed } = pick(.8, false);
-    if (!ws.length) { start(); return up; }
-    return Promise.race([up, Promise.all(ws.map(w => new Promise(r => request(w, speed, voice, false, r))))]);
+    const soon = new Promise(r => setTimeout(r, synth ? 1500 : 120000));   // with the device's voice as backup, games never wait long
+    if (!ws.length) { start(); return Promise.race([up, soon]); }
+    return Promise.race([up, soon, Promise.all(ws.map(w => new Promise(r => request(w, speed, voice, false, r))))]);
   }
-  return { speak, cancel, warm, wordsReady, prepare, has, get loaded() { return loaded; }, get failed() { return state === 'failed'; }, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); }, get canSpeak() { return state !== 'failed' && 'Worker' in window && typeof WebAssembly === 'object'; } };
+  return { speak, cancel, warm, wordsReady, prepare, has, get loaded() { return loaded; }, get failed() { return state === 'failed'; }, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); nativeUnlock(); }, get canSpeak() { return !!synth || (ENGINE && state !== 'failed'); }, get native() { return !!synth && (!ENGINE || state !== 'ready'); } };
 })();
 VOICE.warm(WORDS.words);
 /* ================= Title screen: the castle from outside while the lair, music and voice load ================= */
@@ -5059,12 +5109,13 @@ const ShieldGame = (() => {
     practice = !wordList.length;
     words = shuffle(practice ? PRACTICE : wordList); VOICE.warm(words);
     st = { start: 0, round: 0, army: 0, sel: [], busy: false, found: 0, cards: [] };
+    if (!VOICE.canSpeak) level = 'easy';   // Hard's speaker shields need a voice
     root = document.createElement('div'); root.className = 'sm';
     root.innerHTML = `
       <div class="sm-board"><div class="sm-grid" id="smGrid" role="grid" aria-label="Shields"></div></div>
       <div class="sm-side">
         <div class="sq-top"><span id="smRound"></span>
-          <div class="bw-levels" role="group" aria-label="Level">${Object.entries(LEVELS).map(([k, v]) => `<button type="button" data-level="${k}" aria-pressed="${k === level}">${v.label}</button>`).join('')}</div></div>
+          <div class="bw-levels" role="group" aria-label="Level">${Object.entries(LEVELS).filter(([k]) => k === 'easy' || VOICE.canSpeak).map(([k, v]) => `<button type="button" data-level="${k}" aria-pressed="${k === level}">${v.label}</button>`).join('')}</div></div>
         <p class="sq-status" id="smStatus" aria-live="polite"></p>
         <div class="sm-army" aria-label="Your army"><div class="sm-army-head"><b>Your army</b><span id="smArmyN">0 knights</span></div><div class="sm-ranks" id="smRanks"></div></div>
         <div class="sq-actions"><button type="button" class="sq-btn primary" id="smNext" hidden>Next round</button></div>
