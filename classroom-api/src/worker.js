@@ -13,7 +13,7 @@ const CREATES_PER_HOUR = 5;   // per network address, so nobody can fill the ser
 function allowedOrigin(origin) {
   try {
     const u = new URL(origin);
-    return u.hostname === 'lukeszboy-design.github.io' || u.hostname === 'localhost' || u.hostname === '127.0.0.1' || /^192\.168\.\d+\.\d+$/.test(u.hostname);
+    return u.hostname === 'thewordywizard.com' || u.hostname === 'www.thewordywizard.com' || u.hostname === 'lukeszboy-design.github.io' || u.hostname === 'localhost' || u.hostname === '127.0.0.1' || /^192\.168\.\d+\.\d+$/.test(u.hostname);
   } catch (e) { return false; }
 }
 function reply(req, status, body) {
