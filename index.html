@@ -1168,8 +1168,22 @@ const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'ei
 const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
 const numWords = n => n < 20 ? ONES[n] : n < 100 ? TENS[(n / 10) | 0] + (n % 10 ? '-' + ONES[n % 10] : '') : ONES[(n / 100) | 0] + ' hundred' + (n % 100 ? ' ' + numWords(n % 100) : '');
 const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-let WORDS = { week: '', words: [] };
-try { const raw = localStorage.getItem(WORDS_KEY); if (raw) WORDS = Object.assign(WORDS, JSON.parse(raw)); } catch (e) {}
+// Every word list, whether typed, from a CSV, saved in this browser or sent by a classroom, passes the same check
+// before the games see it: real words only (letters, spaces, ' and -, up to 30), no repeats, at most MAX_WORDS.
+const WORD_OK = /^[A-Za-z][A-Za-z'’\- ]{0,29}$/, SAY_OK = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, WEEK_OK = /^\d{4}-\d{2}-\d{2}$/;
+function cleanWords(o) {
+  const src = o && typeof o === 'object' ? o : {}, seen = new Set(), words = [], say = {};
+  (Array.isArray(src.words) ? src.words : []).forEach(w => {
+    w = typeof w === 'string' ? w.trim().replace(/\s+/g, ' ') : '';
+    if (WORD_OK.test(w) && !seen.has(w.toLowerCase()) && words.length < MAX_WORDS) { seen.add(w.toLowerCase()); words.push(w); }
+  });
+  Object.entries(src.say && typeof src.say === 'object' ? src.say : {}).forEach(([k, v]) => { if (seen.has(k) && typeof v === 'string' && SAY_OK.test(v)) say[k] = v; });
+  return { week: typeof src.week === 'string' && WEEK_OK.test(src.week) ? src.week : '', words, say };
+}
+// text going into markup is escaped, so a word can never become part of the page's code
+const escHTML = t => String(t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+let WORDS = { week: '', words: [], say: {} };
+try { const raw = localStorage.getItem(WORDS_KEY); if (raw) WORDS = cleanWords(JSON.parse(raw)); } catch (e) {}
 let onWordsChanged = () => {};
 // how Stable Sort sorts the words (a grown-up's choice; a classroom passes the teacher's choice along)
 const SORT_KEY = 'wordy-wizard-sort-by';
@@ -1691,6 +1705,7 @@ const CLASSROOM = (() => {
   const KEY = 'wordy-wizard-classroom';
   let me = null;   // { role: 'teacher', code, key } or { role: 'student', code, updated }
   try { me = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (!me || !/^\d{4}$/.test(String(me.code)) || (me.role !== 'teacher' && me.role !== 'student')) me = null;   // anything odd: start fresh
   const keep = () => { try { me ? localStorage.setItem(KEY, JSON.stringify(me)) : localStorage.removeItem(KEY); } catch (e) {} };
   const msg = (t, ok) => { const m = $('classMsg'); m.className = 'msg' + (ok ? ' ok' : ''); m.textContent = t; };
   async function call(method, path, body, key) {
@@ -1703,8 +1718,9 @@ const CLASSROOM = (() => {
   }
   // a classroom's list becomes this device's list
   function useWords(c) {
-    if (c.sortBy) sortBy(c.sortBy);
-    WORDS = { week: c.week || isoMonday(), words: c.words.slice(), say: c.say || {} };
+    if (typeof c.sortBy === 'string' && /^[a-z0-9-]{1,24}$/.test(c.sortBy)) sortBy(c.sortBy);
+    const v = cleanWords(c);   // the server checks lists too, but the app never relies on that
+    WORDS = { week: v.week || isoMonday(), words: v.words, say: v.say };
     try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
     onWordsChanged(); VOICE.warm(WORDS.words);
   }
@@ -1712,10 +1728,10 @@ const CLASSROOM = (() => {
     const body = $('classBody'), role = me && me.role;
     panel.classList.toggle('panel-joined', role === 'student');
     $('pWeek').disabled = role === 'student'; $('pCancel').textContent = role === 'student' ? 'Close' : 'Cancel';
-    if (role === 'teacher') body.innerHTML = `<p>Your classroom code</p><div class="class-code">${me.code}</div>
+    if (role === 'teacher') body.innerHTML = `<p>Your classroom code</p><div class="class-code">${escHTML(me.code)}</div>
       <p>Families enter this code here in Grown-ups to get your words. Each time you press <b>Save words</b>, your class gets the new list.</p>
       <div class="class-row"><button type="button" class="btn" id="classForget">Stop sharing from this device</button></div>`;
-    else if (role === 'student') body.innerHTML = `<p>These words come from classroom</p><div class="class-code">${me.code}</div>
+    else if (role === 'student') body.innerHTML = `<p>These words come from classroom</p><div class="class-code">${escHTML(me.code)}</div>
       <p>They update on their own when the teacher changes them.</p>
       <div class="class-row"><button type="button" class="btn" id="classLeave">Leave classroom</button></div>`;
     else body.innerHTML = `<p><b>Teachers:</b> enter the words below, then make a code so your class gets them automatically.</p>
@@ -1731,7 +1747,8 @@ const CLASSROOM = (() => {
     const b = $('classMake'); b.disabled = true; msg('Making your classroom…', true);
     try {
       const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft, sortBy: sortBy(), say: pruneSay(draft) });
-      me = { role: 'teacher', code: r.code, key: r.key }; keep();
+      if (!/^\d{4}$/.test(String(r.code)) || typeof r.key !== 'string') throw new Error('Something went wrong. Please try again.');
+      me = { role: 'teacher', code: String(r.code), key: r.key }; keep();
       WORDS = { week, words: draft.slice(), say: pruneSay(draft) }; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
       onWordsChanged(); VOICE.record(WORDS.words).then(() => VOICE.warm(WORDS.words));
       render(); msg(`Done! Give families the code ${r.code}.`, true);
@@ -1742,9 +1759,9 @@ const CLASSROOM = (() => {
     msg('Finding the classroom…', true);
     try {
       const c = await call('GET', '/classes/' + code);
-      me = { role: 'student', code, updated: c.updated }; keep(); useWords(c);
+      me = { role: 'student', code, updated: String(c.updated).slice(0, 40) }; keep(); useWords(c);
       draft = WORDS.words.slice(); $('pWeek').value = WORDS.week; renderList(); render(); showSortChoice();
-      msg(`Joined! ${c.words.length} word${c.words.length === 1 ? '' : 's'} for this week.`, true);
+      msg(`Joined! ${WORDS.words.length} word${WORDS.words.length === 1 ? '' : 's'} for this week.`, true);
     } catch (e) { msg(e.status === 404 ? 'No classroom has that code. Check the numbers and try again.' : e.message); }
   }
   function leave() { me = null; keep(); render(); showSortChoice(); msg('You left the classroom. The words stay here, and you can change them.', true); }
@@ -1758,7 +1775,7 @@ const CLASSROOM = (() => {
     lastSync = Date.now();
     try {
       const c = await call('GET', '/classes/' + me.code);
-      if (c.updated !== me.updated) { me.updated = c.updated; keep(); useWords(c); } else if (c.sortBy) sortBy(c.sortBy);
+      if (c.updated !== me.updated) { me.updated = String(c.updated).slice(0, 40); keep(); useWords(c); } else if (typeof c.sortBy === 'string' && /^[a-z0-9-]{1,24}$/.test(c.sortBy)) sortBy(c.sortBy);
     } catch (e) {}
   }
   sync();
@@ -3646,7 +3663,7 @@ const DragonGame = (() => {
     const ul = q('#dhWords'); ul.innerHTML = '';
     pz.placed.forEach((p, k) => {
       const li = document.createElement('li'); const b = document.createElement('button'); b.type = 'button'; b.className = 'dh-word'; b.dataset.w = p.word;
-      b.innerHTML = `<i></i>${p.word}`; b.addEventListener('click', () => speak(p.word)); li.appendChild(b); ul.appendChild(li);
+      b.innerHTML = `<i></i>${escHTML(p.word)}`; b.addEventListener('click', () => speak(p.word)); li.appendChild(b); ul.appendChild(li);
       p.glow = GLOWS[k % GLOWS.length];
     });
     q('#dhScene').classList.remove('dh-awake'); q('#dhHoard').innerHTML = '';
@@ -4027,7 +4044,7 @@ const CrierGame = (() => {
     g.setAttribute('transform', `translate(${x} ${y}) rotate(${rot.toFixed(1)})`);
     const fs = Math.max(8, Math.min(13, 70 / Math.max(4, st.word.length)));
     g.innerHTML = `<rect x="-24" y="-20" width="48" height="40" rx="2" fill="#fbf0cf" stroke="#8a6a3a" stroke-width="1.5"/>
-      <path d="M-18 -10 H18" stroke="#c9a660" stroke-width="1.2"/><text x="0" y="5" text-anchor="middle" font-family="Andika, sans-serif" font-weight="700" font-size="${fs.toFixed(1)}" fill="#2a1a10">${st.word.replace(/[<&>]/g, '')}</text>
+      <path d="M-18 -10 H18" stroke="#c9a660" stroke-width="1.2"/><text x="0" y="5" text-anchor="middle" font-family="Andika, sans-serif" font-weight="700" font-size="${fs.toFixed(1)}" fill="#2a1a10">${escHTML(st.word)}</text>
       <path d="M-18 12 H18" stroke="#c9a660" stroke-width="1.2"/><circle cx="0" cy="-16" r="2.6" fill="#6b6b78" stroke="#2a2433" stroke-width="1"/>`;
     notes.appendChild(g);
     g.animate([{ transform: `translate(${x - 120}px, ${y + 60}px) scale(.3) rotate(-30deg)`, opacity: 0 }, { transform: `translate(${x}px, ${y}px) rotate(${rot}deg)`, opacity: 1 }], { duration: 450, easing: 'cubic-bezier(.3,1.4,.5,1)' });
@@ -4531,7 +4548,7 @@ const JesterGame = (() => {
       const el = document.createElement('button'); el.type = 'button'; el.className = 'jt-banner';
       const [c, t] = COLORS[k % COLORS.length]; el.style.setProperty('--c', c); el.style.setProperty('--t', t);
       el.style.setProperty('--len', Math.max(4, b.text.length));
-      el.innerHTML = `<i class="jt-ring l"></i><i class="jt-ring r"></i>${CREST}<span class="jt-w">${b.text}</span>`;
+      el.innerHTML = `<i class="jt-ring l"></i><i class="jt-ring r"></i>${CREST}<span class="jt-w">${escHTML(b.text)}</span>`;
       el.setAttribute('aria-label', `Banner: ${[...b.text].join(' ')}`);
       if (b.trick) el.dataset.trick = '1';
       el.addEventListener('click', () => tapBanner(el));
@@ -5072,7 +5089,7 @@ const GemGame = (() => {
       const lc = ch.toLowerCase();
       if (!/[a-z]/.test(lc)) { const s = document.createElement('span'); s.className = 'gm-gap'; s.textContent = ch === ' ' ? '' : ch; box.appendChild(s); return; }
       const b = document.createElement('button'); b.type = 'button'; b.className = 'gm-rock'; b.dataset.l = lc;
-      b.innerHTML = `<span>${lc}</span>`; b.setAttribute('aria-label', `Rock with the letter ${lc}`);
+      b.innerHTML = `<span>${escHTML(lc)}</span>`; b.setAttribute('aria-label', `Rock with the letter ${lc}`);
       b.style.setProperty('--r', `${((i * 37) % 9 - 4)}deg`);
       box.appendChild(b);
     });
@@ -5310,7 +5327,7 @@ const ForgeGame = (() => {
       <rect x="-3" y="-60" width="6" height="14" rx="2" fill="#7a4f27"/><circle cx="0" cy="-63" r="4" fill="#c99a3e"/></g>`;
   function drawRack(fresh) {
     const g = q('#fgRack'), list = armory.swords.slice(-11);
-    g.innerHTML = list.map((w, i) => `<g transform="translate(${34 + i * 37} 102)"${fresh && i === list.length - 1 ? ' class="fg-new"' : ''}><title>${w.replace(/[<&>]/g, '')}</title>${swordShape(.8, i % 3 ? '#cfd4e2' : '#e3e7f0')}</g>`).join('');
+    g.innerHTML = list.map((w, i) => `<g transform="translate(${34 + i * 37} 102)"${fresh && i === list.length - 1 ? ' class="fg-new"' : ''}><title>${escHTML(w)}</title>${swordShape(.8, i % 3 ? '#cfd4e2' : '#e3e7f0')}</g>`).join('');
     q('#fgArmory').textContent = `Armory: ${armory.swords.length}`;
     q('#fgArmoryEmpty').style.display = armory.swords.length ? 'none' : '';   // (a note until the first sword is hung)
   }
@@ -5425,7 +5442,7 @@ const ForgeGame = (() => {
     st.chars.forEach((c, i) => {
       const x = BLADE.x0 + step * (i + .5), isLetter = /[a-z]/.test(c), shown = !isLetter || k < st.done;
       if (isLetter) k++;
-      if (shown) html += `<text x="${x.toFixed(1)}" y="${BLADE.y + fs * .36}" font-size="${fs.toFixed(1)}" fill="${isLetter && k === st.done && !st.over ? '#e8541e' : '#3a3450'}">${c.replace(/[<&>]/g, '')}</text>`;
+      if (shown) html += `<text x="${x.toFixed(1)}" y="${BLADE.y + fs * .36}" font-size="${fs.toFixed(1)}" fill="${isLetter && k === st.done && !st.over ? '#e8541e' : '#3a3450'}">${escHTML(c)}</text>`;
     });
     g.innerHTML = html;
     const box = q('#fgSlots'); box.innerHTML = ''; k = 0;
