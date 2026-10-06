@@ -3575,7 +3575,7 @@ const DragonGame = (() => {
   }
 
   function makePuzzle(list) {
-    const words = list.map(w => w.toLowerCase().replace(/[^a-z]/g, '')).filter(w => w.length >= 2 && w.length <= 12);
+    const words = [...new Set(list.map(w => w.toLowerCase().replace(/[^a-z]/g, '')).filter(w => w.length >= 2 && w.length <= 12))];
     // wider than tall so the board fits beside the dragon: up to 12 across, 6 to 8 rows
     let cols = Math.min(12, Math.max(8, Math.max(...words.map(w => w.length)) + 1)), rows = Math.max(6, Math.min(8, cols - 2));
     for (let attempt = 0; attempt < 60; attempt++) {
@@ -3607,8 +3607,15 @@ const DragonGame = (() => {
   }
 
   function mount(container, wordList) {
-    practice = !wordList.length;
-    const base = shuffle(practice ? ['gold', 'dragon', 'coin', 'cave', 'wing', 'egg'] : wordList.filter(w => w.replace(/[^a-z]/gi, '').length <= 12));
+    // the hoard hides each spelling once: "its" and "it's" are the same coins, so only one is hidden, and words
+    // of a single letter (or longer than 12) are left out so every round can be finished
+    const seen = new Set(), usable = wordList.filter(w => {
+      const l = w.toLowerCase().replace(/[^a-z]/g, '');
+      if (l.length < 2 || l.length > 12 || seen.has(l)) return false;
+      seen.add(l); return true;
+    });
+    practice = !usable.length;
+    const base = shuffle(practice ? ['gold', 'dragon', 'coin', 'cave', 'wing', 'egg'] : usable);
     VOICE.warm(base);
     rounds = []; for (let i = 0; i < base.length; i += PER_ROUND) rounds.push(base.slice(i, i + PER_ROUND));
     if (!rounds.length) rounds = [['gold', 'dragon', 'coin']];
