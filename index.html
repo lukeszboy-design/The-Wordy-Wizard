@@ -5044,7 +5044,8 @@ const GemGame = (() => {
   }
 
   function mount(container, wordList) {
-    const list = wordList.map(w => String(w)).filter(w => /[a-z]/i.test(w));
+    // only words with at least one gem to dig (a vowel, or a y): "hmm" or "psst" would have nothing to find
+    const list = wordList.map(w => String(w)).filter(w => /[aeiouy]/i.test(w));
     practice = !list.length;
     words = shuffle(practice ? PRACTICE : list); VOICE.warm(words);
     st = { idx: 0, gems: 0 };
@@ -5103,6 +5104,11 @@ const GemGame = (() => {
     q('#gmNext').hidden = true;
     status(set === 'y' ? `This word has no a, e, i, o or u, so its "y" is hiding a diamond! Tap it.` : 'Tap only the vowels (a, e, i, o, u) to dig out the gems!');
     if (VOICE.canSpeak) later(() => VOICE.speak(word), 400);
+    if (!st.left) {   // (a word with no gems at all: say so and move on rather than waiting forever)
+      st.done = true; root.querySelectorAll('.gm-rock').forEach(b => { b.disabled = true; b.classList.add('plain'); });
+      status(`"${word}" has no vowels, so there are no gems in this rock. On to the next word!`);
+      const nb = q('#gmNext'); nb.textContent = st.idx >= words.length - 1 ? 'Mine them all again' : 'Next word'; nb.hidden = false;
+    }
   }
   function dig(b) {
     if (st.done || b.disabled) return;
