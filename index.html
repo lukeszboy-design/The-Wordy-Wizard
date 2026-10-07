@@ -96,6 +96,9 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .drop.over{background:#fff1c8;border-color:#a3401f}
 .drop input{position:absolute;width:1px;height:1px;opacity:0}
 .fmt{display:flex;gap:12px;align-items:flex-start;margin-top:10px;font-size:13px;color:#6b4a26}
+.tmpl{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 10px;font-size:13px;color:#6b4a26}
+.tmpl .btn{text-decoration:none;font-size:15px;padding:8px 14px;white-space:nowrap}
+.tmpl span{flex:1;min-width:14em}
 .fmt pre{margin:0;padding:8px 12px;background:#fffaf0;border:1px solid #c9a660;border-radius:8px;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;color:#3b2412}
 #pSortBy{font:16px var(--font-read);padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:#2a1a10;max-width:100%}
 .class-box{border:2px solid var(--ink);border-radius:12px;padding:4px 12px 8px;margin:0 0 12px}
@@ -1116,6 +1119,8 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
       <p class="hint">You can paste a whole list too, separated by commas or new lines.</p>
     </div>
     <div id="paneCsv" role="tabpanel" aria-labelledby="tabCsv" hidden>
+      <div class="tmpl"><a class="btn" id="csvTemplate" href="data:text/csv;charset=utf-8,%EF%BB%BFword%0D%0A" download="wordy-wizard-word-list.csv">⬇ Download a template</a>
+        <span>Open it in Excel, Numbers or Google Sheets, type one word per row under “word”, save it as a CSV file, then choose it below.</span></div>
       <label class="drop" id="drop">Choose a CSV file, or drop it here
         <input type="file" id="pFile" accept=".csv,.txt,text/csv,text/plain">
       </label>
