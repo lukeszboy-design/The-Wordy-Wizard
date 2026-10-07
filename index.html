@@ -1274,7 +1274,7 @@ const VOICE = (() => {
       if (synth.speaking || synth.pending) synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
       if (nVoice) { u.voice = nVoice; u.lang = nVoice.lang; } else u.lang = 'en-GB';
-      u.rate = Math.max(.5, Math.min(1, rate)); u.pitch = wizard ? .8 : 1.05;
+      u.rate = Math.max(.5, Math.min(1, wizard ? rate : rate * PACE)); u.pitch = wizard ? .8 : 1.05;
       nUtter = u;   // keep hold of it: some browsers drop the end event of an utterance nobody references
       u.onend = u.onerror = () => { if (nUtter === u) { nUtter = null; clearTimeout(nTimer); } fin(); };
       clearTimeout(nTimer); nTimer = setTimeout(() => { if (nUtter === u) nUtter = null; fin(); }, 2500 + text.length * 170 / u.rate);
@@ -1423,6 +1423,38 @@ const VOICE = (() => {
     if (src) { const s = src; src = null; s.onended = null; try { s.stop(); } catch (e) {} }
     if (nUtter) { nUtter = null; clearTimeout(nTimer); try { synth.cancel(); } catch (e) {} }
   }
+  // Every voice but the wizard's speaks a little slower than it was recorded, so words are easier to follow.
+  // The clips are stretched without lowering the voice (WSOLA: short overlapping windows, each nudged to
+  // where the waveform lines up best with the last one).
+  const PACE = .88, slowed = new Map();
+  function slower(a) {
+    const N = Math.round(a.rate * .03) & ~1, H = N >> 1, tol = Math.round(a.rate * .008);
+    const src = new Float32Array(a.pcm.length + N * 2 + tol * 2); src.set(a.pcm);
+    const win = Float32Array.from({ length: N }, (_, i) => .5 - .5 * Math.cos(2 * Math.PI * i / N));
+    const frames = Math.ceil(a.pcm.length / PACE / H) + 1, out = new Float32Array(frames * H + N);
+    let prev = 0;
+    for (let k = 0; k < frames; k++) {
+      const want = Math.round(k * H * PACE);
+      let best = want;
+      if (k) {   // the frame that best continues the previous one's waveform
+        const ref = prev + H; let top = -Infinity;
+        for (let p = Math.max(0, want - tol); p <= want + tol; p += 2) {
+          let c = 0; for (let i = 0; i < N; i += 4) c += src[ref + i] * src[p + i];
+          if (c > top) { top = c; best = p; }
+        }
+      }
+      for (let i = 0; i < N; i++) out[k * H + i] += src[best + i] * win[i];
+      prev = best;
+    }
+    return { pcm: out.subarray(0, Math.round(a.pcm.length / PACE)), rate: a.rate };
+  }
+  function clip(parts, speed, voice) {
+    const a = join(parts, speed, voice); if (voice === WIZARD) return a;
+    const key = parts.map(t => keyFor(t, speed, voice)).join('+'), from = parts.map(t => clips.get(keyFor(t, speed, voice))), had = slowed.get(key);
+    if (had && had.from.every((c, i) => c === from[i])) return had.out;   // (a re-recorded word gets stretched again)
+    if (slowed.size > 300) slowed.clear();
+    const out = slower(a); slowed.set(key, { from, out }); return out;
+  }
   // a few clips (e.g. "Hear ye, hear ye! The word is:" + the word) are stitched together with a short breath
   function join(parts, speed, voice) {
     const cs = parts.map(t => clips.get(keyFor(t, speed, voice))), gap = Math.round(cs[0].rate * .12);
@@ -1440,12 +1472,12 @@ const VOICE = (() => {
     const me = token, { voice, speed } = pick(rate, wizard), full = (intro ? [intro] : []).concat(text);
     const all = full.join(' ');
     const have = () => full.every(t => clips.has(keyFor(t, speed, voice)));
-    if (have()) { play(join(full, speed, voice), all, rate, onend); return true; }
+    if (have()) { play(clip(full, speed, voice), all, rate, onend); return true; }
     let done = false;
     // `clip`: play the recordings; otherwise the device's own voice reads it (or, with no voice at all, just finish)
     const go = how => {
       if (done || me !== token) return; done = true;
-      if (how === 'clip' && have()) play(join(full, speed, voice), all, rate, onend);
+      if (how === 'clip' && have()) play(clip(full, speed, voice), all, rate, onend);
       else if (synth) nativeSay(all, rate, wizard, onend);
       else onend();
     };
