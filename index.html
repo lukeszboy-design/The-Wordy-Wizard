@@ -4638,17 +4638,15 @@ const ForgeGame = (() => {
   return { mount, unmount, practice: PRACTICE };
 })();
 /* ================= Game: The Royal Court (spell before the queen) ================= */
-// The child stands before the throne and spells each word, either by typing it or by spelling it out loud
-// and then checking (honor system, no microphone). A right answer and the queen knights them with a sparkle.
+// The child stands before the throne and types each word. A right answer and the queen knights them with a sparkle.
 // Three right in a row moves them up a title: Page, Squire, Knight, then Royal Wizard.
 const CourtGame = (() => {
   const ABC = 'abcdefghijklmnopqrstuvwxyz', NS = 'http://www.w3.org/2000/svg';
   const TITLES = ['Page', 'Squire', 'Knight', 'Royal Wizard'], STREAK = 3;
-  const MODES = { type: 'Type it', say: 'Say it out loud' };
   const PRACTICE = ['crown', 'queen', 'royal', 'throne', 'castle', 'knight'];
   const KID = { x: 220, y: 362 }, HAND = { x: 252, y: 166 };   // where the child stands, and the queen's sword hand
-  let root, st, words, practice, timers = [], raf = 0, keyHandler, mode = 'type';
-  try { mode = localStorage.getItem('wordy-wizard-court-mode') || 'type'; if (!MODES[mode]) mode = 'type'; } catch (e) {}
+  let root, st, words, practice, timers = [], raf = 0, keyHandler;
+  try { localStorage.removeItem('wordy-wizard-court-mode'); } catch (e) {}   // (the old "say it out loud" choice)
   const q = s => root.querySelector(s);
   const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -4743,18 +4741,13 @@ const CourtGame = (() => {
     root.innerHTML = `
       <div class="rc-scene">${sceneSVG()}</div>
       <div class="rc-side">
-        <div class="sq-top"><span id="rcCount"></span>
-          <div class="bw-levels" role="group" aria-label="How to answer">${Object.entries(MODES).map(([k, v]) => `<button type="button" data-mode="${k}" aria-pressed="${k === mode}">${v}</button>`).join('')}</div>
-          <span class="rc-rank" id="rcRank"></span></div>
+        <div class="sq-top"><span id="rcCount"></span><span class="rc-rank" id="rcRank"></span></div>
         <div class="sq-slots" id="rcSlots" aria-label="The spelling"></div>
         <p class="sq-status" id="rcStatus" aria-live="polite"></p>
         <div class="sq-keys" id="rcKeys" role="group" aria-label="Letters"></div>
         <div class="sq-actions">
           <button type="button" class="sq-btn" id="rcHear">${hear}Hear the word</button>
           <button type="button" class="sq-btn primary" id="rcCheck">Present it<span class="rc-long"> to the queen</span></button>
-          <button type="button" class="sq-btn primary" id="rcShow">Show the spelling</button>
-          <button type="button" class="sq-btn primary" id="rcYes">I got it right</button>
-          <button type="button" class="sq-btn" id="rcNo">Not this time</button>
           <button type="button" class="sq-btn primary" id="rcNext">Next word</button>
         </div>
         ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
@@ -4766,21 +4759,10 @@ const CourtGame = (() => {
     keys.addEventListener('click', e => { const b = e.target.closest('.sq-key'); if (!b) return; if (b.dataset.l) type(b.dataset.l); else rubOut(); });
     q('#rcHear').addEventListener('click', () => { if (VOICE.canSpeak) VOICE.speak(st.word); else peek(); });
     q('#rcCheck').addEventListener('click', present);
-    q('#rcShow').addEventListener('click', reveal);
-    q('#rcYes').addEventListener('click', () => judged(true));
-    q('#rcNo').addEventListener('click', () => judged(false));
     q('#rcNext').addEventListener('click', next);
-    root.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
-      if (b.dataset.mode === mode) return;
-      mode = b.dataset.mode; try { localStorage.setItem('wordy-wizard-court-mode', mode); } catch (e) {}
-      root.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x === b));
-      // a fresh word in the new way of answering, so switching can't give a second look at this one
-      st.idx = (st.idx + 1) % words.length; newWord();
-    }));
     keyHandler = e => {
       if (e.ctrlKey || e.metaKey || e.altKey || (e.target.closest && e.target.closest('input,textarea'))) return;
-      if (e.key === 'Enter') { const b = ['#rcNext', '#rcCheck', '#rcShow'].map(s => q(s)).find(x => !x.hidden && !x.disabled); if (b && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); b.click(); } return; }
-      if (mode !== 'type') return;   // spelling out loud: the keys aren't used
+      if (e.key === 'Enter') { const b = ['#rcNext', '#rcCheck'].map(s => q(s)).find(x => !x.hidden && !x.disabled); if (b && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); b.click(); } return; }
       if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); type(e.key.toLowerCase()); }
       else if (e.key === 'Backspace') { e.preventDefault(); rubOut(); }
     };
@@ -4793,7 +4775,7 @@ const CourtGame = (() => {
     if (root) root.remove(); root = null;
   }
   const status = t => { q('#rcStatus').textContent = t; };
-  const show = (...ids) => ['#rcCheck', '#rcShow', '#rcYes', '#rcNo', '#rcNext'].forEach(s => { q(s).hidden = !ids.includes(s); });
+  const show = (...ids) => ['#rcCheck', '#rcNext'].forEach(s => { q(s).hidden = !ids.includes(s); });
   const setKeys = on => root.querySelectorAll('#rcKeys .sq-key').forEach(b => b.disabled = !on);
 
   function rank() {
@@ -4822,9 +4804,7 @@ const CourtGame = (() => {
     q('#rcFx').innerHTML = ''; q('#rcKid').setAttribute('transform', `translate(${KID.x} ${KID.y})`); q('#rcSword').removeAttribute('transform');
     q('#rcCount').textContent = `Word ${st.idx + 1} of ${words.length}`;
     rank(); slots([]);
-    q('#rcKeys').hidden = mode !== 'type';
-    if (mode === 'type') { show('#rcCheck'); q('#rcCheck').disabled = true; setKeys(true); status('Listen to the word, then spell it and present it to the queen.'); }
-    else { show('#rcShow'); status('Listen to the word, then spell it out loud. Tap "Show the spelling" when you\'re done.'); }
+    show('#rcCheck'); q('#rcCheck').disabled = true; setKeys(true); status('Listen to the word, then spell it and present it to the queen.');
     if (VOICE.canSpeak) later(() => VOICE.speak(st.word), 450); else peek();
   }
   // no voice on this device: a quick look at the word, then it hides
@@ -4834,10 +4814,10 @@ const CourtGame = (() => {
   }
 
   function type(l) {
-    if (mode !== 'type' || st.over || st.typed.length >= st.need.length) return;
+    if (st.over || st.typed.length >= st.need.length) return;
     st.typed.push(l); slots(st.typed); q('#rcCheck').disabled = st.typed.length < st.need.length;
   }
-  function rubOut() { if (mode !== 'type' || st.over) return; st.typed.pop(); slots(st.typed); q('#rcCheck').disabled = true; }
+  function rubOut() { if (st.over) return; st.typed.pop(); slots(st.typed); q('#rcCheck').disabled = true; }
   function present() {
     if (st.over || st.typed.length < st.need.length) return;
     st.over = true; setKeys(false);
@@ -4847,18 +4827,11 @@ const CourtGame = (() => {
     status(`Not quite! Here's how the queen spells "${st.word}":`);
     later(() => spellOut(marks, () => miss()), 900);
   }
-  // say-it-out-loud: show the spelling one letter at a time, then the child says how they did
-  function reveal() {
-    if (st.over) return;
-    st.over = true; show(); status('Here is the spelling. Did yours match?');
-    spellOut(null, () => { show('#rcYes', '#rcNo'); later(() => q('#rcYes').focus({ preventScroll: true }), 50); });
-  }
   function spellOut(marks, done) {
     let i = 0;
     const step = () => { i++; slots(st.need.slice(0, i), marks); if (i < st.need.length) later(step, reduce ? 0 : 220); else done(); };
     step();
   }
-  function judged(right) { show(); if (right) win(); else miss(); }
 
   function win() {
     st.right++; st.streak++;
@@ -4872,7 +4845,7 @@ const CourtGame = (() => {
   }
   function miss() {
     st.streak = 0; rank();
-    slots(st.need, st.need.map((c, i) => mode === 'type' && st.typed[i] !== c ? 'missed' : ''));
+    slots(st.need, st.need.map((c, i) => st.typed[i] !== c ? 'missed' : ''));
     status(`That's all right! "${st.word}" is spelled ${st.need.join('-')}. Keep practicing, brave ${TITLES[st.rank].toLowerCase()}!`);
     if (VOICE.canSpeak) later(() => VOICE.speak(st.word), 300);
     done();
