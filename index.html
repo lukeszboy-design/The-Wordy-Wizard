@@ -105,6 +105,14 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .class-code{font:400 36px/1.1 var(--font-display);letter-spacing:.14em;color:#5a2414}
 .class-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .class-row input{width:5.5em;font:700 22px var(--font-read);letter-spacing:.2em;text-align:center;padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:#2a1a10}
+.class-row input.class-name{flex:1;min-width:9em;width:auto;font-size:17px;letter-spacing:0;text-align:left}
+.class-btn{top:calc(2.2cqw + max(40px, 3.6cqw + 4px))}
+.join-card{text-align:center}
+.join-card .answer-row input{font-size:34px;letter-spacing:.4em}
+.join-card .row-end{justify-content:center}
+.join-name{margin:6px 0;font:400 30px/1.2 var(--font-display);color:#5a2414;text-wrap:balance;overflow-wrap:anywhere}
+.join-words{margin:0 0 6px;font:700 17px/1.45 var(--font-read);color:#3b2412}
+.join-words .class-code{display:block;margin-top:4px}
 /* a device that joined a classroom shows the teacher's list without the tools for changing it */
 .panel-joined .tabs,.panel-joined #paneType,.panel-joined #paneCsv,.panel-joined #clearWrap,.panel-joined #pSave,.panel-joined .chip button:not(.hear){display:none}
 .voice-wait{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(233,210,153,.94);color:var(--parch-ink)}
@@ -900,6 +908,10 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
       <span class="lock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.2" fill="#3b2412"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="#3b2412" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1.6" fill="#f2c35b"/></svg></span>
       <span>Grown-ups</span>
     </button>
+    <button type="button" class="lock-btn class-btn" id="classBtn" aria-label="Join my class: type your teacher's code">
+      <span class="lock-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11 L12 4.5 L20.5 11" fill="none" stroke="#3b2412" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10 V19.5 H18 V10 L12 5.6 Z" fill="#3b2412"/><rect x="10.2" y="14" width="3.6" height="5.5" rx=".8" fill="#f2c35b"/></svg></span>
+      <span id="classBtnLabel">Join my class</span>
+    </button>
     <div class="sr-menu" aria-label="Spellbook games">
       <div id="srGames"></div>
       <button type="button" id="k-prev" hidden>Previous page of spells</button>
@@ -1006,6 +1018,34 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
     </div>
     <p class="msg" id="gateMsg" role="status"></p>
     <div class="row-end"><button type="button" class="btn ghost" id="gateNew">Try a different problem</button><button type="button" class="btn" id="gateCancel">Cancel</button></div>
+  </form>
+</div>
+
+<!-- children join their class from the wizard's room (no grown-ups lock: a code can only fetch words) -->
+<div class="modal" id="joinBox" hidden role="dialog" aria-modal="true" aria-labelledby="joinTitle">
+  <form class="card join-card" id="joinForm" autocomplete="off">
+    <h2 id="joinTitle">Join my class</h2>
+    <div id="joinAsk">
+      <p class="sub">Type the 4 numbers your teacher gave you.</p>
+      <div class="answer-row">
+        <input id="joinCode" inputmode="numeric" pattern="[0-9]*" maxlength="4" aria-label="Class code">
+        <button type="submit" class="btn primary">Find my class</button>
+      </div>
+      <div class="keypad" id="joinKeys" aria-hidden="true">
+      <button type="button" tabindex="-1">1</button><button type="button" tabindex="-1">2</button><button type="button" tabindex="-1">3</button>
+      <button type="button" tabindex="-1">4</button><button type="button" tabindex="-1">5</button><button type="button" tabindex="-1">6</button>
+      <button type="button" tabindex="-1">7</button><button type="button" tabindex="-1">8</button><button type="button" tabindex="-1">9</button>
+      <button type="button" tabindex="-1" data-k="clear">Clear</button><button type="button" tabindex="-1">0</button><button type="button" tabindex="-1" data-k="back">⌫</button>
+      </div>
+    </div>
+    <div id="joinShow" hidden>
+      <p class="sub" id="joinQ"></p>
+      <p class="join-name" id="joinName"></p>
+      <p class="join-words" id="joinWords"></p>
+      <div class="row-end" id="joinYesNo"><button type="button" class="btn" id="joinNo">No, go back</button><button type="button" class="btn primary" id="joinYes">Yes, that's my class!</button></div>
+    </div>
+    <p class="msg" id="joinMsg" role="status"></p>
+    <div class="row-end"><button type="button" class="btn" id="joinClose">Close</button></div>
   </form>
 </div>
 
@@ -1735,9 +1775,14 @@ document.addEventListener('keydown', e => {
 const CLASSROOM = (() => {
   const API = SERVICE;
   const KEY = 'wordy-wizard-classroom';
-  let me = null;   // { role: 'teacher', code, key } or { role: 'student', code, updated }
+  const HOME = 'wordy-wizard-words-home';   // the family's own list, kept while they're in a class
+  const NAME_OK = /^[A-Za-z0-9][A-Za-z0-9 .,'’&\-]{0,39}$/;
+  const nameOf = c => typeof c.name === 'string' && NAME_OK.test(c.name) ? c.name : '';
+  let me = null;   // { role: 'teacher', code, key, name } or { role: 'student', code, name, updated }
   try { me = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
   if (!me || !/^\d{4}$/.test(String(me.code)) || (me.role !== 'teacher' && me.role !== 'student')) me = null;   // anything odd: start fresh
+  if (me) me.name = nameOf(me);
+  const label = () => me.name || 'Class ' + me.code;
   const keep = () => { try { me ? localStorage.setItem(KEY, JSON.stringify(me)) : localStorage.removeItem(KEY); } catch (e) {} };
   const msg = (t, ok) => { const m = $('classMsg'); m.className = 'msg' + (ok ? ' ok' : ''); m.textContent = t; };
   async function call(method, path, body, key) {
@@ -1761,26 +1806,28 @@ const CLASSROOM = (() => {
     panel.classList.toggle('panel-joined', role === 'student');
     $('pWeek').disabled = role === 'student'; $('pCancel').textContent = role === 'student' ? 'Close' : 'Cancel';
     if (role === 'teacher') body.innerHTML = `<p>Your classroom code</p><div class="class-code">${escHTML(me.code)}</div>
-      <p>Families enter this code here in Grown-ups to get your words. Each time you press <b>Save words</b>, your class gets the new list.</p>
+      <div class="class-row"><input class="class-name" id="className" maxlength="40" placeholder="Class name, like Room 12" aria-label="Class name" value="${escHTML(me.name)}"><button type="button" class="btn" id="classRename">Save name</button></div>
+      <p>Children tap <b>Join my class</b> in the wizard's room and type this code (families can also enter it here). Each time you press <b>Save words</b>, your class gets the new list.</p>
       <div class="class-row"><button type="button" class="btn" id="classForget">Stop sharing from this device</button></div>`;
-    else if (role === 'student') body.innerHTML = `<p>These words come from classroom</p><div class="class-code">${escHTML(me.code)}</div>
+    else if (role === 'student') { const h = home(); body.innerHTML = `<p>These words come from ${me.name ? '<b>' + escHTML(me.name) + '</b>, ' : ''}classroom</p><div class="class-code">${escHTML(me.code)}</div>
       <p>They update on their own when the teacher changes them.</p>
-      <div class="class-row"><button type="button" class="btn" id="classLeave">Leave classroom</button></div>`;
+      <div class="class-row"><button type="button" class="btn" id="classLeave">Leave classroom</button>${h && h.words.length ? `<button type="button" class="btn" id="classHome">Leave and bring back our own ${h.words.length} words</button>` : ''}</div>`; }
     else body.innerHTML = `<p><b>Teachers:</b> enter the words below, then make a code so your class gets them automatically.</p>
-      <div class="class-row"><button type="button" class="btn primary" id="classMake">Create a classroom code</button></div>
+      <div class="class-row"><input class="class-name" id="className" maxlength="40" placeholder="Class name, like Room 12" aria-label="Class name (optional)"><button type="button" class="btn primary" id="classMake">Create a classroom code</button></div>
       <p><b>Joining a class?</b> Enter the 4-digit code from the teacher.</p>
       <form class="class-row" id="classJoin" autocomplete="off"><input id="classCode" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" aria-label="Classroom code"><button type="submit" class="btn">Join</button></form>`;
     const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
-    on('classMake', 'click', create); on('classLeave', 'click', leave); on('classForget', 'click', forget);
+    on('classMake', 'click', create); on('classLeave', 'click', () => leave(false)); on('classHome', 'click', () => leave(true)); on('classForget', 'click', forget); on('classRename', 'click', rename);
     on('classJoin', 'submit', e => { e.preventDefault(); join($('classCode').value.trim()); });
   }
   async function create() {
     if (!draft.length) { msg('Add some words first, then make the code.'); return; }
+    const name = typedName(); if (name === null) return;
     const b = $('classMake'); b.disabled = true; msg('Making your classroom…', true);
     try {
-      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft, sortBy: sortBy(), say: pruneSay(draft) });
+      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft, sortBy: sortBy(), say: pruneSay(draft), name });
       if (!/^\d{4}$/.test(String(r.code)) || typeof r.key !== 'string') throw new Error('Something went wrong. Please try again.');
-      me = { role: 'teacher', code: String(r.code), key: r.key }; keep();
+      me = { role: 'teacher', code: String(r.code), key: r.key, name }; keep(); chip();
       WORDS = { week, words: draft.slice(), say: pruneSay(draft) }; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
       onWordsChanged(); VOICE.record(WORDS.words).then(() => VOICE.warm(WORDS.words));
       render(); msg(`Done! Give families the code ${r.code}.`, true);
@@ -1791,15 +1838,107 @@ const CLASSROOM = (() => {
     msg('Finding the classroom…', true);
     try {
       const c = await call('GET', '/classes/' + code);
-      me = { role: 'student', code, updated: String(c.updated).slice(0, 40) }; keep(); useWords(c);
+      adopt(code, c);
       draft = WORDS.words.slice(); $('pWeek').value = WORDS.week; renderList(); render(); showSortChoice();
       msg(`Joined! ${WORDS.words.length} word${WORDS.words.length === 1 ? '' : 's'} for this week.`, true);
     } catch (e) { msg(e.status === 404 ? 'No classroom has that code. Check the numbers and try again.' : e.message); }
   }
-  function leave() { me = null; keep(); render(); showSortChoice(); msg('You left the classroom. The words stay here, and you can change them.', true); }
-  function forget() { me = null; keep(); render(); msg('This device no longer updates the classroom. Families keep the last words you sent.', true); }
+  // this device joins a class; the family's own list is put aside so a grown-up can bring it back later
+  function adopt(code, c) {
+    if (!me && WORDS.words.length) try { localStorage.setItem(HOME, JSON.stringify(WORDS)); } catch (e) {}
+    me = { role: 'student', code, name: nameOf(c), updated: String(c.updated).slice(0, 40) }; keep(); useWords(c); chip();
+  }
+  function home() { try { const raw = localStorage.getItem(HOME); return raw ? cleanWords(JSON.parse(raw)) : null; } catch (e) { return null; } }
+  function leave(restore) {
+    const h = restore && home();
+    me = null; keep(); chip();
+    if (h) {
+      WORDS = h; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); localStorage.removeItem(HOME); } catch (e) {}
+      onWordsChanged(); VOICE.warm(WORDS.words);
+      draft = WORDS.words.slice(); draftSay = Object.assign({}, WORDS.say || {}); $('pWeek').value = WORDS.week || isoMonday(); renderList();
+    }
+    render(); showSortChoice();
+    msg(h ? `You left the classroom, and your own ${h.words.length} words are back.` : 'You left the classroom. The words stay here, and you can change them.', true);
+  }
+  function forget() { me = null; keep(); chip(); render(); msg('This device no longer updates the classroom. Families keep the last words you sent.', true); }
+  // the class name a teacher typed: '' when left empty, null (with a message) when it can't be used
+  function typedName() {
+    const v = $('className').value.trim().replace(/\s+/g, ' ');
+    if (v && !NAME_OK.test(v)) { msg('Class names can use letters, numbers and spaces (up to 40), like Room 12.'); return null; }
+    return v;
+  }
+  async function rename() {
+    const name = typedName(); if (name === null) return;
+    const was = me.name; me.name = name;
+    try { await share(); keep(); chip(); msg(name ? `Your class is now called ${name}.` : 'Your class has no name now.', true); }
+    catch (e) { me.name = was; msg(e.message); }
+  }
   // a teacher's Save sends the new list to the class
-  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words, sortBy: sortBy(), say: WORDS.say || {} }, me.key) : Promise.resolve(); }
+  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words, sortBy: sortBy(), say: WORDS.say || {}, name: me.name }, me.key) : Promise.resolve(); }
+
+  // ---- the "Join my class" button in the wizard's room ----
+  const box = $('joinBox'), btn = $('classBtn');
+  let found = null, wrong = 0, waitUntil = 0;
+  function chip() {
+    $('classBtnLabel').textContent = me ? label() : 'Join my class';
+    btn.setAttribute('aria-label', me ? 'Your class: ' + label() : "Join my class: type your teacher's code");
+  }
+  const jmsg = (t, ok) => { const m = $('joinMsg'); m.className = 'msg' + (ok ? ' ok' : ''); m.textContent = t; };
+  function ask() {
+    found = null; $('joinAsk').hidden = false; $('joinShow').hidden = true; $('joinCode').value = ''; jmsg('');
+    $('joinCode').focus();
+  }
+  function openJoin() {
+    returnFocus = document.activeElement; box.hidden = false;
+    $('joinTitle').textContent = me ? 'My class' : 'Join my class';
+    if (!me) return ask();
+    // already in a class: show which one (a teacher's device shows the code to give the children)
+    $('joinAsk').hidden = true; $('joinShow').hidden = false; $('joinYesNo').hidden = true; jmsg('');
+    $('joinName').textContent = label();
+    const n = WORDS.words.length;
+    if (me.role === 'teacher') { $('joinQ').textContent = 'Your class'; $('joinWords').innerHTML = `Children join with this code:<span class="class-code">${escHTML(me.code)}</span>`; }
+    else { $('joinQ').textContent = "You're in this class:"; $('joinWords').textContent = `${n} spelling word${n === 1 ? '' : 's'} this week. A grown-up can change classes in Grown-ups.`; }
+    $('joinClose').focus();
+  }
+  async function find(e) {
+    e.preventDefault();
+    const code = $('joinCode').value.trim();
+    if (Date.now() < waitUntil) { jmsg("Let's wait a moment, then try again."); return; }
+    if (!/^\d{4}$/.test(code)) { jmsg('Type all 4 numbers.'); $('joinCode').focus(); return; }
+    jmsg('Looking for your class…', true);
+    try {
+      const c = await call('GET', '/classes/' + code), v = cleanWords(c), n = v.words.length;
+      wrong = 0; found = { code, c };
+      $('joinAsk').hidden = true; $('joinShow').hidden = false; $('joinYesNo').hidden = false; jmsg('');
+      $('joinQ').textContent = 'Is this your class?';
+      $('joinName').textContent = nameOf(c) || 'Class ' + code;
+      $('joinWords').textContent = n ? `${n} word${n === 1 ? '' : 's'}: ${v.words.slice(0, 4).join(', ')}${n > 4 ? '…' : ''}` : 'No spelling words yet.';
+      $('joinYes').focus();
+    } catch (err) {
+      if (err.status !== 404) { jmsg(err.message); return; }
+      if (++wrong >= 3) { wrong = 0; waitUntil = Date.now() + 30e3; jmsg("That code didn't work. Check the code with your teacher, then try again in a little while."); }
+      else jmsg('No class has that code. Check the numbers and try again.');
+      $('joinCode').select();
+    }
+  }
+  btn.addEventListener('click', openJoin);
+  $('joinForm').addEventListener('submit', find);
+  $('joinCode').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); });
+  $('joinKeys').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; const inp = $('joinCode');
+    inp.value = b.dataset.k === 'clear' ? '' : b.dataset.k === 'back' ? inp.value.slice(0, -1) : (inp.value + b.textContent).slice(0, 4);
+  });
+  $('joinNo').addEventListener('click', ask);
+  $('joinYes').addEventListener('click', () => {
+    if (!found) return;
+    adopt(found.code, found.c); closeModal(box);
+    say("Splendid! I've fetched your class's spelling words. Pick a spell from my book to practise them!");
+  });
+  $('joinClose').addEventListener('click', () => closeModal(box));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !box.hidden) closeModal(box); });
+  // the button comes and goes with the Grown-ups lock (both hide during a game)
+  new MutationObserver(() => { btn.hidden = lockBtn.hidden; }).observe(lockBtn, { attributes: true, attributeFilter: ['hidden'] });
+  chip();
   // a family's device picks up the teacher's latest words when the app opens (and again later in the day)
   let lastSync = 0;
   async function sync() {
@@ -1807,6 +1946,7 @@ const CLASSROOM = (() => {
     lastSync = Date.now();
     try {
       const c = await call('GET', '/classes/' + me.code);
+      if (nameOf(c) !== me.name) { me.name = nameOf(c); keep(); chip(); }
       if (c.updated !== me.updated) { me.updated = String(c.updated).slice(0, 40); keep(); useWords(c); } else if (typeof c.sortBy === 'string' && /^[a-z0-9-]{1,24}$/.test(c.sortBy)) sortBy(c.sortBy);
     } catch (e) {}
   }
@@ -6662,7 +6802,7 @@ cvs.addEventListener('click', ev => {
   else if (hit.type === 'potion') EGGS.potion(hit.i);
 });
 document.addEventListener('keydown', e => {
-  if (!gate.hidden || !panel.hidden) return;
+  if (!gate.hidden || !panel.hidden || !document.getElementById('joinBox').hidden) return;
   if (FX.state !== 'lair') { if (e.key === 'Escape' && FX.state === 'game') backToLair(); return; }
   if (e.target.closest && e.target.closest('input,textarea')) return;
   if (e.key === 'ArrowRight' || e.key === 'PageDown') { turnPage(1); }

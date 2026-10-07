@@ -1,9 +1,10 @@
 // The Wordy Wizard classroom service (a Cloudflare Worker).
 // A teacher shares the week's spelling words under a 4-digit code; families enter the code to get them.
-//   POST /classes                      { week, words, sortBy? }  -> { code, key }    create a class
-//   GET  /classes/:code                                 -> { code, week, words, sortBy, updated }
-//   PUT  /classes/:code  (Bearer key)  { week, words, sortBy? }  -> { code, week, words, sortBy, updated }
+//   POST /classes                      { week, words, sortBy?, name? }  -> { code, key }    create a class
+//   GET  /classes/:code                                 -> { code, name, week, words, sortBy, updated }
+//   PUT  /classes/:code  (Bearer key)  { week, words, sortBy?, name? }  -> { code, name, week, words, sortBy, updated }
 // sortBy is the teacher's choice for the Stable Sort game (how words are sorted), e.g. 'syllables'.
+// name is what the class is called, e.g. 'Room 12', so children can check they joined the right one.
 //   POST /voices                       { words: [...] } -> { ready, recorded, limited }   record spelling words
 //   GET  /voices/:word                                  -> the word's recording (audio/wav), or 204 if not recorded yet
 // Spelling words are read aloud by the MeloTTS voice (Cloudflare Workers AI). Each word is recorded once, the
@@ -13,6 +14,10 @@
 
 const WORD_RE = /^[A-Za-z][A-Za-z'’\- ]{0,29}$/, WEEK_RE = /^(\d{4}-\d{2}-\d{2})?$/, MAX_WORDS = 150;
 const CREATES_PER_HOUR = 5;
+const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9 .,'’&\-]{0,39}$/;
+// wrong codes allowed per network address per hour (a whole school shares one address, so it's generous;
+// it only stops someone trying every code)
+const MISSES_PER_HOUR = 60;
 // voice limits: single short words only (plus the Town Crier's two phrases), a few per request (the free plan
 // allows ~10 ms of work per request), and daily caps that keep the service inside the free plan's 1,000 storage
 // writes a day (each new recording is one write).
@@ -56,9 +61,15 @@ async function readList(req) {
     if (!inList.has(k) || !SAY_RE.test(String(v))) return null;
     say[k] = String(v);
   }
-  return { week, words, sortBy, say };
+  const list = { week, words, sortBy, say };
+  if ('name' in body) {   // (left out: the name stays as it was)
+    const name = String(body.name || '').trim().replace(/\s+/g, ' ');
+    if (name && !NAME_RE.test(name)) return null;
+    list.name = name;
+  }
+  return list;
 }
-const view = (code, c) => ({ code, week: c.week, words: c.words, sortBy: c.sortBy || 'auto', say: c.say || {}, updated: c.updated });
+const view = (code, c) => ({ code, name: c.name || '', week: c.week, words: c.words, sortBy: c.sortBy || 'auto', say: c.say || {}, updated: c.updated });
 
 // ---- spelling-word voices ----
 async function voices(req, env, parts) {
@@ -128,9 +139,14 @@ export default {
     }
 
     const code = parts[1];
-    if (!/^\d{4}$/.test(code || '')) return oops(req, 404, 'no classroom has that code');
-    const raw = await env.CLASSES.get('class:' + code);
-    if (!raw) return oops(req, 404, 'no classroom has that code');
+    const ip = req.headers.get('CF-Connecting-IP') || 'local', missKey = 'miss:' + ip + ':' + Math.floor(Date.now() / 3600e3);
+    const missed = +(await env.CLASSES.get(missKey) || 0);
+    if (missed >= MISSES_PER_HOUR) return oops(req, 429, 'too many wrong codes; try again in a little while');
+    const raw = /^\d{4}$/.test(code || '') ? await env.CLASSES.get('class:' + code) : null;
+    if (!raw) {
+      await env.CLASSES.put(missKey, String(missed + 1), { expirationTtl: 3700 });
+      return oops(req, 404, 'no classroom has that code');
+    }
     const cls = JSON.parse(raw);
 
     if (req.method === 'GET') return reply(req, 200, view(code, cls));
