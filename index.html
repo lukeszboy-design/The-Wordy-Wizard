@@ -1239,14 +1239,29 @@ const $ = id => document.getElementById(id);
 
 /* ================= Background music: "Skipping Song", looped ================= */
 const MUSIC = (() => {
-  const KEY = 'wordy-wizard-music', LAIR = .35, GAME = .16;
+  const KEY = 'wordy-wizard-music', LAIR = .35, GAME = .1, UNDER_VOICE = .3;   // (in a game the song sits well under the words)
   const btn = $('musicBtn'), label = $('musicLabel'), el = new Audio();
   el.loop = true; el.preload = 'auto'; el.volume = LAIR;
   let on = true, ready = false, gesture = false, target = LAIR, fade = null, base = LAIR, talking = false, readyRes;
   const readyP = new Promise(r => readyRes = r);
   try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) {}
+  // iPhones and iPads ignore an audio element's volume, so there the song plays through Web Audio, whose
+  // volume they do follow (set up inside the first tap, the only time those browsers allow it)
+  el.volume = .5; const fixedVolume = Math.abs(el.volume - .5) > .01; el.volume = LAIR;
+  let actx = null, gain = null;
+  function route() {
+    if (!fixedVolume || actx) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; actx = new AC();
+      gain = actx.createGain(); gain.gain.value = target;
+      actx.createMediaElementSource(el).connect(gain); gain.connect(actx.destination);
+    } catch (e) { gain = null; }
+  }
+  const wake = () => { if (actx && actx.state !== 'running') actx.resume().catch(() => {}); };
+  const getVol = () => gain ? gain.gain.value : el.volume;
+  const setVol = v => { if (gain) gain.gain.value = v; else el.volume = v; };
   const show = () => { btn.setAttribute('aria-pressed', on); btn.setAttribute('aria-label', `Background music: ${on ? 'on' : 'off'}`); label.textContent = on ? 'Music' : 'Music off'; };
-  const start = () => { if (on && ready && gesture && el.paused && !document.hidden) el.play().catch(() => {}); };
+  const start = () => { wake(); if (on && ready && gesture && el.paused && !document.hidden) el.play().catch(() => {}); };
   // the song ships as base64 text (music.txt) so it deploys like the rest of the site
   fetch('music.txt').then(r => { if (!r.ok) throw new Error(r.status); return r.text(); }).then(t => {
     const bin = atob(t.replace(/\s+/g, '')), u8 = new Uint8Array(bin.length);
@@ -1255,7 +1270,7 @@ const MUSIC = (() => {
     ready = true; btn.hidden = false; show(); start(); readyRes(true);
   }).catch(() => { btn.hidden = true; readyRes(false); });
   // browsers only allow sound after the first tap or key press
-  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { gesture = true; start(); }, { capture: true, passive: true }));
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { gesture = true; route(); start(); }, { capture: true, passive: true }));
   btn.addEventListener('click', e => {
     e.stopPropagation(); on = !on; try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (er) {}
     show(); if (on) { gesture = true; start(); } else el.pause();
@@ -1263,11 +1278,11 @@ const MUSIC = (() => {
   document.addEventListener('visibilitychange', () => { if (document.hidden) el.pause(); else start(); });
   function level(v) {
     target = v; clearInterval(fade);
-    fade = setInterval(() => { const d = target - el.volume; if (Math.abs(d) < .01) { el.volume = target; clearInterval(fade); } else el.volume = Math.max(0, Math.min(1, el.volume + Math.sign(d) * .01)); }, 40);
+    fade = setInterval(() => { const now = getVol(), d = target - now; if (Math.abs(d) < .01) { setVol(target); clearInterval(fade); } else setVol(Math.max(0, Math.min(1, now + Math.sign(d) * .01))); }, 40);
   }
-  const apply = () => level(base * (talking ? .45 : 1));
+  const apply = () => level(base * (talking ? UNDER_VOICE : 1));
   // called inside the Enter tap so the song can start right away in every browser
-  function unlock() { gesture = true; if (on && ready && el.paused && !document.hidden) { try { const p = el.play(); if (p) p.catch(() => {}); } catch (e) {} } }
+  function unlock() { gesture = true; route(); wake(); if (on && ready && el.paused && !document.hidden) { try { const p = el.play(); if (p) p.catch(() => {}); } catch (e) {} } }
   return { duck: () => { base = GAME; apply(); }, lair: () => { base = LAIR; apply(); }, talk: v => { if (talking !== v) { talking = v; apply(); } }, unlock, ready: readyP };
 })();
 
@@ -1309,13 +1324,13 @@ const VOICE = (() => {
     try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); } catch (e) {}
   }
   function nativeSay(text, rate, wizard, onend) {
-    const fin = once(onend || (() => {}));
+    const fin = once(() => { hush(); if (onend) onend(); });
     try {
       if (synth.speaking || synth.pending) synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
       if (nVoice) { u.voice = nVoice; u.lang = nVoice.lang; } else u.lang = 'en-GB';
       u.rate = Math.max(.5, Math.min(1, wizard ? rate : rate * PACE)); u.pitch = wizard ? .8 : 1.05;
-      nUtter = u;   // keep hold of it: some browsers drop the end event of an utterance nobody references
+      nUtter = u; MUSIC.talk(true);   // keep hold of it: some browsers drop the end event of an utterance nobody references
       u.onend = u.onerror = () => { if (nUtter === u) { nUtter = null; clearTimeout(nTimer); } fin(); };
       clearTimeout(nTimer); nTimer = setTimeout(() => { if (nUtter === u) nUtter = null; fin(); }, 2500 + text.length * 170 / u.rate);
       synth.speak(u);
@@ -1453,8 +1468,8 @@ const VOICE = (() => {
       unlock();
       const buf = ctx.createBuffer(1, audio.pcm.length, audio.rate); buf.copyToChannel(audio.pcm, 0);
       src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination);
-      const me = src; src.onended = () => { if (src === me) src = null; if (onend) onend(); };
-      src.start();
+      const me = src; src.onended = () => { if (src === me) src = null; hush(); if (onend) onend(); };
+      MUSIC.talk(true); src.start();
     } catch (e) { if (onend) onend(); }
   }
   function cancel() {
@@ -1462,7 +1477,10 @@ const VOICE = (() => {
     const f = ending; ending = null; if (f) f();   // a line cut off by the next one still finishes tidily
     if (src) { const s = src; src = null; s.onended = null; try { s.stop(); } catch (e) {} }
     if (nUtter) { nUtter = null; clearTimeout(nTimer); try { synth.cancel(); } catch (e) {} }
+    hush();
   }
+  // the music dips under every voice (the wizard's and the words) and comes back once nothing is speaking
+  function hush() { if (!src && !nUtter) MUSIC.talk(false); }
   // Every voice but the wizard's speaks a little slower than it was recorded, so words are easier to follow.
   // The clips are stretched without lowering the voice (WSOLA: short overlapping windows, each nudged to
   // where the waveform lines up best with the last one).
