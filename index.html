@@ -7170,16 +7170,19 @@ const TITLE3D = (() => {
     add(new THREE.ConeGeometry(r * 1.38, rh, 28), roof, { pos: [x, y1 + .4 + rh / 2, z], outline: .03 });
     return y1 + .4 + rh;   // the roof's tip, for a flag
   };
-  // the keep wraps the lair (x ±6, y 0..6, z -4..6): solid below, walls around, a roof slab above
-  add(new THREE.BoxGeometry(13.2, 6, 11.2), stone(3.3, 1.5), { pos: [0, G / 2, 1], outline: .03, receive: true });
-  [-6.3, 6.3].forEach(x => add(new THREE.BoxGeometry(.6, 9, 11.2), stone(2.8, 2.25), { pos: [x, 4.5, 1], receive: true }));
-  add(new THREE.BoxGeometry(13.2, 9, .6), stone(3.3, 2.25), { pos: [0, 4.5, -4.3], receive: true });
-  add(new THREE.BoxGeometry(13.2, 2.95, 11.2), stone(3.3, .75), { pos: [0, 7.53, 1], receive: true });
+  // the keep wraps the lair (x ±6, y 0..6, z -4..6): solid below, walls around, a roof slab above.
+  // No two surfaces may sit in the same place (here, or against the lair's own floor, walls and window
+  // frame): from out here the depth buffer can't tell them apart and they flicker. So each hidden part
+  // stops a few centimetres short: inside the front wall, behind the lair's walls, under its floor.
+  add(new THREE.BoxGeometry(13.2, 5.96, 11.2), stone(3.3, 1.5), { pos: [0, G / 2 - .02, 1], outline: .03, receive: true });
+  [-6.32, 6.32].forEach(x => add(new THREE.BoxGeometry(.52, 8.96, 11.05), stone(2.8, 2.25), { pos: [x, 4.48, .975], receive: true }));
+  add(new THREE.BoxGeometry(13.2, 9, .5), stone(3.3, 2.25), { pos: [0, 4.5, -4.35], receive: true });
+  add(new THREE.BoxGeometry(13.08, 2.88, 11), stone(3.3, .75), { pos: [0, 7.5, .95], receive: true });
   // the front wall, with the great window into the wizard's room
   const WIN = { hw: 2.8, hs: 2.6, y: .3 };
   { const s = new THREE.Shape(); s.moveTo(-6.6, 0); s.lineTo(6.6, 0); s.lineTo(6.6, 9); s.lineTo(-6.6, 9); s.lineTo(-6.6, 0);
     const h = new THREE.Path(); archShape(WIN.hw, WIN.hs).getPoints(40).forEach((p, i) => i ? h.lineTo(p.x, p.y + WIN.y) : h.moveTo(p.x, p.y + WIN.y)); s.holes.push(h);
-    add(new THREE.ExtrudeGeometry(s, { depth: .6, bevelEnabled: false, curveSegments: 40 }), stone(.25, .25), { pos: [0, 0, 6], receive: true }); }
+    add(new THREE.ExtrudeGeometry(s, { depth: .6, bevelEnabled: false, curveSegments: 40 }), stone(.25, .25), { pos: [0, 0, 6.03], receive: true }); }
   add(archRing(WIN.hw, WIN.hs, .45, .3), frameMat, { pos: [0, WIN.y, 6.55], outline: .015, receive: true });
   add(new THREE.BoxGeometry(6.9, .22, .7), frameMat, { pos: [0, WIN.y - .1, 6.85], outline: .015, receive: true });
   row(-6.2, 6.2, 9.4, 6.25, 9); row(-6.2, 6.2, 9.4, -4.25, 9); col(-3.2, 5.2, 9.4, -6.25, 6); col(-3.2, 5.2, 9.4, 6.25, 6);
