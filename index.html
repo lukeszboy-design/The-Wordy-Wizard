@@ -125,6 +125,9 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
 .say-fix{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0;font-size:15px}
 .say-fix input{width:9em;font:16px var(--font-read);padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:#2a1a10}
 .say-fix .hint{flex-basis:100%;margin:0}
+.say-fix .clue-fix{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.say-fix .clue-fix input{flex:1;min-width:12em;width:auto}
+.panel-joined .clue-fix{display:none}
 .voice-note{margin-top:10px}
 .panel-joined .say-fix{display:none}
 .list-head{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px;font-weight:700}
@@ -728,6 +731,51 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .rc .bw-levels button{font-size:11px;padding:2px 7px}
   .rc-long{display:none}
 }
+/* --- The Royal Map (crossword) --- */
+.rm{position:absolute;left:3%;right:3%;top:21%;bottom:3%;display:grid;grid-template-columns:minmax(0,50fr) minmax(0,50fr);gap:2cqw;color:var(--parch-ink)}
+.rm-scene{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.rm-scene svg{display:block;width:100%;height:auto;max-height:100%;border-radius:1.4cqw;border:3px solid var(--ink);box-shadow:0 .5cqw 0 rgba(59,36,18,.25)}
+.rm-side{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:.9cqw}
+.rm-scroll{min-height:0;flex:0 1 auto;display:flex;flex-direction:column;background:linear-gradient(90deg,#e9d3a0,#fbf0d2 8%,#fbf0d2 92%,#e9d3a0);border:2px solid #8a6a3a;border-radius:.8cqw;padding:.5cqw .8cqw;box-shadow:inset 0 .4cqw 0 #d9bb7c,inset 0 -.4cqw 0 #d9bb7c}
+.rm-title{margin:0 0 .3cqw;text-align:center;font:400 max(15px,1.6cqw) var(--font-display);color:#5a2414}
+.rm-clues{list-style:none;margin:0;padding:0;overflow:auto;max-height:17cqw;position:relative;display:flex;flex-direction:column;gap:.25cqw}
+.rm-head{font:700 max(11px,1cqw) var(--font-read);color:#8a6a3a;margin-top:.2cqw}
+.rm-clue{display:flex;align-items:baseline;gap:.6cqw;width:100%;text-align:left;font:700 max(13px,1.2cqw)/1.3 var(--font-read);color:#3b2412;background:transparent;border:2px solid transparent;border-radius:.6cqw;padding:.25cqw .5cqw;cursor:pointer}
+.rm-clue b{min-width:1.4em;color:#7b2d3f}
+.rm-clue small{margin-left:auto;font-weight:400;color:#6b4a26;white-space:nowrap}
+.rm-clue.on{background:#fff6d0;border-color:#a3401f}
+.rm-clue.done{color:#6b4a26}
+.rm-clue.done .rm-text::before{content:'✓ ';color:#2f6b4a}
+.rm-clue:focus-visible{outline:3px solid #a3401f;outline-offset:1px}
+.rm-tile rect{fill:#e8dcc0;stroke:#8a7a5a;stroke-width:2;stroke-dasharray:4 3}
+.rm-tile{cursor:pointer;transform-box:fill-box;transform-origin:center}
+.rm-tile.on rect{fill:#fff6d0;stroke:#a3401f;stroke-dasharray:none}
+.rm-tile.here rect{fill:#ffe9a6;stroke:#7b2d3f;stroke-width:3.5}
+.rm-tile.lit rect{fill:#f7d36b;stroke:#a86a10;stroke-dasharray:none}
+.rm-tile.bad .rm-letter{fill:#c0392b}
+.rm-tile.glow{animation:rmglow .6s ease-out}
+@keyframes rmglow{40%{transform:scale(1.18)}}
+.rm-num{font:700 9px var(--font-read);fill:#7b2d3f;pointer-events:none}
+.rm-letter{font:700 22px var(--font-read);fill:#2a1a10;text-anchor:middle;pointer-events:none}
+.rm-window{fill:#5a4a3a}
+.rm-village.lit .rm-window{fill:#ffd96b}
+.rm-banner{transform-box:fill-box;transform-origin:0 50%}
+.rm-wave{animation:rmwave .9s ease-in-out infinite alternate}
+@keyframes rmwave{from{transform:skewY(-3deg)}to{transform:skewY(3deg)}}
+@media (prefers-reduced-motion: reduce){ .rm-tile.glow,.rm-wave{animation:none} }
+@media (max-width:1100px) and (orientation:portrait){
+  .rm{position:static;display:flex;flex-direction:column;gap:10px;padding:8px 16px 20px}
+  .rm-scene svg{max-height:42vh;width:auto;max-width:100%}
+  .rm-clues{max-height:none}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .rm{top:19%;bottom:2%;grid-template-columns:minmax(0,44fr) minmax(0,56fr)}
+  .rm-side{gap:4px}
+  .rm-side > *{flex-shrink:0}
+  .rm-scroll{flex-shrink:1}
+  .rm-clues{max-height:none}
+  .rm .sq-status{min-height:0}
+}
 /* --- Feed the Baby Dragon (one letter at a time) --- */
 .fd{position:absolute;left:4%;right:4%;top:22%;bottom:4%;display:grid;grid-template-columns:minmax(0,46fr) minmax(0,54fr);gap:2.2cqw;color:var(--parch-ink)}
 .fd-scene{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:.8cqw}
@@ -1081,6 +1129,7 @@ potion</pre><span>One word per row in the first column. A header row such as “
     <ul class="chips" id="pList"></ul>
     <form class="say-fix" id="sayFix" hidden autocomplete="off">"<b id="sayWord"></b>" sounds wrong? Say it like:
       <input id="sayAs" placeholder="e.g. red" aria-label="How the word should sound" autocapitalize="off" spellcheck="false" maxlength="30"> <button type="submit" class="btn">Re-record</button>
+      <span class="clue-fix">Royal Map clue: <input id="clueAs" maxlength="100" aria-label="Royal Map clue for this word" placeholder="The royal scribe's clue…"> <button type="button" class="btn" id="clueSave">Save clue</button></span>
       <span class="hint" id="sayMsg" role="status"></span></form>
     <p class="hint voice-note">Tap 🔊 to hear a word. To read the words aloud, your spelling words are sent to the Wordy Wizard's voice server, which records each word once.</p>
     <p class="msg" id="pMsg" role="status"></p>
@@ -1130,7 +1179,7 @@ const GAMES = {
   vowels:     { name: 'Gem Mine', desc: 'Dig out the vowel gems', say: "Gem Mine! The dwarves need your help. Tap only the vowels to dig out the gems!" },
   memory:     { name: 'Shield Match', desc: 'Flip shields to find pairs', say: "Shield Match! Flip two shields at a time and find the matching pairs. Every match brings a knight to your army!" },
   sort:       { name: 'Stable Sort', desc: 'Lead each horse to its stable', say: "Stable Sort! Each horse wears a word. Lead it to the right stable by how the word is spelled!" },
-  crossword:  { name: 'Crossword', desc: 'Solve the clues', say: "Crossword! Use the clues to fill in the grid. This spell is still brewing!" },
+  crossword:  { name: 'The Royal Map', desc: 'Build the roads from the clues', say: "The Royal Map! Read the clues on the royal scroll and build the roads between the villages." },
   bee:        { name: 'The Royal Court', desc: 'Spell before the queen', say: "The Royal Court! Stand before the queen and spell each word. Spell well, and she will knight you!" },
 };
 /* Each spread is two facing pages: games[0..1] on the left page, games[2..3] on the right. Add more spreads here as games are added. */
@@ -1211,18 +1260,20 @@ const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 // Every word list, whether typed, from a CSV, saved in this browser or sent by a classroom, passes the same check
 // before the games see it: real words only (letters, spaces, ' and -, up to 30), no repeats, at most MAX_WORDS.
 const WORD_OK = /^[A-Za-z][A-Za-z'’\- ]{0,29}$/, SAY_OK = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, WEEK_OK = /^\d{4}-\d{2}-\d{2}$/;
+const CLUE_OK = /^[A-Za-z0-9][A-Za-z0-9 ,.'’!?\-]{7,99}$/;   // a Royal Map clue (the voice service checks the same)
 function cleanWords(o) {
-  const src = o && typeof o === 'object' ? o : {}, seen = new Set(), words = [], say = {};
+  const src = o && typeof o === 'object' ? o : {}, seen = new Set(), words = [], say = {}, clues = {};
   (Array.isArray(src.words) ? src.words : []).forEach(w => {
     w = typeof w === 'string' ? w.trim().replace(/\s+/g, ' ') : '';
     if (WORD_OK.test(w) && !seen.has(w.toLowerCase()) && words.length < MAX_WORDS) { seen.add(w.toLowerCase()); words.push(w); }
   });
   Object.entries(src.say && typeof src.say === 'object' ? src.say : {}).forEach(([k, v]) => { if (seen.has(k) && typeof v === 'string' && SAY_OK.test(v)) say[k] = v; });
-  return { week: typeof src.week === 'string' && WEEK_OK.test(src.week) ? src.week : '', words, say };
+  Object.entries(src.clues && typeof src.clues === 'object' ? src.clues : {}).forEach(([k, v]) => { if (seen.has(k) && typeof v === 'string' && CLUE_OK.test(v)) clues[k] = v; });
+  return { week: typeof src.week === 'string' && WEEK_OK.test(src.week) ? src.week : '', words, say, clues };
 }
 // text going into markup is escaped, so a word can never become part of the page's code
 const escHTML = t => String(t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
-let WORDS = { week: '', words: [], say: {} };
+let WORDS = { week: '', words: [], say: {}, clues: {} };
 try { const raw = localStorage.getItem(WORDS_KEY); if (raw) WORDS = cleanWords(JSON.parse(raw)); } catch (e) {}
 let onWordsChanged = () => {};
 // how Stable Sort sorts the words (a grown-up's choice; a classroom passes the teacher's choice along)
@@ -1363,7 +1414,7 @@ const VOICE = (() => {
   // (a grown-up can change how a word is said, e.g. "read" said like "red": WORDS.say maps the word to that spelling)
   const CLOUD = 'melo', SAY_RE = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, PHRASES = ['Hear ye, hear ye! The word is:', 'Huzzah!'];
   const sayAs = t => (WORDS.say || {})[String(t).toLowerCase()] || String(t);
-  const cloudable = t => SAY_RE.test(t) || PHRASES.includes(t);
+  const cloudable = t => SAY_RE.test(t) || PHRASES.includes(t) || CLUE_OK.test(t);   // (clue sentences too)
   const decoder = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 24000);
   // ask the service to record words it doesn't have yet (a few at a time, as the service asks)
   async function record(list) {
@@ -1654,8 +1705,9 @@ $('gateCancel').addEventListener('click', () => closeModal(gate));
 lockBtn.addEventListener('click', openGate);
 
 /* ----- word panel ----- */
-let draft = [], draftSay = {};   // draftSay: words a grown-up asked to be said differently, e.g. { read: 'red' }
+let draft = [], draftSay = {}, draftClues = {};   // draftSay: words a grown-up asked to be said differently, e.g. { read: 'red' }; draftClues: their own Royal Map clues
 const pruneSay = list => { const out = {}; list.forEach(w => { const k = w.toLowerCase(); if (draftSay[k]) out[k] = draftSay[k]; }); return out; };
+const pruneClues = list => { const out = {}; list.forEach(w => { const k = w.toLowerCase(); if (draftClues[k]) out[k] = draftClues[k]; }); return out; };
 const WORD_RE = /^[A-Za-z][A-Za-z'’\- ]{0,29}$/;
 function cleanWord(w) { return w.replace(/^[\s"']+|[\s"']+$/g, '').replace(/\s+/g, ' '); }
 function addWords(list, replace) {
@@ -1696,7 +1748,20 @@ function hearWord(w) {
   const as = draftSay[w.toLowerCase()];
   VOICE.speak(as || w);
   fixing = w; $('sayFix').hidden = false; $('sayWord').textContent = w; $('sayAs').value = as || ''; $('sayMsg').textContent = '';
+  // the word's Royal Map clue: the grown-up's own, or the royal scribe's (fetched, and written if it's new)
+  const k = w.toLowerCase(), ci = $('clueAs'); ci.value = draftClues[k] || ''; ci.placeholder = /^[a-z]{3,10}$/i.test(w) ? 'The royal scribe is writing…' : 'Only single words of 3 to 10 letters go on the map';
+  ci.disabled = $('clueSave').disabled = !/^[a-z]{3,10}$/i.test(w);
+  if (!ci.disabled && !draftClues[k]) CLUES.get([k], true).then(m => { if (fixing === w && !draftClues[k]) { ci.value = (m[k] || '').replace(/\bblank\b/gi, '____'); ci.placeholder = 'Type a clue for this word'; } });
 }
+$('clueAs').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('clueSave').click(); } });
+$('clueSave').addEventListener('click', () => {
+  if (!fixing) return;
+  const k = fixing.toLowerCase(), v = $('clueAs').value.trim().replace(/\s+/g, ' ').replace(/_+/g, 'blank'), m = $('sayMsg');
+  if (!v) { delete draftClues[k]; m.textContent = "Back to the royal scribe's clue. Press Save words to keep it."; return; }
+  if (!CLUE_OK.test(v)) { m.textContent = 'Clues can use letters, numbers and simple punctuation, 8 to 100 characters. Use ____ for a blank.'; return; }
+  if (v.toLowerCase().split(/[^a-z]+/).includes(k)) { m.textContent = `The clue gives the answer away. Try it without the word "${fixing}".`; return; }
+  draftClues[k] = v; VOICE.record([v]); m.textContent = `New clue for "${fixing}". Press Save words to keep it.`;
+});
 $('sayFix').addEventListener('submit', async e => {
   e.preventDefault(); if (!fixing) return;
   const as = $('sayAs').value.trim(), k = fixing.toLowerCase();
@@ -1706,7 +1771,7 @@ $('sayFix').addEventListener('submit', async e => {
   draftSay[k] = as; VOICE.speak(as); $('sayMsg').textContent = `Now "${fixing}" is said like "${as}". Press Save words to keep it.`;
 });
 function openPanel() {
-  draftSay = Object.assign({}, WORDS.say || {}); fixing = null; $('sayFix').hidden = true;
+  draftSay = Object.assign({}, WORDS.say || {}); draftClues = Object.assign({}, WORDS.clues || {}); fixing = null; $('sayFix').hidden = true;
   draft = WORDS.words.slice(); $('pWeek').value = WORDS.week || isoMonday();
   $('pMsg').textContent = ''; $('csvResult').innerHTML = ''; selectTab('type');
   renderList(); CLASSROOM.render(); showSortChoice(); panel.hidden = false; setTimeout(() => (CLASSROOM.joined ? $('pCancel') : $('pWord')).focus(), 30);
@@ -1770,7 +1835,7 @@ function askClear() {
 }
 $('pCancel').addEventListener('click', () => closeModal(panel));
 $('pSave').addEventListener('click', () => {
-  WORDS = { week: $('pWeek').value || isoMonday(), words: draft.slice(), say: pruneSay(draft) };
+  WORDS = { week: $('pWeek').value || isoMonday(), words: draft.slice(), say: pruneSay(draft), clues: pruneClues(draft) };
   let saved = true;
   try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) { saved = false; }
   closeModal(panel); onWordsChanged(); VOICE.record(WORDS.words).then(() => VOICE.warm(WORDS.words));   // new words are recorded once, then ready
@@ -1815,7 +1880,7 @@ const CLASSROOM = (() => {
   function useWords(c) {
     if (typeof c.sortBy === 'string' && /^[a-z0-9-]{1,24}$/.test(c.sortBy)) sortBy(c.sortBy);
     const v = cleanWords(c);   // the server checks lists too, but the app never relies on that
-    WORDS = { week: v.week || isoMonday(), words: v.words, say: v.say };
+    WORDS = { week: v.week || isoMonday(), words: v.words, say: v.say, clues: v.clues };
     try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
     onWordsChanged(); VOICE.warm(WORDS.words);
   }
@@ -1843,10 +1908,10 @@ const CLASSROOM = (() => {
     const name = typedName(); if (name === null) return;
     const b = $('classMake'); b.disabled = true; msg('Making your classroom…', true);
     try {
-      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft, sortBy: sortBy(), say: pruneSay(draft), name });
+      const week = $('pWeek').value || isoMonday(), r = await call('POST', '/classes', { week, words: draft, sortBy: sortBy(), say: pruneSay(draft), clues: pruneClues(draft), name });
       if (!/^\d{4}$/.test(String(r.code)) || typeof r.key !== 'string') throw new Error('Something went wrong. Please try again.');
       me = { role: 'teacher', code: String(r.code), key: r.key, name }; keep(); chip();
-      WORDS = { week, words: draft.slice(), say: pruneSay(draft) }; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
+      WORDS = { week, words: draft.slice(), say: pruneSay(draft), clues: pruneClues(draft) }; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) {}
       onWordsChanged(); VOICE.record(WORDS.words).then(() => VOICE.warm(WORDS.words));
       render(); msg(`Done! Give families the code ${r.code}.`, true);
     } catch (e) { b.disabled = false; msg(e.message); }
@@ -1873,7 +1938,7 @@ const CLASSROOM = (() => {
     if (h) {
       WORDS = h; try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); localStorage.removeItem(HOME); } catch (e) {}
       onWordsChanged(); VOICE.warm(WORDS.words);
-      draft = WORDS.words.slice(); draftSay = Object.assign({}, WORDS.say || {}); $('pWeek').value = WORDS.week || isoMonday(); renderList();
+      draft = WORDS.words.slice(); draftSay = Object.assign({}, WORDS.say || {}); draftClues = Object.assign({}, WORDS.clues || {}); $('pWeek').value = WORDS.week || isoMonday(); renderList();
     }
     render(); showSortChoice();
     msg(h ? `You left the classroom, and your own ${h.words.length} words are back.` : 'You left the classroom. The words stay here, and you can change them.', true);
@@ -1892,7 +1957,7 @@ const CLASSROOM = (() => {
     catch (e) { me.name = was; msg(e.message); }
   }
   // a teacher's Save sends the new list to the class
-  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words, sortBy: sortBy(), say: WORDS.say || {}, name: me.name }, me.key) : Promise.resolve(); }
+  function share() { return me && me.role === 'teacher' ? call('PUT', '/classes/' + me.code, { week: WORDS.week, words: WORDS.words, sortBy: sortBy(), say: WORDS.say || {}, clues: WORDS.clues || {}, name: me.name }, me.key) : Promise.resolve(); }
 
   // ---- the "Join my class" button in the wizard's room ----
   const box = $('joinBox'), btn = $('classBtn');
@@ -1975,6 +2040,365 @@ const CLASSROOM = (() => {
 document.getElementById('k-wizard').addEventListener('click', quip);
 const monday = (() => { const n = new Date(), m = new Date(n); m.setDate(n.getDate() - ((n.getDay() + 6) % 7)); return m.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
 
+/* ================= Royal Map clues ================= */
+// A grown-up's own clue wins; otherwise the voice service's (written once per word, then the same for everyone).
+// Clues already fetched are kept on this device so the scroll fills in at once next time.
+const CLUES = (() => {
+  const KEY = 'wordy-wizard-clues', got = {};
+  try { const o = JSON.parse(localStorage.getItem(KEY) || '{}'); Object.entries(o).forEach(([k, v]) => { if (/^[a-z]{3,10}$/.test(k) && typeof v === 'string' && (v === '' || CLUE_OK.test(v))) got[k] = v; }); } catch (e) {}
+  const keep = () => { try { localStorage.setItem(KEY, JSON.stringify(got)); } catch (e) {} };
+  // -> { word: clue }; a word with no clue comes back as '' (the game then reads the word itself)
+  async function get(list, scribeOnly) {
+    const out = {}, need = [];
+    list.forEach(w => {
+      const k = String(w).toLowerCase(), own = !scribeOnly && (WORDS.clues || {})[k];
+      if (own) out[k] = own; else if (k in got) out[k] = got[k]; else if (/^[a-z]{3,10}$/.test(k)) need.push(k);
+    });
+    const batches = []; for (let i = 0; i < need.length; i += 4) batches.push(need.slice(i, i + 4));
+    await Promise.all(batches.map(async b => {
+      try {
+        const r = await fetch(SERVICE + '/clues', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ words: b }) });
+        const j = await r.json();
+        b.forEach(k => { const c = j.clues && j.clues[k]; if (typeof c === 'string' && CLUE_OK.test(c)) got[k] = out[k] = c; else if ((j.none || []).includes(k)) got[k] = out[k] = ''; });
+      } catch (e) {}
+    }));
+    keep(); return out;
+  }
+  return { get };
+})();
+/* ================= Game: The Royal Map (crossword) ================= */
+// Each word is a road on the kingdom map, and the clues come from a scroll. The clues are written once per word
+// by the voice service (CLUES) and read aloud in the word voice; a grown-up can rewrite any of them. Finish a word
+// and its road lights up between two villages; finish the map and the king's banner goes up over the castle.
+const MapGame = (() => {
+  const ABC = 'abcdefghijklmnopqrstuvwxyz', NS = 'http://www.w3.org/2000/svg';
+  const C = 40, PER_MAP = 7, MAX_SPAN = 13, BAND = 3.4;   // a road tile; words per map; widest map; the castle's strip (in tiles)
+  const PRACTICE = ['castle', 'dragon', 'knight', 'crown', 'tower', 'shield', 'horse'];
+  const LISTEN = 'Listen to the word, then spell it.';   // the scroll's line for a word with no clue
+  let root, st, words, practice, timers = [], keyHandler, queue = [];
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const key = (x, y) => x + ',' + y;
+
+  /* ----- sounds ----- */
+  function tone(f, at, dur, vol, type = 'sine') {
+    const a = window.__wwAudio; if (!a) return;
+    try {
+      if (a.state === 'suspended') a.resume();
+      const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + at; o.type = type; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0005, t + dur);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+    } catch (e) {}
+  }
+  const roadSound = () => [784, 988, 1175].forEach((f, i) => tone(f, i * .08, .4, .05, 'triangle'));
+  const fanfare = () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, i * .14, i === 5 ? .9 : .3, .06, 'square'));
+  const bump = () => tone(180, 0, .15, .06, 'triangle');
+
+  /* ----- laying out the roads: a small crossword, tried a few ways, keeping the fullest, tidiest one ----- */
+  function attempt(order) {
+    const cells = new Map(), roads = [];
+    let x1 = 0, x2 = -1, y1 = 0, y2 = 0;
+    const at = (x, y) => cells.get(key(x, y));
+    function fit(w, x, y, d) {   // d: 0 across, 1 down. -1 if it doesn't fit, otherwise how good a spot it is
+      const dx = d ? 0 : 1, dy = d ? 1 : 0;
+      if (at(x - dx, y - dy) || at(x + dx * w.length, y + dy * w.length)) return -1;
+      let cross = 0;
+      for (let i = 0; i < w.length; i++) {
+        const cx = x + dx * i, cy = y + dy * i, c = at(cx, cy);
+        if (c) { if (c.ch !== w[i] || c.dirs & (d ? 2 : 1)) return -1; cross++; }
+        else if (at(cx + dy, cy + dx) || at(cx - dy, cy - dx)) return -1;
+      }
+      const nx1 = Math.min(x1, x), nx2 = Math.max(x2, x + dx * (w.length - 1)), ny1 = Math.min(y1, y), ny2 = Math.max(y2, y + dy * (w.length - 1));
+      if (nx2 - nx1 + 1 > MAX_SPAN || ny2 - ny1 + 1 > MAX_SPAN) return -1;
+      return cross ? cross * 100 - (nx2 - nx1 + 1) * (ny2 - ny1 + 1) / 4 - Math.abs((nx2 - nx1) - (ny2 - ny1)) : -1;
+    }
+    function place(w, x, y, d) {
+      const dx = d ? 0 : 1, dy = d ? 1 : 0;
+      for (let i = 0; i < w.length; i++) { const k = key(x + dx * i, y + dy * i), c = cells.get(k) || { ch: w[i], dirs: 0 }; c.dirs |= d ? 2 : 1; cells.set(k, c); }
+      x1 = Math.min(x1, x); x2 = Math.max(x2, x + dx * (w.length - 1)); y1 = Math.min(y1, y); y2 = Math.max(y2, y + dy * (w.length - 1));
+      roads.push({ word: w, x, y, d });
+    }
+    order.forEach((w, n) => {
+      if (!n) return place(w, 0, 0, 0);
+      let best = null;
+      cells.forEach((c, k) => {
+        const [cx, cy] = k.split(',').map(Number);
+        for (let i = 0; i < w.length; i++) {
+          if (w[i] !== c.ch) continue;
+          for (const d of [0, 1]) {
+            const x = cx - (d ? 0 : i), y = cy - (d ? i : 0), s = fit(w, x, y, d);
+            if (s >= 0 && (!best || s > best.s)) best = { s, x, y, d };
+          }
+        }
+      });
+      if (best) place(w, best.x, best.y, best.d);
+    });
+    return { roads, x1, x2, y1, y2, area: (x2 - x1 + 1) * (y2 - y1 + 1) };
+  }
+  function layout(list) {
+    let best = null;
+    for (let t = 0; t < 40; t++) {
+      const order = t ? shuffle(list).sort((a, b) => b.length - a.length + (Math.random() - .5) * 4) : list.slice().sort((a, b) => b.length - a.length);
+      const g = attempt(order);
+      if (!best || g.roads.length > best.roads.length || (g.roads.length === best.roads.length && g.area < best.area)) best = g;
+    }
+    return best;
+  }
+
+  /* ----- the map picture ----- */
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  function house(g, x, y, s, roof) {
+    el('rect', { x: x - 6 * s, y: y - 5 * s, width: 12 * s, height: 10 * s, rx: 1, fill: '#f4e3bf', stroke: '#3b2412', 'stroke-width': 1.4 }, g);
+    el('path', { d: `M${x - 8 * s} ${y - 4 * s} L${x} ${y - 12 * s} L${x + 8 * s} ${y - 4 * s} Z`, fill: roof, stroke: '#3b2412', 'stroke-width': 1.4, 'stroke-linejoin': 'round' }, g);
+    el('rect', { class: 'rm-window', x: x - 2.2 * s, y: y - 2.5 * s, width: 4.4 * s, height: 4 * s, rx: .6 }, g);
+  }
+  function castle(g, cx, base) {
+    const stone = { fill: '#c9c0b0', stroke: '#3b2412', 'stroke-width': 2, 'stroke-linejoin': 'round' };
+    [-34, 34].forEach(dx => {
+      el('rect', Object.assign({ x: cx + dx - 11, y: base - 62, width: 22, height: 62 }, stone), g);
+      el('path', { d: `M${cx + dx - 14} ${base - 62} L${cx + dx} ${base - 84} L${cx + dx + 14} ${base - 62} Z`, fill: '#6b3fa0', stroke: '#3b2412', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
+    });
+    el('rect', Object.assign({ x: cx - 26, y: base - 50, width: 52, height: 50 }, stone), g);
+    for (let i = 0; i < 4; i++) el('rect', Object.assign({ x: cx - 26 + i * 15, y: base - 58, width: 8, height: 9 }, stone), g);
+    el('path', { d: `M${cx - 10} ${base} V${base - 16} Q${cx} ${base - 28} ${cx + 10} ${base - 16} V${base} Z`, fill: '#5a3720', stroke: '#3b2412', 'stroke-width': 2 }, g);
+    [-34, 34].forEach(dx => el('rect', { class: 'rm-window', x: cx + dx - 3.5, y: base - 44, width: 7, height: 10, rx: 3.5 }, g));
+    // the flagpole, and the king's banner waiting at the bottom
+    el('line', { x1: cx, y1: base - 58, x2: cx, y2: base - 128, stroke: '#3b2412', 'stroke-width': 3, 'stroke-linecap': 'round' }, g);
+    el('circle', { cx, cy: base - 130, r: 3.5, fill: '#f2c35b', stroke: '#3b2412', 'stroke-width': 1.5 }, g);
+    const b = el('g', { class: 'rm-banner', id: 'rmBanner' }, g);
+    el('path', { d: `M${cx + 1} ${base - 126} H${cx + 40} L${cx + 32} ${base - 114} L${cx + 40} ${base - 102} H${cx + 1} Z`, fill: '#2f5fa8', stroke: '#3b2412', 'stroke-width': 2, 'stroke-linejoin': 'round' }, b);
+    el('path', { d: `M${cx + 10} ${base - 108} L${cx + 12} ${base - 120} L${cx + 16} ${base - 112} L${cx + 20} ${base - 121} L${cx + 24} ${base - 112} L${cx + 28} ${base - 120} L${cx + 29} ${base - 108} Z`, fill: '#f2c35b', stroke: '#3b2412', 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, b);
+    b.style.transform = 'translateY(54px)';
+  }
+  function drawMap() {
+    const W = st.w * C, H = st.h * C + BAND * C, svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'The kingdom map. Each road is a word.' });
+    const defs = el('defs', {}, svg);
+    defs.innerHTML = '<radialGradient id="rmLand" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#cfe0a0"/><stop offset=".7" stop-color="#b7cf86"/><stop offset="1" stop-color="#97b46c"/></radialGradient>';
+    el('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#rmLand)' }, svg);
+    // trees and hills on the empty land (the same every time for a map)
+    let seed = st.words.join('').length * 7 + 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const deco = el('g', {}, svg);
+    for (let y = 0; y < st.h; y++) for (let x = 0; x < st.w; x++) {
+      if (st.grid.has(key(x, y)) || st.villages.has(key(x, y)) || rnd() > .32) continue;
+      const px = x * C + C / 2 + (rnd() - .5) * 14, py = BAND * C + y * C + C / 2 + (rnd() - .5) * 14;
+      if (rnd() < .7) { el('rect', { x: px - 1.5, y: py + 4, width: 3, height: 7, fill: '#6b4226' }, deco); el('circle', { cx: px, cy: py, r: 8 + rnd() * 3, fill: rnd() < .5 ? '#5f8f4e' : '#4f7f45', stroke: '#2f4a2a', 'stroke-width': 1.4 }, deco); }
+      else el('path', { d: `M${px - 14} ${py + 10} Q${px} ${py - 14} ${px + 14} ${py + 10} Z`, fill: '#a3be76', stroke: '#6f8c4e', 'stroke-width': 1.4 }, deco);
+    }
+    // the castle on its hill at the top of the map
+    el('path', { d: `M${W / 2 - 120} ${BAND * C} Q${W / 2} ${BAND * C - 50} ${W / 2 + 120} ${BAND * C} Z`, fill: '#a3be76', stroke: '#6f8c4e', 'stroke-width': 2 }, svg);
+    castle(el('g', {}, svg), W / 2, BAND * C - 18);
+    // villages at both ends of every road
+    const vg = el('g', {}, svg);
+    st.villages.forEach((v, k) => {
+      const [x, y] = k.split(',').map(Number), g = el('g', { class: 'rm-village' }, vg); v.el = g;
+      const px = x * C + C / 2, py = BAND * C + y * C + C / 2 + 4;
+      house(g, px - 7, py + 3, .85, '#a3401f'); house(g, px + 8, py - 3, .7, '#7b2d3f');
+    });
+    // the roads: one paving stone per letter
+    const rg = el('g', {}, svg);
+    st.grid.forEach((c, k) => {
+      const [x, y] = k.split(',').map(Number), g = el('g', { class: 'rm-tile', 'data-k': k }, rg);
+      el('rect', { x: x * C + 2, y: BAND * C + y * C + 2, width: C - 4, height: C - 4, rx: 7 }, g);
+      if (c.n) el('text', { class: 'rm-num', x: x * C + 6, y: BAND * C + y * C + 13 }, g).textContent = c.n;
+      c.text = el('text', { class: 'rm-letter', x: x * C + C / 2, y: BAND * C + y * C + C / 2 + 8 }, g);
+      c.el = g;
+    });
+    rg.addEventListener('click', e => { const t = e.target.closest('.rm-tile'); if (t) tapTile(t.dataset.k); });
+    const box = q('#rmMap'); box.innerHTML = ''; box.appendChild(svg);
+  }
+  function paint() {
+    const r = st.roads[st.sel];
+    st.grid.forEach((c, k) => {
+      c.text.textContent = c.typed || '';
+      c.el.classList.toggle('lit', c.roads.some(i => st.roads[i].done));
+      c.el.classList.toggle('bad', !!c.bad);
+      c.el.classList.toggle('on', !!r && r.cells.includes(k));
+      c.el.classList.toggle('here', !!r && r.cells[st.pos] === k && !st.over);
+    });
+    st.villages.forEach(v => v.el.classList.toggle('lit', v.roads.some(i => st.roads[i].done)));
+    root.querySelectorAll('.rm-clue').forEach(b => {
+      const i = +b.dataset.i, rd = st.roads[i];
+      b.classList.toggle('on', i === st.sel && !st.over); b.classList.toggle('done', rd.done);
+      b.querySelector('.rm-text').textContent = rd.clue ? rd.clue.replace(/\bblank\b/gi, '____') : rd.clue === null ? 'The royal scribe is writing…' : LISTEN;
+    });
+    q('#rmBuilt').textContent = `Roads built: ${st.roads.filter(x => x.done).length} of ${st.roads.length}`;
+  }
+
+  /* ----- a new map ----- */
+  function newMap() {
+    timers.forEach(clearTimeout); timers = []; VOICE.cancel();
+    if (queue.length < 2) queue = queue.concat(shuffle(words.filter(w => !queue.includes(w))));
+    const pick = queue.splice(0, PER_MAP), lay = layout(pick);
+    const placed = new Set(lay.roads.map(r => r.word));
+    queue = queue.concat(pick.filter(w => !placed.has(w)));   // a word that didn't fit waits for the next map
+    const ox = 1 - lay.x1, oy = 1 - lay.y1;
+    st.w = Math.max(lay.x2 - lay.x1 + 3, 7); st.h = lay.y2 - lay.y1 + 3;
+    const sx = Math.floor((st.w - (lay.x2 - lay.x1 + 3)) / 2);   // (a narrow map is centred under the castle)
+    st.grid = new Map(); st.villages = new Map(); st.words = lay.roads.map(r => r.word); st.over = false; st.map++;
+    st.roads = lay.roads.map(r => ({ word: r.word, x: r.x + ox + sx, y: r.y + oy, d: r.d, done: false, clue: null }))
+      .sort((a, b) => a.y - b.y || a.x - b.x || a.d - b.d);
+    let n = 0; const nums = new Map();
+    st.roads.forEach((r, i) => {
+      const k0 = key(r.x, r.y); if (!nums.has(k0)) nums.set(k0, ++n); r.n = nums.get(k0);
+      const dx = r.d ? 0 : 1, dy = r.d ? 1 : 0;
+      r.cells = [...r.word].map((ch, j) => {
+        const k = key(r.x + dx * j, r.y + dy * j), c = st.grid.get(k) || { ch, typed: '', roads: [] };
+        c.roads.push(i); if (!j) c.n = r.n; st.grid.set(k, c); return k;
+      });
+      [key(r.x - dx, r.y - dy), key(r.x + dx * r.word.length, r.y + dy * r.word.length)].forEach(k => { const v = st.villages.get(k) || { roads: [] }; v.roads.push(i); st.villages.set(k, v); });
+    });
+    drawMap();
+    // the scroll
+    const sc = q('#rmClues'); sc.innerHTML = '';
+    [0, 1].forEach(d => {
+      const list = st.roads.map((r, i) => [r, i]).filter(([r]) => r.d === d); if (!list.length) return;
+      const h = document.createElement('li'); h.className = 'rm-head'; h.textContent = d ? 'Roads going down ↓' : 'Roads going across →'; sc.appendChild(h);
+      list.forEach(([r, i]) => {
+        const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.className = 'rm-clue'; b.dataset.i = i;
+        b.innerHTML = `<b>${r.n}</b><span class="rm-text"></span><small>(${r.word.length})</small>`;
+        b.addEventListener('click', () => select(i, true)); li.appendChild(b); sc.appendChild(li);
+      });
+    });
+    q('#rmMapNo').textContent = `Map ${st.map}`;
+    q('#rmNext').hidden = true; setKeys(true);
+    st.sel = -1; select(0, false); paint();
+    status('Tap a clue on the scroll or a road on the map, then spell the word.');
+    // the clues: a grown-up's own, or the royal scribe's (written once per word by the voice service)
+    const ws = st.words.slice();
+    CLUES.get(ws).then(m => {
+      if (!root || st.words.join() !== ws.join()) return;
+      st.roads.forEach(r => { r.clue = m[r.word] || ''; });
+      paint(); showSel(); VOICE.warm(st.roads.map(r => r.clue || LISTEN));
+      later(() => readClue(), 400);
+    });
+  }
+  const status = t => { q('#rmStatus').textContent = t; };
+  const setKeys = on => root.querySelectorAll('#rmKeys .sq-key').forEach(b => b.disabled = !on);
+  const locked = k => st.grid.get(k).roads.some(i => st.roads[i].done);
+
+  /* ----- choosing a road and spelling ----- */
+  function select(i, read) {
+    if (st.over || !st.roads[i]) return;
+    st.sel = i; const r = st.roads[i];
+    // children spell the whole word, so start at the road's first stone (or where they left off)
+    const started = r.cells.some(k => !locked(k) && st.grid.get(k).typed);
+    st.pos = started ? r.cells.findIndex(k => !locked(k) && !st.grid.get(k).typed) : 0; if (st.pos < 0) st.pos = r.cells.length;
+    paint(); showSel();
+    if (read) readClue();
+  }
+  // keep the chosen clue in view on the scroll (only the scroll moves, never the page)
+  function showSel() {
+    const b = root.querySelector(`.rm-clue[data-i="${st.sel}"]`), box = q('#rmClues'); if (!b) return;
+    const top = b.offsetTop, bottom = top + b.offsetHeight;   // (the list is the clue buttons' offset parent)
+    if (top < box.scrollTop) box.scrollTop = top - 4; else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight + 4;
+  }
+  function tapTile(k) {
+    if (st.over) return;
+    const c = st.grid.get(k), r = st.roads[st.sel];
+    let i = st.sel;
+    if (!r || !r.cells.includes(k)) { i = c.roads.find(x => !st.roads[x].done); if (i === undefined) i = c.roads[0]; }
+    else if (r.cells[st.pos] === k) { const other = c.roads.find(x => x !== st.sel); if (other !== undefined && !st.roads[other].done) i = other; }   // tapping the same stone of a crossing switches roads
+    if (i !== st.sel) select(i, true);
+    if (!locked(k)) { st.pos = st.roads[st.sel].cells.indexOf(k); paint(); }
+  }
+  function readClue() { const r = st.roads[st.sel]; if (r && r.clue !== null) VOICE.speak(r.clue || r.word, r.clue ? {} : { intro: LISTEN }); }
+  function type(l) {
+    if (st.over || st.sel < 0) return;
+    const r = st.roads[st.sel], p = st.pos;
+    if (p >= r.cells.length) { bump(); return; }
+    const k = r.cells[p], c = st.grid.get(k);
+    if (locked(k)) {   // a stone already built into another road: spelling over it just moves along
+      if (c.ch !== l) { bump(); status(`That stone is already built. It's "${c.ch}".`); return; }
+    } else { c.typed = l; c.bad = false; }
+    st.pos = p + 1;
+    c.roads.forEach(check); paint();
+  }
+  function rubOut() {
+    if (st.over || st.sel < 0) return;
+    const r = st.roads[st.sel], here = r.cells[st.pos];
+    if (here && !locked(here) && st.grid.get(here).typed) { const c = st.grid.get(here); c.typed = ''; c.bad = false; paint(); return; }
+    if (st.pos <= 0) return;
+    st.pos--; const k = r.cells[st.pos];
+    if (!locked(k)) { const c = st.grid.get(k); c.typed = ''; c.bad = false; }
+    paint();
+  }
+  function check(i) {
+    const r = st.roads[i]; if (r.done) return;
+    const cs = r.cells.map(k => st.grid.get(k));
+    if (cs.some(c => !c.typed)) return;
+    if (cs.every(c => c.typed === c.ch)) return built(i);
+    cs.forEach(c => { if (c.typed !== c.ch) c.bad = true; });
+    bump(); status(`Not quite! Fix the red letters on road ${r.n}. Tap "Hear the word" if you need it.`);
+  }
+  function built(i) {
+    const r = st.roads[i]; r.done = true; roadSound();
+    r.cells.forEach((k, j) => { const g = st.grid.get(k).el; later(() => { g.classList.remove('glow'); void g.getBBox(); g.classList.add('glow'); }, j * 70); });
+    VOICE.speak(r.word);
+    const left = st.roads.filter(x => !x.done).length;
+    if (!left) return finish();
+    status(`Road ${r.n} is built: "${r.word}"! ${left} more to go.`);
+    const nx = st.roads.findIndex((x, j) => !x.done && j > i), first = st.roads.findIndex(x => !x.done);
+    later(() => { if (!st.over && st.sel === i) select(nx >= 0 ? nx : first, true); }, 1400);
+  }
+  function finish() {
+    st.over = true; st.sel = -1; paint(); setKeys(false);
+    status('Every road is built! The king\'s banner flies over the castle. Huzzah!');
+    later(() => {
+      fanfare();
+      const b = q('#rmBanner');
+      if (reduce) b.style.transform = 'none';
+      else b.animate([{ transform: 'translateY(54px)' }, { transform: 'none' }], { duration: 1600, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).onfinish = () => { b.style.transform = 'none'; b.classList.add('rm-wave'); };
+      VOICE.speak('Huzzah!');
+    }, 900);
+    const nb = q('#rmNext'); nb.hidden = false; later(() => nb.focus({ preventScroll: true }), 1200);
+  }
+
+  function mount(container, wordList) {
+    const clean = ws => [...new Set(ws.map(w => String(w).toLowerCase()).filter(w => /^[a-z]{3,10}$/.test(w)))];
+    words = clean(wordList || []); practice = words.length < 2; if (practice) words = PRACTICE.slice();
+    queue = shuffle(words);
+    st = { map: 0 };
+    root = document.createElement('div'); root.className = 'rm';
+    const hear = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor"/><path d="M16 9 Q18 12 16 15 M18.5 6.5 Q22 12 18.5 17.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    root.innerHTML = `
+      <div class="rm-scene" id="rmMap"></div>
+      <div class="rm-side">
+        <div class="sq-top"><span id="rmMapNo"></span><span id="rmBuilt"></span></div>
+        <div class="rm-scroll"><p class="rm-title">The Royal Scroll</p><ol class="rm-clues" id="rmClues"></ol></div>
+        <p class="sq-status" id="rmStatus" aria-live="polite"></p>
+        <div class="sq-keys" id="rmKeys" role="group" aria-label="Letters"></div>
+        <div class="sq-actions">
+          <button type="button" class="sq-btn" id="rmRead">📜 Read the clue</button>
+          <button type="button" class="sq-btn" id="rmHear">${hear}Hear the word</button>
+          <button type="button" class="sq-btn primary" id="rmNext" hidden>Next map</button>
+        </div>
+        ${practice ? '<p class="sq-practice">These are practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}
+      </div>`;
+    container.appendChild(root);
+    const keys = q('#rmKeys');
+    [...ABC].forEach(l => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sq-key'; b.textContent = l; b.dataset.l = l; b.setAttribute('aria-label', `Letter ${l}`); keys.appendChild(b); });
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'sq-key rc-del'; del.textContent = '⌫'; del.setAttribute('aria-label', 'Rub out a letter'); keys.appendChild(del);
+    keys.addEventListener('click', e => { const b = e.target.closest('.sq-key'); if (!b) return; if (b.dataset.l) type(b.dataset.l); else rubOut(); });
+    q('#rmRead').addEventListener('click', readClue);
+    q('#rmHear').addEventListener('click', () => { const r = st.roads[st.sel]; if (r) VOICE.speak(r.word); });
+    q('#rmNext').addEventListener('click', newMap);
+    keyHandler = e => {
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target.closest && e.target.closest('input,textarea'))) return;
+      if (e.key === 'Enter' && !q('#rmNext').hidden && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); newMap(); return; }
+      if (/^[a-z]$/i.test(e.key)) { e.preventDefault(); type(e.key.toLowerCase()); }
+      else if (e.key === 'Backspace') { e.preventDefault(); rubOut(); }
+    };
+    document.addEventListener('keydown', keyHandler);
+    newMap();
+  }
+  function unmount() {
+    VOICE.cancel(); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (root) root.remove(); root = null;
+  }
+  return { mount, unmount, practice: PRACTICE };
+})();
 /* ================= Game: Save the Squire (hangman) ================= */
 const SQ_SAMPLE = ['castle', 'knight', 'wizard', 'potion', 'dragon', 'tower'];
 // When Next is tapped before a round's effects finish: cancels the animations the game started (so their
@@ -5657,7 +6081,7 @@ const StableGame = (() => {
 
   return { mount, unmount, practice: PRACTICE, sortModes: SORT_MODES };
 })();
-const GAME_MODULES = { hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame, bridge: BridgeGame, sort: StableGame };
+const GAME_MODULES = { crossword: MapGame, hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame, bridge: BridgeGame, sort: StableGame };
 
 let ACTIVE_GAME = null;
 const gameScreen = document.getElementById('gameScreen');
@@ -6301,12 +6725,11 @@ const ICONS = {
     g.strokeStyle = '#f2c35b'; g.lineWidth = 2.6; g.lineCap = 'round'; g.beginPath(); g.arc(21, 16, 4, Math.PI * .15, Math.PI * .85, true); g.stroke();
   },
   crossword(g) {
-    const cells = ['C.  ', 'AT  ', 'T#..', '. # '];
-    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
-      const ch = cells[r][c]; if (ch === ' ') continue;
-      const x = 5 + c * 8, y = 5 + r * 8; g.fillStyle = ch === '#' ? '#3b2412' : '#fff'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.2; g.fillRect(x, y, 8, 8); g.strokeRect(x, y, 8, 8);
-      if (/[A-Z]/.test(ch)) { g.fillStyle = '#c0392b'; g.font = '700 6.5px Andika, sans-serif'; g.textAlign = 'center'; g.fillText(ch, x + 4, y + 6.5); }
-    }
+    g.fillStyle = '#cfe0a0'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.4; g.fillRect(4, 6, 34, 32); g.strokeRect(4, 6, 34, 32);
+    const tile = (x, y, lit) => { g.fillStyle = lit ? '#f7d36b' : '#f4ead2'; g.fillRect(x, y, 6, 6); g.strokeRect(x, y, 6, 6); };
+    [8, 14, 20, 26].forEach(x => tile(x, 24, true)); [10, 16, 30].forEach(y => tile(20, y, false));
+    g.fillStyle = '#a3401f'; g.beginPath(); g.moveTo(9, 15); g.lineTo(12, 11); g.lineTo(15, 15); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#f4ead2'; g.fillRect(10, 15, 4, 4); g.strokeRect(10, 15, 4, 4);
+    g.beginPath(); g.moveTo(31, 22); g.lineTo(31, 9); g.stroke(); g.fillStyle = '#2f5fa8'; g.beginPath(); g.moveTo(31, 9); g.lineTo(37, 11); g.lineTo(31, 13); g.closePath(); g.fill(); g.stroke();
   },
   bee(g) {
     // a crown above a little throne
