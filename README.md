@@ -21,4 +21,4 @@ A crossword made from the week's words: each word is a road between two villages
 
 ## The Wizard's Tale
 
-The first spell in the book. The wizard tells a short story made from the week's spelling words, with the words in bold lighting up as he says them. Children just listen; they can pause, start again, or tap a sentence to hear it. Each word list gets one story, shared by everyone using that list. The wizard's own voice is recorded the first time a computer opens the story (or when a grown-up saves the words on a computer); until then, tablets and phones read it in their built-in voice.
+The first spell in the book. A short story made from the week's spelling words is read aloud in the same clear voice as the games, with the words in bold lighting up as they're said. Children just listen; they can pause, start again, or tap a sentence to hear it. Each word list gets one story, shared by everyone using that list, and it's readied as soon as the words are saved.

@@ -8,13 +8,13 @@
 //   POST /voices                       { words: [...] } -> { ready, recorded, limited }   record spelling words
 //   GET  /voices/:word                                  -> the word's recording (audio/wav), or 204 if not recorded yet
 //   POST /clues                        { words: [...] } -> { clues: { word: clue }, limited, none }   clues for The Royal Map
-//   POST /stories                      { words: [...] } -> { id, title, sentences, times }   The Wizard's Tale
-//   GET  /stories/:id/:n                                -> George's recording of sentence n (audio/wav), or 204
-//   PUT  /stories/:id/:n  (audio/wav)                    -> { times }   a computer's recording of sentence n
+//   POST /stories                      { words: [...] } -> { id, title, sentences, words }   The Wizard's Tale
+//   GET  /stories/:id/:n                                -> sentence n read in the word voice (audio), with
+//                                                          X-Times: when each word is spoken ([[start, end], ...])
 // A story is written once per word list (so a class shares it) and checked: 8 to 12 short sentences, every
-// spelling word in it, and Llama Guard says it's safe. George's voice is made in the browser, so the first
-// computer to open a story records it, sentence by sentence; Whisper checks each recording really says its
-// sentence and notes when each word is spoken, so the words can light up as they're read.
+// spelling word in it, and Llama Guard says it's safe. Each sentence is recorded in the word voice (MeloTTS) the
+// first time anyone asks for it, and Whisper notes when each word is spoken, so the words can light up as
+// they're read. Both are kept, so after that every device gets the sentence at once.
 // A clue is written once per word by a small language model (Cloudflare Workers AI), checked (short, plain,
 // never containing the answer) and kept in KV for everyone. Clue sentences are recorded like words.
 // Spelling words are read aloud by the MeloTTS voice (Cloudflare Workers AI). Each word is recorded once, the
@@ -141,7 +141,7 @@ async function voices(req, env, parts) {
 // ---- stories for The Wizard's Tale ----
 const STORY_WORD_RE = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, STORY_MAX_WORDS = 12;
 const SENTENCE_RE = /^[A-Za-z0-9"“'‘][A-Za-z0-9 ,.'’‘!?;:"“”\-]{2,179}$/, TITLE_RE = /^[A-Za-z0-9][A-Za-z0-9 ,.'’!?:\-]{2,59}$/;
-const STORIES_PER_DAY = 30, STORIES_PER_IP_DAY = 15, TAKES_PER_IP_DAY = 300, MAX_TAKE = 1500000;
+const STORIES_PER_DAY = 30, STORIES_PER_IP_DAY = 15, TAKES_PER_DAY = 400, TAKES_PER_IP_DAY = 200;
 const STORY_PROMPT = 'You are a kindly old wizard telling a short, cheerful story to children aged 6 to 9. Every story happens in or around a castle, in a world of wizards, magic, knights, friendly dragons and talking animals. Tell a real little story with a small problem and a happy ending, where each sentence follows on from the one before. Write 8 to 12 sentences, each at most 18 easy words, in good, natural English (use "the" and "a" properly). Use every one of the spelling words you are given, spelled exactly as given, at least once, in a way that makes sense. Always keep it kind, gentle and right for young children: no fighting, violence, danger, scary parts, sadness, romance, or rude words. Reply with only JSON in this form: {"title": "a short title", "sentences": ["First sentence.", "Second sentence."]}';
 // each new story gets a hero and a corner of the castle picked at random, so the stories don't all sound alike
 const HEROES = ['a young wizard named Pip', 'a girl who is the wizard\'s apprentice, named Rosie', 'a little dragon named Ember', 'a castle cat named Whiskers', 'a princess named Mira who loves books', 'a page boy named Theo', 'a wise, friendly owl named Hoot', 'a kind knight named Sir Bramble', 'a brave girl knight named Lady Wren', 'a castle mouse named Nibbles', 'a baby unicorn named Star', 'twins named Ada and Leo', 'a cheerful castle cook named Mabel', 'a young prince named Oliver who loves to paint', 'a sleepy castle dog named Biscuit', 'a tiny fairy named Clover'];
@@ -195,8 +195,10 @@ function align(sentence, heard) {
   }
   return times.map(([x, y]) => [Math.round(x * 100) / 100, Math.round(y * 100) / 100]);
 }
+// the service side of a story: the usual case is a quick read from KV; anything not there yet goes to the story's
+// own coordinator (StoryWriter), which writes or records it once while any other askers wait for that copy
 async function stories(req, env, parts) {
-  const ip = req.headers.get('CF-Connecting-IP') || 'local', day = Math.floor(Date.now() / 864e5);
+  const ip = req.headers.get('CF-Connecting-IP') || 'local';
   if (req.method === 'POST' && parts.length === 1) {
     if (!allowedOrigin(req.headers.get('Origin') || '')) return oops(req, 403, 'not allowed');
     let body; try { body = await req.json(); } catch (e) { return oops(req, 400, 'bad request'); }
@@ -205,47 +207,77 @@ async function stories(req, env, parts) {
     const id = await storyId(words);
     let st = JSON.parse(await env.CLASSES.get('story:' + id) || 'null');
     if (!st) {
-      const dayKey = 'sday:' + day, ipKey = 'sip:' + ip + ':' + day;
-      const usedDay = +(await env.CLASSES.get(dayKey) || 0), usedIp = +(await env.CLASSES.get(ipKey) || 0);
-      if (usedDay >= STORIES_PER_DAY || usedIp >= STORIES_PER_IP_DAY) return oops(req, 429, 'the wizard has told enough new stories today; try again tomorrow');
-      await env.CLASSES.put(dayKey, String(usedDay + 1), { expirationTtl: 2 * 86400 });
-      await env.CLASSES.put(ipKey, String(usedIp + 1), { expirationTtl: 2 * 86400 });
-      st = await writeStory(env, words);
-      if (!st) return oops(req, 503, "the wizard couldn't think of a story for these words just now");
-      st.words = words; await env.CLASSES.put('story:' + id, JSON.stringify(st));
+      const r = await writer(env, id).fetch('https://writer/', { method: 'POST', body: JSON.stringify({ op: 'story', id, words, ip }) });
+      const j = await r.json(); if (!r.ok) return oops(req, r.status, j.error || 'no story'); st = j;
     }
-    const times = await Promise.all(st.sentences.map((_, n) => env.CLASSES.get(`story:${id}:t${n}`).then(t => t ? JSON.parse(t) : null)));
-    return reply(req, 200, { id, title: st.title, sentences: st.sentences, words: st.words, times });
+    return reply(req, 200, { id, title: st.title, sentences: st.sentences, words: st.words });
   }
   const id = parts[1], n = +parts[2];
   if (parts.length !== 3 || !/^[0-9a-f]{20}$/.test(id || '') || !/^\d{1,2}$/.test(parts[2])) return oops(req, 404, 'not found');
-  if (req.method === 'GET') {
-    const audio = await env.CLASSES.get(`story:${id}:a${n}`, { type: 'arrayBuffer' });
-    if (!audio) return reply(req, 204);
-    const h = new Headers(reply(req, 200, null).headers);
-    h.set('Content-Type', 'audio/wav'); h.set('Cache-Control', 'public, max-age=2592000, immutable');
-    return new Response(audio, { status: 200, headers: h });
+  if (req.method !== 'GET') return oops(req, 405, 'not allowed');
+  let audio = await env.CLASSES.get(`story:${id}:m${n}`, { type: 'arrayBuffer' }), times = audio && await env.CLASSES.get(`story:${id}:mt${n}`);
+  if (!audio) {
+    const r = await writer(env, id).fetch('https://writer/', { method: 'POST', body: JSON.stringify({ op: 'take', id, n, ip }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); return oops(req, r.status, j.error || 'not found'); }
+    times = r.headers.get('X-Times'); audio = await r.arrayBuffer();
   }
-  if (req.method === 'PUT') {
-    if (!allowedOrigin(req.headers.get('Origin') || '')) return oops(req, 403, 'not allowed');
-    const st = JSON.parse(await env.CLASSES.get('story:' + id) || 'null');
-    if (!st || !st.sentences[n]) return oops(req, 404, 'not found');
-    const had = await env.CLASSES.get(`story:${id}:t${n}`);
-    if (had) return reply(req, 200, { times: JSON.parse(had) });   // the first recording stays
-    const ipKey = 'tip:' + ip + ':' + day, used = +(await env.CLASSES.get(ipKey) || 0);
-    if (used >= TAKES_PER_IP_DAY) return oops(req, 429, 'too many recordings today');
-    const buf = await req.arrayBuffer();
-    const u8 = new Uint8Array(buf);
-    if (buf.byteLength < 1000 || buf.byteLength > MAX_TAKE || String.fromCharCode(...u8.slice(0, 4)) !== 'RIFF' || String.fromCharCode(...u8.slice(8, 12)) !== 'WAVE') return oops(req, 400, 'that recording could not be used');
-    await env.CLASSES.put(ipKey, String(used + 1), { expirationTtl: 2 * 86400 });
-    let heard; try { heard = await env.AI.run('@cf/openai/whisper', { audio: [...u8] }); } catch (e) { return oops(req, 503, 'the recording could not be checked just now'); }
-    const times = align(st.sentences[n], (heard && heard.words) || []);
-    if (!times) return oops(req, 400, "that recording doesn't say the sentence");
-    await env.CLASSES.put(`story:${id}:a${n}`, buf);
-    await env.CLASSES.put(`story:${id}:t${n}`, JSON.stringify(times));
-    return reply(req, 200, { times });
+  const h = new Headers(reply(req, 200, null).headers);
+  h.set('Content-Type', 'audio/wav'); h.set('Cache-Control', 'public, max-age=2592000, immutable');
+  h.set('X-Times', times || 'null'); h.set('Access-Control-Expose-Headers', 'X-Times');
+  return new Response(audio, { status: 200, headers: h });
+}
+const writer = (env, id) => env.WRITER.get(env.WRITER.idFromName(id));
+const fail = (status, error) => ({ status, error });
+export class StoryWriter {
+  constructor(ctx, env) { this.ctx = ctx; this.env = env; this.jobs = new Map(); }
+  // one job per thing at a time: a second asker gets the same answer as the first
+  once(k, fn) { if (!this.jobs.has(k)) this.jobs.set(k, fn().finally(() => this.jobs.delete(k))); return this.jobs.get(k); }
+  async fetch(req) {
+    const { op, id, words, n, ip } = await req.json();
+    const r = op === 'story' ? await this.once('story', () => this.story(id, words, ip)) : op === 'take' ? await this.once('take' + n, () => this.take(id, n, ip)) : fail(400, 'bad request');
+    // (each asker gets a fresh reply: a reply's body can only be read once)
+    if (r.error) return Response.json({ error: r.error }, { status: r.status });
+    if (r.audio) return new Response(r.audio.slice(0), { headers: { 'Content-Type': 'audio/wav', 'X-Times': r.times || 'null' } });
+    return Response.json(r.story);
   }
-  return oops(req, 405, 'not allowed');
+  async story(id, words, ip) {
+    const env = this.env, kept = await this.ctx.storage.get('story');
+    if (kept) return { story: kept };
+    const day = Math.floor(Date.now() / 864e5), dayKey = 'sday:' + day, ipKey = 'sip:' + ip + ':' + day;
+    const usedDay = +(await env.CLASSES.get(dayKey) || 0), usedIp = +(await env.CLASSES.get(ipKey) || 0);
+    if (usedDay >= STORIES_PER_DAY || usedIp >= STORIES_PER_IP_DAY) return fail(429, 'the wizard has told enough new stories today; try again tomorrow');
+    await env.CLASSES.put(dayKey, String(usedDay + 1), { expirationTtl: 2 * 86400 });
+    await env.CLASSES.put(ipKey, String(usedIp + 1), { expirationTtl: 2 * 86400 });
+    const st = await writeStory(env, words);
+    if (!st) return fail(503, "the wizard couldn't think of a story for these words just now");
+    st.words = words;
+    await this.ctx.storage.put('story', st); await env.CLASSES.put('story:' + id, JSON.stringify(st));
+    return { story: st };
+  }
+  async take(id, n, ip) {   // read sentence n in the word voice, and note when each word is spoken
+    const env = this.env, keep = this.ctx.storage;
+    let audio = await keep.get('m' + n), times = await keep.get('t' + n);
+    if (!audio) {
+      const st = await keep.get('story') || JSON.parse(await env.CLASSES.get('story:' + id) || 'null');
+      if (!st || !st.sentences[n]) return fail(404, 'not found');
+      const day = Math.floor(Date.now() / 864e5), dayKey = 'tday:' + day, ipKey = 'tip:' + ip + ':' + day;
+      const usedDay = +(await env.CLASSES.get(dayKey) || 0), usedIp = +(await env.CLASSES.get(ipKey) || 0);
+      if (usedDay >= TAKES_PER_DAY || usedIp >= TAKES_PER_IP_DAY) return fail(429, 'the wizard has read enough new stories today; try again tomorrow');
+      let u8;
+      try {
+        const out = await env.AI.run('@cf/myshell-ai/melotts', { prompt: st.sentences[n], lang: 'en' });
+        const bin = atob(out.audio); u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      } catch (e) { return fail(503, 'the story could not be read just now'); }
+      let t = null;
+      try { const heard = await env.AI.run('@cf/openai/whisper', { audio: [...u8] }); t = align(st.sentences[n], (heard && heard.words) || []); } catch (e) {}
+      audio = u8.buffer; times = JSON.stringify(t);
+      await keep.put('m' + n, audio); await keep.put('t' + n, times);
+      await env.CLASSES.put(`story:${id}:m${n}`, audio); await env.CLASSES.put(`story:${id}:mt${n}`, times);
+      await env.CLASSES.put(dayKey, String(usedDay + 1), { expirationTtl: 2 * 86400 });
+      await env.CLASSES.put(ipKey, String(usedIp + 1), { expirationTtl: 2 * 86400 });
+    }
+    return { audio, times };
+  }
 }
 
 // ---- clues for The Royal Map ----

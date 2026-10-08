@@ -1645,11 +1645,10 @@ const VOICE = (() => {
     if (!ws.length) return Promise.resolve();
     return Promise.race([soon, Promise.all(ws.map(w => new Promise(r => request(w, speed, voice, false, r))))]);
   }
-  // ---- for The Wizard's Tale: George's voice for any sentence (computers only), and playing it in time ----
-  const render = (text, urgent = true) => !ENGINE ? Promise.resolve(null) : new Promise(r => { start(); request(String(text), speedFor(.85), WIZARD, urgent, a => r(a || null)); });
+  // ---- for The Wizard's Tale: playing a story sentence in time with its words ----
   function playClip(a, onend) { cancel(); unlock(); play(a, '', 1, once(onend)); }
-  function sayNative(text, { onword, onend } = {}) { cancel(); if (!synth) { if (onend) setTimeout(onend, 0); return false; } nativeSay(text, .85, true, onend, onword); return true; }
-  return { render, playClip, sayNative, get hasNative() { return !!synth; }, get canRender() { return ENGINE && state !== 'failed'; }, get elapsed() { return src && ctx ? ctx.currentTime - startedAt : -1; },
+  function sayNative(text, { onword, onend } = {}) { cancel(); if (!synth) { if (onend) setTimeout(onend, 0); return false; } nativeSay(text, .8, false, onend, onword); return true; }
+  return { playClip, sayNative, stretch: a => slower(a), pace: PACE, get elapsed() { return src && ctx ? ctx.currentTime - startedAt : -1; },
     speak, cancel, warm, wordsReady, prepare, has, get loaded() { return loaded; }, get failed() { return state === 'failed'; }, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); nativeUnlock(); }, record, get canSpeak() { return !!synth || navigator.onLine !== false; }, get native() { return !!synth && (!ENGINE || state !== 'ready'); } };
 })();
 VOICE.warm(WORDS.words);
@@ -1876,7 +1875,7 @@ $('pSave').addEventListener('click', () => {
   let saved = true;
   try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) { saved = false; }
   closeModal(panel); onWordsChanged(); VOICE.record(WORDS.words).then(() => VOICE.warm(WORDS.words));   // new words are recorded once, then ready
-  STORY.prepare(WORDS.words);   // (the week's story is written now; on a computer it's recorded in George's voice for everyone)
+  STORY.prepare(WORDS.words);   // (the week's story is written and recorded now, so it's ready when a child opens it)
   const n = WORDS.words.length;
   if (CLASSROOM.teaching) {
     CLASSROOM.share().then(() => true, () => false).then(ok => say(ok ? "Splendid! I've written your spelling words into my spellbook, and sent them to your classroom." : "I've written your words into my spellbook, but I couldn't reach your classroom. Press Save again when you're online."));
@@ -2079,77 +2078,66 @@ document.getElementById('k-wizard').addEventListener('click', quip);
 const monday = (() => { const n = new Date(), m = new Date(n); m.setDate(n.getDate() - ((n.getDay() + 6) % 7)); return m.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
 
 /* ================= The Wizard's Tale: stories ================= */
-// One short story per word list, written by the voice service (the same for everyone with that list). George's
-// voice is made in the browser, so the first computer to open a story records it, sentence by sentence, and
-// uploads it; the service notes when each word is spoken so the spelling words can light up as they're read.
+// One short story per word list, written by the voice service (the same for everyone with that list) and read
+// in the word voice, like every game's words. Each sentence is recorded on the service the first time anyone
+// asks for it, with the moment each word is spoken, so the spelling words can light up as they're read.
 const STORY = (() => {
   const WORD = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, MAX = 12;
   const pick = list => [...new Set((list || []).filter(w => WORD.test(w)).map(w => w.toLowerCase()))].slice(0, MAX);
   const decoder = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 24000);
   const ok = t => Array.isArray(t) && t.every(x => Array.isArray(x) && x.length === 2 && x.every(Number.isFinite));
-  // the latest story is kept on this device, so the page opens at once (and is refreshed from the service)
+  // the latest story is kept on this device, so the page opens at once
   const KEY = 'wordy-wizard-story';
   function saved(words) {
     try {
       const o = JSON.parse(localStorage.getItem(KEY) || 'null'), st = o && o.key === words.join() && o.story;
-      if (!st || !/^[0-9a-f]{20}$/.test(st.id) || !Array.isArray(st.sentences) || !st.sentences.every(x => typeof x === 'string') || !Array.isArray(st.times)) return null;
-      return { id: st.id, title: String(st.title).slice(0, 60), sentences: st.sentences.slice(0, 12), words, times: st.sentences.map((_, n) => ok(st.times[n]) ? st.times[n] : null) };
+      if (!st || !/^[0-9a-f]{20}$/.test(st.id) || !Array.isArray(st.sentences) || !st.sentences.length || !st.sentences.every(x => typeof x === 'string')) return null;
+      return { id: st.id, title: String(st.title).slice(0, 60), sentences: st.sentences.slice(0, 12), words };
     } catch (e) { return null; }
   }
-  const keep = (words, st) => { try { localStorage.setItem(KEY, JSON.stringify({ key: words.join(), story: st })); } catch (e) {} };
-  async function get(words) {
+  const asking = new Map();   // (one request per story at a time from this device)
+  function get(words) {
+    const k = words.join(); if (!asking.has(k)) asking.set(k, ask(words).finally(() => asking.delete(k)));
+    return asking.get(k);
+  }
+  async function ask(words) {
     const r = await fetch(SERVICE + '/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ words }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || 'no story');
     const sentences = (Array.isArray(j.sentences) ? j.sentences : []).map(String).slice(0, 12);
     if (!/^[0-9a-f]{20}$/.test(j.id || '') || sentences.length < 1) throw new Error('no story');
-    const st = { id: j.id, title: String(j.title || 'A Story').slice(0, 60), sentences, words: words, times: sentences.map((_, n) => ok((j.times || [])[n]) ? j.times[n] : null) };
-    keep(words, st); return st;
+    const st = { id: j.id, title: String(j.title || 'A Story').slice(0, 60), sentences, words };
+    try { localStorage.setItem(KEY, JSON.stringify({ key: words.join(), story: st })); } catch (e) {}
+    return st;
   }
-  // a recorded sentence from the service
+  // sentence n in the word voice -> { pcm, rate, times } (null if the service can't be reached)
   async function audio(id, n) {
     try {
       const r = await fetch(`${SERVICE}/stories/${id}/${n}`); if (r.status !== 200) return null;
+      let times = null; try { const t = JSON.parse(r.headers.get('X-Times') || 'null'); if (ok(t)) times = t; } catch (e) {}
       const b = await r.arrayBuffer();
-      return await new Promise((res, no) => decoder.decodeAudioData(b, buf => res({ pcm: buf.getChannelData(0), rate: buf.sampleRate }), no));
+      return await new Promise((res, no) => decoder.decodeAudioData(b, buf => res({ pcm: buf.getChannelData(0), rate: buf.sampleRate, times }), no));
     } catch (e) { return null; }
   }
-  function wav(a) {   // 16-bit mono WAV
-    const n = a.pcm.length, out = new DataView(new ArrayBuffer(44 + n * 2)), str = (o, t) => [...t].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
-    str(0, 'RIFF'); out.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
-    out.setUint32(24, a.rate, true); out.setUint32(28, a.rate * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); str(36, 'data'); out.setUint32(40, n * 2, true);
-    for (let i = 0; i < n; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, a.pcm[i])) * 32767, true);
-    return out.buffer;
-  }
-  // George's recording of sentence n made here and shared -> its word timings (or null)
-  async function upload(id, n, a) {
-    try {
-      const r = await fetch(`${SERVICE}/stories/${id}/${n}`, { method: 'PUT', headers: { 'Content-Type': 'audio/wav' }, body: wav(a) });
-      const j = await r.json(); return ok(j.times) ? j.times : null;
-    } catch (e) { return null; }
-  }
-  // get the week's story ready before anyone opens it: written (on any device), and on a computer recorded in
-  // George's voice in the background (behind the wizard's own lines), so children never wait for it
+  // get the week's story ready before anyone opens it: written, and every sentence recorded on the service
+  // (asked for a few at a time; the browser keeps them too)
   let busy = null;
   function prepare(list) {
     const words = pick(list); if (!words.length || busy === words.join()) return;
     busy = words.join();
     get(words).then(async st => {
-      for (let n = 0; n < st.sentences.length && VOICE.canRender && busy === words.join(); n++) {
-        if (st.times[n]) continue;
-        const a = await VOICE.render(st.sentences[n], false), t = a && await upload(st.id, n, a);
-        if (t) { st.times[n] = t; keep(words, st); }
-      }
+      const todo = st.sentences.map((_, n) => n);
+      const lane = async () => { while (todo.length && busy === words.join()) { const n = todo.shift(); try { const r = await fetch(`${SERVICE}/stories/${st.id}/${n}`); await r.arrayBuffer(); } catch (e) {} } };
+      await Promise.all([lane(), lane(), lane()]);
     }).catch(() => {}).then(() => { if (busy === words.join()) busy = null; });
   }
-  const recorded = st => st.times.every(Boolean);
-  return { pick, get, saved, audio, upload, prepare, recorded };
+  return { pick, get, saved, audio, prepare };
 })();
 
 /* ================= Game: The Wizard's Tale (a story read aloud) ================= */
-// The wizard reads a short story made from the week's words, a sentence at a time, with the text on the page.
-// The spelling words are bold and light up as he says them. Children just listen (and can pause, start again,
-// or tap a sentence to hear it).
+// A short story made from the week's words, read a sentence at a time in the word voice, with the text on the
+// page. The spelling words are bold and light up as they're said. Children just listen (and can pause, start
+// again, or tap a sentence to hear it).
 const TaleGame = (() => {
   const PRACTICE = ['castle', 'dragon', 'friend', 'tower', 'happy', 'because'];
   let root, st, timers = [], raf = 0, keyHandler, practice;
@@ -2189,34 +2177,36 @@ const TaleGame = (() => {
     cancelAnimationFrame(raf);
     const step = () => {
       if (!root || st.n !== n) return;
-      const t = VOICE.elapsed, tt = st.story.times[n] || times || guess(n, dur);
+      const t = VOICE.elapsed, tt = times || guess(n, dur);
       if (t >= 0) { let i = -1; tt.forEach(([a, b], j) => { if (t >= a - .05 && t <= b + .08) i = j; }); light(n, i); }
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
   }
-  // George reads when the whole story is recorded (every sentence downloads at once, so there are no waits);
-  // until then the device's own voice reads it straight away, and a computer records George for next time
-  const clip = n => n >= st.story.sentences.length || !st.george ? Promise.resolve(null) : (st.clips[n] = st.clips[n] || STORY.audio(st.story.id, n));
-  function begin(story) {
-    st.story = story; st.clips = [];
-    st.george = STORY.recorded(story) || !VOICE.hasNative;
-    if (st.george) story.sentences.forEach((_, n) => clip(n)); else STORY.prepare(story.words);
-    q('#tlNote').hidden = st.george;
+  // every sentence is asked for at once, so the story reads straight through; each is slowed a touch like
+  // every game's words (VOICE.stretch), and its word timings stretched to match
+  function clip(n) {
+    if (n >= st.story.sentences.length) return Promise.resolve(null);
+    return st.clips[n] = st.clips[n] || STORY.audio(st.story.id, n).then(a => {
+      if (!a) return null;
+      const s = VOICE.stretch(a); s.times = a.times && a.times.map(([x, y]) => [x / VOICE.pace, y / VOICE.pace]); return s;
+    });
   }
+  function begin(story) { st.story = story; st.clips = []; story.sentences.forEach((_, n) => clip(n)); }
   async function tell(n) {
     const me = ++st.run; st.n = n; st.playing = true; VOICE.cancel(); cancelAnimationFrame(raf);
     showPlay();
     if (n >= st.story.sentences.length) return theEnd();
     const s = st.spans[n]; light(n, -1);
     const box = q('#tlText'), top = s.el.offsetTop - box.offsetTop; if (top < box.scrollTop || top + s.el.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = Math.max(0, top - 20);
-    const a = await clip(n);
+    let waiting = false; const slow = setTimeout(() => { waiting = true; if (me === st.run) status('The wizard is turning the page…'); }, 700);
+    const a = await clip(n); clearTimeout(slow);
     if (me !== st.run || !root) return;
+    if (waiting) status('');
     const next = () => { if (me === st.run && root) later(() => { if (me === st.run) tell(n + 1); }, 250); };
-    if (a) { status(''); VOICE.playClip(a, next); follow(n, null, a.pcm.length / a.rate); return; }
-    // no George recording here yet: the device's own voice reads it, lighting the words as it goes
+    if (a) { VOICE.playClip(a, next); follow(n, a.times, a.pcm.length / a.rate); return; }
+    // the service couldn't be reached: the device's own voice reads this sentence, lighting the words as it goes
     const toks = s.toks, starts = []; let at = 0; toks.forEach(t => { starts.push(at); at += t.textContent.length + 1; });
-    status('');
     if (!VOICE.sayNative(st.story.sentences[n], { onword: ci => { let i = 0; starts.forEach((c, j) => { if (ci >= c) i = j; }); if (me === st.run) light(n, i); }, onend: () => { if (me === st.run) next(); } })) next();
   }
   function theEnd() {
@@ -2237,12 +2227,11 @@ const TaleGame = (() => {
         <h3 class="tl-title" id="tlTitle">The wizard is thinking of a story…</h3>
         <div class="tl-text" id="tlText" aria-live="off"><span class="tl-quill" aria-hidden="true">✒️</span></div>
       </div>
-      <p class="sq-status" id="tlStatus" aria-live="polite">Your spelling words will light up as the wizard reads them.</p>
+      <p class="sq-status" id="tlStatus" aria-live="polite">Your spelling words will light up as the story is read.</p>
       <div class="sq-actions">
         <button type="button" class="sq-btn primary" id="tlPlay" disabled>⏸ Pause</button>
         <button type="button" class="sq-btn" id="tlAgain" disabled>⟲ Start again</button>
       </div>
-      <p class="sq-practice" id="tlNote" hidden>The wizard is still recording this story in his own voice, so this device is reading it for now.</p>
       ${practice ? '<p class="sq-practice">This story uses practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}`;
     container.appendChild(root);
     q('#tlPlay').addEventListener('click', () => { if (st.playing) pause(); else tell(st.n >= st.story.sentences.length ? 0 : st.n); });
@@ -2251,13 +2240,9 @@ const TaleGame = (() => {
     document.addEventListener('keydown', keyHandler);
     const mine = root, open = story => { begin(story); page(); q('#tlPlay').disabled = q('#tlAgain').disabled = false; later(() => tell(0), 400); };
     const have = STORY.saved(words);
-    if (have) open(have);   // (opens at once from this device; a fresh copy only matters if it gained George's voice)
-    STORY.get(words).then(story => {
+    if (have) return open(have);   // (opens at once from this device)
+    STORY.get(words).then(story => { if (root === mine) open(story); }).catch(e => {
       if (root !== mine) return;
-      if (!have) return open(story);
-      if (!st.george && STORY.recorded(story) && st.n === 0 && !st.playing) open(story);
-    }).catch(e => {
-      if (root !== mine || have) return;
       q('#tlTitle').textContent = 'The storybook is closed for now';
       q('#tlText').textContent = /tomorrow/.test(e.message) ? 'The wizard has told all his new stories for today. Come back tomorrow for this one!' : "The wizard couldn't reach his storybook. Check the internet connection, then open the story again.";
       status('');

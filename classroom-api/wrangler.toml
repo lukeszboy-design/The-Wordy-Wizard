@@ -10,3 +10,13 @@ id = "399a0aff845c453e9b4e243d604444ac"
 # MeloTTS reads spelling words aloud (Workers AI)
 [ai]
 binding = "AI"
+
+# The Wizard's Tale: one coordinator per story, so a story is written once and each sentence recorded once,
+# however many devices ask for it at the same moment (Durable Objects are on the free plan)
+[[durable_objects.bindings]]
+name = "WRITER"
+class_name = "StoryWriter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["StoryWriter"]
