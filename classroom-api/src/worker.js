@@ -142,9 +142,13 @@ async function voices(req, env, parts) {
 const STORY_WORD_RE = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, STORY_MAX_WORDS = 12;
 const SENTENCE_RE = /^[A-Za-z0-9"“'‘][A-Za-z0-9 ,.'’‘!?;:"“”\-]{2,179}$/, TITLE_RE = /^[A-Za-z0-9][A-Za-z0-9 ,.'’!?:\-]{2,59}$/;
 const STORIES_PER_DAY = 30, STORIES_PER_IP_DAY = 15, TAKES_PER_IP_DAY = 300, MAX_TAKE = 1500000;
-const STORY_PROMPT = 'You are a kindly old wizard telling a short, cheerful story to children aged 6 to 9. Tell a real little story with a named hero, a small problem, and a happy ending, where each sentence follows on from the one before. Write 8 to 12 sentences, each at most 18 easy words, in good, natural English (use "the" and "a" properly). Use every one of the spelling words you are given, spelled exactly as given, at least once, in a way that makes sense. Keep it gentle: no fighting, nothing scary. Reply with only JSON in this form: {"title": "a short title", "sentences": ["First sentence.", "Second sentence."]}';
+const STORY_PROMPT = 'You are a kindly old wizard telling a short, cheerful story to children aged 6 to 9. Every story happens in or around a castle, in a world of wizards, magic, knights, friendly dragons and talking animals. Tell a real little story with a small problem and a happy ending, where each sentence follows on from the one before. Write 8 to 12 sentences, each at most 18 easy words, in good, natural English (use "the" and "a" properly). Use every one of the spelling words you are given, spelled exactly as given, at least once, in a way that makes sense. Always keep it kind, gentle and right for young children: no fighting, violence, danger, scary parts, sadness, romance, or rude words. Reply with only JSON in this form: {"title": "a short title", "sentences": ["First sentence.", "Second sentence."]}';
+// each new story gets a hero and a corner of the castle picked at random, so the stories don't all sound alike
+const HEROES = ['a young wizard named Pip', 'a girl who is the wizard\'s apprentice, named Rosie', 'a little dragon named Ember', 'a castle cat named Whiskers', 'a princess named Mira who loves books', 'a page boy named Theo', 'a wise, friendly owl named Hoot', 'a kind knight named Sir Bramble', 'a brave girl knight named Lady Wren', 'a castle mouse named Nibbles', 'a baby unicorn named Star', 'twins named Ada and Leo', 'a cheerful castle cook named Mabel', 'a young prince named Oliver who loves to paint', 'a sleepy castle dog named Biscuit', 'a tiny fairy named Clover'];
+const PLACES = ["the wizard's tall tower", 'the castle kitchen', 'the castle library', 'the royal garden', 'the castle courtyard on market day', 'the drawbridge and the moat', 'the castle on a snowy day', 'a feast in the great hall', 'the castle stables', 'the top of the castle walls at sunset', "the wizard's potion room", 'a festival at the castle'];
 const tokens = t => t.toLowerCase().replace(/[’‘]/g, "'").split(/\s+/).map(w => w.replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, '')).filter(Boolean);
-async function storyId(words) { return (await sha256(words.map(w => w.toLowerCase()).sort().join(','))).slice(0, 20); }
+// (the "2" marks this kind of story: stories from before heroes were mixed are simply no longer used)
+async function storyId(words) { return (await sha256('2|' + words.map(w => w.toLowerCase()).sort().join(','))).slice(0, 20); }
 function storyOk(st, words) {
   if (!st || !TITLE_RE.test(String(st.title || '')) || !Array.isArray(st.sentences) || st.sentences.length < 8 || st.sentences.length > 12) return false;
   if (!st.sentences.every(x => typeof x === 'string' && SENTENCE_RE.test(x.trim()) && x.trim().split(/\s+/).length <= 22)) return false;
@@ -160,7 +164,8 @@ async function safe(env, text) {
 async function writeStory(env, words) {
   for (let i = 0; i < 3; i++) {
     try {
-      const out = await env.AI.run(CLUE_MODEL, { messages: [{ role: 'system', content: STORY_PROMPT }, { role: 'user', content: 'Spelling words: ' + words.join(', ') }], max_tokens: 900, temperature: .7 + i * .1 });
+      const hero = HEROES[Math.floor(Math.random() * HEROES.length)], place = PLACES[Math.floor(Math.random() * PLACES.length)];
+      const out = await env.AI.run(CLUE_MODEL, { messages: [{ role: 'system', content: STORY_PROMPT }, { role: 'user', content: `The hero is ${hero}. The story happens in ${place}. Spelling words: ${words.join(', ')}` }], max_tokens: 900, temperature: .7 + i * .1 });
       const raw = typeof out.response === 'string' ? out.response : JSON.stringify(out.response || {});
       const m = raw.match(/\{[\s\S]*\}/); if (!m) continue;
       const st = JSON.parse(m[0]); st.title = String(st.title || '').trim(); st.sentences = (st.sentences || []).map(x => String(x).trim().replace(/\s+/g, ' '));
