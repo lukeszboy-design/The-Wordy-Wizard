@@ -3,9 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="The Wordy Wizard: a spelling practice game for elementary students.">
+<meta name="description" content="The Wordy Wizard is a free spelling game for elementary kids. Enter the week's spelling words and practise them in 16 castle games, with a story, a crossword and every word read aloud.">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>The Wordy Wizard</title>
+<title>The Wordy Wizard – Free Spelling Games for Kids</title>
+<link rel="canonical" href="https://thewordywizard.com/">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="theme-color" content="#0d0a1f">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Wordy Wizard">
+<meta property="og:title" content="The Wordy Wizard – Free Spelling Games for Kids">
+<meta property="og:description" content="Free spelling practice in a wizard's castle: the week's spelling words become 16 games, a story and a crossword, all read aloud.">
+<meta property="og:url" content="https://thewordywizard.com/">
+<meta property="og:image" content="https://thewordywizard.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A moonlit wizard's castle with a glowing window and the words The Wordy Wizard">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "The Wordy Wizard", "url": "https://thewordywizard.com/", "description": "The Wordy Wizard is a free spelling game for elementary kids. Enter the week's spelling words and practise them in 16 castle games, with a story, a crossword and every word read aloud.", "applicationCategory": "EducationalApplication", "operatingSystem": "Any (web browser)", "educationalLevel": "Elementary school", "audience": {"@type": "EducationalAudience", "educationalRole": "student"}, "teaches": "Spelling", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "image": "https://thewordywizard.com/og-image.png", "inLanguage": "en"}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400&family=Uncial+Antiqua&display=swap">
@@ -953,6 +968,13 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .ss-key{display:none}
   .ss .sq-practice{display:none}
 }
+/* About text for search engines and grown-ups; sits below the castle and is hidden while a game is open. */
+.about{box-sizing:border-box;padding:8px 16px 40px;color:var(--parchment);font:17px/1.55 var(--font-read)}
+.about .in{max-width:720px;margin:0 auto;background:linear-gradient(#f5e7bf,#ecd59b);color:var(--parch-ink);border:3px solid var(--ink);border-radius:18px;padding:20px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.about h2{margin:0 0 8px;font:400 28px/1.2 var(--font-display);color:#5a2414}
+.about h3{margin:16px 0 4px;font-size:19px}
+.about p{margin:6px 0}
+body:has(#gameScreen:not([hidden])) .about{display:none}
 </style>
 
 </head>
@@ -1005,6 +1027,19 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
     </div>
   </div>
 </div>
+
+<section class="about" id="about" aria-labelledby="aboutTitle">
+  <div class="in">
+    <h2 id="aboutTitle">Spelling practice in a wizard's castle</h2>
+    <p>The Wordy Wizard is a free spelling game for elementary school children. A grown-up types in the week's spelling words, or uploads them from a CSV file, and the wizard turns them into games in his spellbook. Every word is read aloud in a clear voice, so children hear each word as they practise it.</p>
+    <h3>16 spelling games</h3>
+    <p>The book opens with The Wizard's Tale, a short story written from the week's words that lights up each word as it's read. Then come Dragon's Hoard, Save the Squire, Potion Mix-Up, Broken Castle Wall, The Town Crier, The Jester's Tricks, The Joust, Forge the Sword, Gem Mine, Shield Match, Stable Sort, The Royal Court, Feed the Baby Dragon, Drawbridge Dash and The Royal Map, a crossword where each word is a road between villages.</p>
+    <h3>For teachers</h3>
+    <p>Teachers can enter the words once and share a 4-digit classroom code. Children tap <b>Join my class</b>, type the code, and every game uses the class's words. Each time the teacher saves a new list, the class gets it.</p>
+    <h3>For parents</h3>
+    <p>The Wordy Wizard is free, with no ads, accounts or sign-up. It runs in any web browser on computers, Chromebooks, iPads and tablets. Word lists and progress are saved on your own device. Tap <b>Grown-ups</b> in the castle to add this week's words.</p>
+  </div>
+</section>
 
 <div class="title" id="title" role="dialog" aria-modal="true" aria-labelledby="titleName" aria-describedby="titleTag">
   <svg class="castle" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -7445,8 +7480,9 @@ document.addEventListener('keydown', e => {
   if (!gate.hidden || !panel.hidden || !document.getElementById('joinBox').hidden) return;
   if (FX.state !== 'lair') { if (e.key === 'Escape' && FX.state === 'game') backToLair(); return; }
   if (e.target.closest && e.target.closest('input,textarea')) return;
-  if (e.key === 'ArrowRight' || e.key === 'PageDown') { turnPage(1); }
-  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { turnPage(-1); }
+  // The page scrolls now (About sits below the castle), so keys that turn the spellbook's pages shouldn't also scroll it.
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); turnPage(1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); turnPage(-1); }
 });
 turnHook = turnPage;
 
