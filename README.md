@@ -18,3 +18,7 @@ Each time you press **Save words**, the class gets the new list.
 ## The Royal Map
 
 A crossword made from the week's words: each word is a road between two villages on the kingdom map. The clues on the Royal Scroll are written once for each word and read aloud; tap **Hear the word** if you get stuck. Finish every road and the king's banner goes up over the castle. Grown-ups can rewrite any clue: tap 🔊 next to the word in Grown-ups.
+
+## The Wizard's Tale
+
+The first spell in the book. The wizard tells a short story made from the week's spelling words, with the words in bold lighting up as he says them. Children just listen; they can pause, start again, or tap a sentence to hear it. Each word list gets one story, shared by everyone using that list. The wizard's own voice is recorded the first time a computer opens the story (or when a grown-up saves the words on a computer); until then, tablets and phones read it in their built-in voice.

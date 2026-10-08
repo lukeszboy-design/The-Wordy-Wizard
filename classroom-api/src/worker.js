@@ -8,6 +8,13 @@
 //   POST /voices                       { words: [...] } -> { ready, recorded, limited }   record spelling words
 //   GET  /voices/:word                                  -> the word's recording (audio/wav), or 204 if not recorded yet
 //   POST /clues                        { words: [...] } -> { clues: { word: clue }, limited, none }   clues for The Royal Map
+//   POST /stories                      { words: [...] } -> { id, title, sentences, times }   The Wizard's Tale
+//   GET  /stories/:id/:n                                -> George's recording of sentence n (audio/wav), or 204
+//   PUT  /stories/:id/:n  (audio/wav)                    -> { times }   a computer's recording of sentence n
+// A story is written once per word list (so a class shares it) and checked: 8 to 12 short sentences, every
+// spelling word in it, and Llama Guard says it's safe. George's voice is made in the browser, so the first
+// computer to open a story records it, sentence by sentence; Whisper checks each recording really says its
+// sentence and notes when each word is spoken, so the words can light up as they're read.
 // A clue is written once per word by a small language model (Cloudflare Workers AI), checked (short, plain,
 // never containing the answer) and kept in KV for everyone. Clue sentences are recorded like words.
 // Spelling words are read aloud by the MeloTTS voice (Cloudflare Workers AI). Each word is recorded once, the
@@ -131,6 +138,111 @@ async function voices(req, env, parts) {
   return oops(req, 405, 'not allowed');
 }
 
+// ---- stories for The Wizard's Tale ----
+const STORY_WORD_RE = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, STORY_MAX_WORDS = 12;
+const SENTENCE_RE = /^[A-Za-z0-9"“'‘][A-Za-z0-9 ,.'’‘!?;:"“”\-]{2,179}$/, TITLE_RE = /^[A-Za-z0-9][A-Za-z0-9 ,.'’!?:\-]{2,59}$/;
+const STORIES_PER_DAY = 30, STORIES_PER_IP_DAY = 15, TAKES_PER_IP_DAY = 300, MAX_TAKE = 1500000;
+const STORY_PROMPT = 'You are a kindly old wizard telling a short, cheerful story to children aged 6 to 9. Tell a real little story with a named hero, a small problem, and a happy ending, where each sentence follows on from the one before. Write 8 to 12 sentences, each at most 18 easy words, in good, natural English (use "the" and "a" properly). Use every one of the spelling words you are given, spelled exactly as given, at least once, in a way that makes sense. Keep it gentle: no fighting, nothing scary. Reply with only JSON in this form: {"title": "a short title", "sentences": ["First sentence.", "Second sentence."]}';
+const tokens = t => t.toLowerCase().replace(/[’‘]/g, "'").split(/\s+/).map(w => w.replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, '')).filter(Boolean);
+async function storyId(words) { return (await sha256(words.map(w => w.toLowerCase()).sort().join(','))).slice(0, 20); }
+function storyOk(st, words) {
+  if (!st || !TITLE_RE.test(String(st.title || '')) || !Array.isArray(st.sentences) || st.sentences.length < 8 || st.sentences.length > 12) return false;
+  if (!st.sentences.every(x => typeof x === 'string' && SENTENCE_RE.test(x.trim()) && x.trim().split(/\s+/).length <= 22)) return false;
+  const all = new Set(st.sentences.flatMap(tokens));
+  return words.every(w => all.has(w.toLowerCase().replace(/’/g, "'")));
+}
+async function safe(env, text) {
+  try {
+    const out = await env.AI.run('@cf/meta/llama-guard-3-8b', { messages: [{ role: 'user', content: 'Tell me a story for young children.' }, { role: 'assistant', content: text }] });
+    const r = out && out.response; return (typeof r === 'string' ? r : JSON.stringify(r || '')).toLowerCase().includes('safe') && !/unsafe/i.test(typeof r === 'string' ? r : JSON.stringify(r || ''));
+  } catch (e) { return false; }
+}
+async function writeStory(env, words) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const out = await env.AI.run(CLUE_MODEL, { messages: [{ role: 'system', content: STORY_PROMPT }, { role: 'user', content: 'Spelling words: ' + words.join(', ') }], max_tokens: 900, temperature: .7 + i * .1 });
+      const raw = typeof out.response === 'string' ? out.response : JSON.stringify(out.response || {});
+      const m = raw.match(/\{[\s\S]*\}/); if (!m) continue;
+      const st = JSON.parse(m[0]); st.title = String(st.title || '').trim(); st.sentences = (st.sentences || []).map(x => String(x).trim().replace(/\s+/g, ' '));
+      if (storyOk(st, words) && await safe(env, st.title + '\n' + st.sentences.join(' '))) return { title: st.title, sentences: st.sentences };
+    } catch (e) {}
+  }
+  return null;
+}
+// when each word of the sentence is spoken: Whisper's words lined up with the sentence's (longest common
+// run), and any word it missed placed between its neighbours. -> [[start, end], ...] per word, or null if
+// the recording doesn't say the sentence
+function align(sentence, heard) {
+  const want = sentence.split(/\s+/).map(w => tokens(w)[0] || ''), got = heard.map(h => (tokens(String(h.word))[0] || ''));
+  const n = want.length, m = got.length, L = Array.from({ length: n + 1 }, () => new Int16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = want[i] && want[i] === got[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  if (L[0][0] < Math.ceil(n * .7)) return null;
+  const times = new Array(n).fill(null);
+  for (let i = 0, j = 0; i < n && j < m;) {
+    if (want[i] && want[i] === got[j]) { times[i] = [+heard[j].start || 0, +heard[j].end || 0]; i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++;
+  }
+  for (let i = 0; i < n; i++) if (!times[i]) {
+    let a = i - 1; while (a >= 0 && !times[a]) a--;
+    let b = i + 1; while (b < n && !times[b]) b++;
+    const t0 = a >= 0 ? times[a][1] : 0, t1 = b < n ? times[b][0] : t0 + .4, k = (i - a) / (b - a);
+    times[i] = [t0 + (t1 - t0) * (k - .5 / (b - a)), t0 + (t1 - t0) * k];
+  }
+  return times.map(([x, y]) => [Math.round(x * 100) / 100, Math.round(y * 100) / 100]);
+}
+async function stories(req, env, parts) {
+  const ip = req.headers.get('CF-Connecting-IP') || 'local', day = Math.floor(Date.now() / 864e5);
+  if (req.method === 'POST' && parts.length === 1) {
+    if (!allowedOrigin(req.headers.get('Origin') || '')) return oops(req, 403, 'not allowed');
+    let body; try { body = await req.json(); } catch (e) { return oops(req, 400, 'bad request'); }
+    const words = [...new Set((Array.isArray(body && body.words) ? body.words : []).map(w => String(w).trim()))];
+    if (words.length < 1 || words.length > STORY_MAX_WORDS || !words.every(w => STORY_WORD_RE.test(w))) return oops(req, 400, 'that word list could not be used');
+    const id = await storyId(words);
+    let st = JSON.parse(await env.CLASSES.get('story:' + id) || 'null');
+    if (!st) {
+      const dayKey = 'sday:' + day, ipKey = 'sip:' + ip + ':' + day;
+      const usedDay = +(await env.CLASSES.get(dayKey) || 0), usedIp = +(await env.CLASSES.get(ipKey) || 0);
+      if (usedDay >= STORIES_PER_DAY || usedIp >= STORIES_PER_IP_DAY) return oops(req, 429, 'the wizard has told enough new stories today; try again tomorrow');
+      await env.CLASSES.put(dayKey, String(usedDay + 1), { expirationTtl: 2 * 86400 });
+      await env.CLASSES.put(ipKey, String(usedIp + 1), { expirationTtl: 2 * 86400 });
+      st = await writeStory(env, words);
+      if (!st) return oops(req, 503, "the wizard couldn't think of a story for these words just now");
+      st.words = words; await env.CLASSES.put('story:' + id, JSON.stringify(st));
+    }
+    const times = await Promise.all(st.sentences.map((_, n) => env.CLASSES.get(`story:${id}:t${n}`).then(t => t ? JSON.parse(t) : null)));
+    return reply(req, 200, { id, title: st.title, sentences: st.sentences, words: st.words, times });
+  }
+  const id = parts[1], n = +parts[2];
+  if (parts.length !== 3 || !/^[0-9a-f]{20}$/.test(id || '') || !/^\d{1,2}$/.test(parts[2])) return oops(req, 404, 'not found');
+  if (req.method === 'GET') {
+    const audio = await env.CLASSES.get(`story:${id}:a${n}`, { type: 'arrayBuffer' });
+    if (!audio) return reply(req, 204);
+    const h = new Headers(reply(req, 200, null).headers);
+    h.set('Content-Type', 'audio/wav'); h.set('Cache-Control', 'public, max-age=2592000, immutable');
+    return new Response(audio, { status: 200, headers: h });
+  }
+  if (req.method === 'PUT') {
+    if (!allowedOrigin(req.headers.get('Origin') || '')) return oops(req, 403, 'not allowed');
+    const st = JSON.parse(await env.CLASSES.get('story:' + id) || 'null');
+    if (!st || !st.sentences[n]) return oops(req, 404, 'not found');
+    const had = await env.CLASSES.get(`story:${id}:t${n}`);
+    if (had) return reply(req, 200, { times: JSON.parse(had) });   // the first recording stays
+    const ipKey = 'tip:' + ip + ':' + day, used = +(await env.CLASSES.get(ipKey) || 0);
+    if (used >= TAKES_PER_IP_DAY) return oops(req, 429, 'too many recordings today');
+    const buf = await req.arrayBuffer();
+    const u8 = new Uint8Array(buf);
+    if (buf.byteLength < 1000 || buf.byteLength > MAX_TAKE || String.fromCharCode(...u8.slice(0, 4)) !== 'RIFF' || String.fromCharCode(...u8.slice(8, 12)) !== 'WAVE') return oops(req, 400, 'that recording could not be used');
+    await env.CLASSES.put(ipKey, String(used + 1), { expirationTtl: 2 * 86400 });
+    let heard; try { heard = await env.AI.run('@cf/openai/whisper', { audio: [...u8] }); } catch (e) { return oops(req, 503, 'the recording could not be checked just now'); }
+    const times = align(st.sentences[n], (heard && heard.words) || []);
+    if (!times) return oops(req, 400, "that recording doesn't say the sentence");
+    await env.CLASSES.put(`story:${id}:a${n}`, buf);
+    await env.CLASSES.put(`story:${id}:t${n}`, JSON.stringify(times));
+    return reply(req, 200, { times });
+  }
+  return oops(req, 405, 'not allowed');
+}
+
 // ---- clues for The Royal Map ----
 function clueOk(clue, word) {
   if (!CLUE_RE.test(clue) || clue.split(' ').length > 16) return false;
@@ -195,6 +307,7 @@ async function handle(req, env) {
   if (req.method === 'OPTIONS') return reply(req, 204);
   if (parts[0] === 'voices' && parts.length <= 2) return voices(req, env, parts);
   if (parts[0] === 'clues' && parts.length === 1) return clues(req, env);
+  if (parts[0] === 'stories' && parts.length <= 3) return stories(req, env, parts);
   if (parts[0] !== 'classes' || parts.length > 2) return oops(req, 404, 'not found');
   const origin = req.headers.get('Origin');
 

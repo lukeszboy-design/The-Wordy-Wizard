@@ -734,6 +734,31 @@ body{background:var(--night);color:var(--parchment);font-family:var(--font-read)
   .rc .bw-levels button{font-size:11px;padding:2px 7px}
   .rc-long{display:none}
 }
+/* --- The Wizard's Tale (a story read aloud) --- */
+.tl{position:absolute;left:6%;right:6%;top:21%;bottom:3%;display:flex;flex-direction:column;gap:1cqw;color:var(--parch-ink)}
+.tl-page{flex:1;min-height:0;display:flex;flex-direction:column;background:linear-gradient(90deg,#efdcae,#fdf5dd 6%,#fdf5dd 94%,#efdcae);border:3px solid var(--ink);border-radius:1.2cqw;box-shadow:0 .5cqw 0 rgba(59,36,18,.25),inset 0 0 0 .5cqw #f6e7bd;padding:1.4cqw 2.4cqw}
+.tl-title{margin:0 0 .8cqw;text-align:center;font:400 max(20px,2.6cqw)/1.2 var(--font-display);color:#5a2414}
+.tl-text{flex:1;min-height:0;overflow:auto;position:relative;font:400 max(17px,2cqw)/1.75 var(--font-read);color:#2a1a10;text-wrap:pretty}
+.tl-sent{cursor:pointer;border-radius:.5cqw;padding:.1cqw 0;transition:background .3s}
+.tl-sent.on{background:#fff1b8;box-shadow:0 0 0 .3cqw #fff1b8}
+.tl-word{color:#7b2d3f;border-radius:.4cqw;transition:background .15s,color .15s,box-shadow .15s}
+.tl-word.lit{background:#f2c35b;color:#2a1a10;box-shadow:0 0 0 .25cqw #f2c35b,0 0 1.2cqw .3cqw rgba(242,195,91,.9)}
+.tl-quill{display:block;text-align:center;font-size:max(28px,3cqw);animation:tlquill 1s ease-in-out infinite alternate}
+@keyframes tlquill{from{transform:rotate(-12deg) translateX(-.6cqw)}to{transform:rotate(8deg) translateX(.6cqw)}}
+.tl .sq-status{min-height:1.4em}
+@media (prefers-reduced-motion: reduce){ .tl-quill{animation:none} .tl-sent,.tl-word{transition:none} }
+@media (max-width:1100px) and (orientation:portrait){
+  .tl{position:static;gap:10px;padding:8px 16px 20px}
+  .tl-page{padding:14px 16px}
+  .tl-text{font-size:19px;max-height:60vh}
+}
+@media (orientation:landscape) and (max-height:540px){
+  .tl{top:19%;bottom:2%;gap:4px}
+  .tl-page{padding:6px 14px}
+  .tl-title{font-size:17px;margin-bottom:2px}
+  .tl-text{font-size:15px;line-height:1.6}
+  .tl .sq-status{min-height:0;font-size:12px}
+}
 /* --- The Royal Map (crossword) --- */
 .rm{position:absolute;left:3%;right:3%;top:21%;bottom:3%;display:grid;grid-template-columns:minmax(0,50fr) minmax(0,50fr);gap:2cqw;color:var(--parch-ink)}
 .rm-scene{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
@@ -1171,6 +1196,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ================= Speech & menu logic (works with or without WebGL) ================= */
 const GAMES = {
+  story:      { name: "The Wizard's Tale", desc: 'A story with your words', say: "The Wizard's Tale! Sit back and listen. Your spelling words will light up as I read." },
   bridge:     { name: 'Drawbridge Dash', desc: 'Lower the bridge letter by letter', say: "Drawbridge Dash! Every right letter lowers the drawbridge one plank, so the knight can cross the moat!" },
   feed:       { name: 'Feed the Baby Dragon', desc: 'One letter at a time', say: "Feed the Baby Dragon! It's hungry for letters. Toss in the right next letter, one at a time, and watch it grow!" },
   wordsearch: { name: "Dragon's Hoard", desc: 'Find words in the gold', say: "Word Search! Your words are hiding in a grid of letters. This spell is still brewing in my cauldron. Check back soon!" },
@@ -1189,10 +1215,10 @@ const GAMES = {
 };
 /* Each spread is two facing pages: games[0..1] on the left page, games[2..3] on the right. Add more spreads here as games are added. */
 const SPREADS = [
-  { heads: ['Choose', 'a Spell'], games: ['wordsearch', 'hangman', 'scramble', 'missing'] },
-  { heads: ['More', 'Spells'], games: ['listen', 'spot', 'joust', 'tiles'] },
-  { heads: ['Rare', 'Spells'], games: ['vowels', 'memory', 'sort', 'bee'] },
-  { heads: ['Secret', 'Spells'], games: ['feed', 'bridge', 'crossword'] }
+  { heads: ['Choose', 'a Spell'], games: ['story', 'wordsearch', 'hangman', 'scramble'] },
+  { heads: ['More', 'Spells'], games: ['missing', 'listen', 'spot', 'joust'] },
+  { heads: ['Rare', 'Spells'], games: ['tiles', 'vowels', 'memory', 'sort'] },
+  { heads: ['Secret', 'Spells'], games: ['bee', 'feed', 'bridge', 'crossword'] }
 ];
 let mPage = 0, turnHook = null, gameHook = null;
 function chooseGame(k) { if (gameHook) gameHook(k); else say(GAMES[k].say); }
@@ -1379,13 +1405,14 @@ const VOICE = (() => {
     if (!synth || nUnlocked) return; nUnlocked = true;
     try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); } catch (e) {}
   }
-  function nativeSay(text, rate, wizard, onend) {
+  function nativeSay(text, rate, wizard, onend, onword) {
     const fin = once(() => { hush(); if (onend) onend(); });
     try {
       if (synth.speaking || synth.pending) synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
       if (nVoice) { u.voice = nVoice; u.lang = nVoice.lang; } else u.lang = 'en-GB';
       u.rate = Math.max(.5, Math.min(1, wizard ? rate : rate * PACE)); u.pitch = wizard ? .8 : 1.05;
+      if (onword) u.onboundary = e => { if (nUtter === u && (!e.name || e.name === 'word')) onword(e.charIndex); };
       nUtter = u; MUSIC.talk(true);   // keep hold of it: some browsers drop the end event of an utterance nobody references
       u.onend = u.onerror = () => { if (nUtter === u) { nUtter = null; clearTimeout(nTimer); } fin(); };
       clearTimeout(nTimer); nTimer = setTimeout(() => { if (nUtter === u) nUtter = null; fin(); }, 2500 + text.length * 170 / u.rate);
@@ -1409,7 +1436,7 @@ const VOICE = (() => {
       catch (e) { postMessage({ key, error: String(e) }); }
     };`;
   const clips = new Map(), waiting = new Map(), pending = new Set(), hurry = new Set(), queue = [];
-  let worker = null, state = 'off', busy = null, ctx = null, src = null, token = 0, ending = null;
+  let worker = null, state = 'off', busy = null, ctx = null, src = null, token = 0, ending = null, startedAt = 0;
   const once = f => { let done = !f; return () => { if (!done) { done = true; f(); } }; };
   let upRes, loaded = 0; const up = new Promise(r => upRes = r);   // the engine is ready (or can't run here); how much of it has downloaded
   const WIZARD = 'bm_george', WORDS_VOICE = 'bf_lily';   // (the word voice speaks through Lily's slot; see the worker)
@@ -1525,7 +1552,7 @@ const VOICE = (() => {
       const buf = ctx.createBuffer(1, audio.pcm.length, audio.rate); buf.copyToChannel(audio.pcm, 0);
       src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination);
       const me = src; src.onended = () => { if (src === me) src = null; hush(); if (onend) onend(); };
-      MUSIC.talk(true); src.start();
+      MUSIC.talk(true); src.start(); startedAt = ctx.currentTime;
     } catch (e) { if (onend) onend(); }
   }
   function cancel() {
@@ -1618,7 +1645,12 @@ const VOICE = (() => {
     if (!ws.length) return Promise.resolve();
     return Promise.race([soon, Promise.all(ws.map(w => new Promise(r => request(w, speed, voice, false, r))))]);
   }
-  return { speak, cancel, warm, wordsReady, prepare, has, get loaded() { return loaded; }, get failed() { return state === 'failed'; }, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); nativeUnlock(); }, record, get canSpeak() { return !!synth || navigator.onLine !== false; }, get native() { return !!synth && (!ENGINE || state !== 'ready'); } };
+  // ---- for The Wizard's Tale: George's voice for any sentence (computers only), and playing it in time ----
+  const render = text => !ENGINE ? Promise.resolve(null) : new Promise(r => { start(); request(String(text), speedFor(.85), WIZARD, true, a => r(a || null)); });
+  function playClip(a, onend) { cancel(); unlock(); play(a, '', 1, once(onend)); }
+  function sayNative(text, { onword, onend } = {}) { cancel(); if (!synth) { if (onend) setTimeout(onend, 0); return false; } nativeSay(text, .85, true, onend, onword); return true; }
+  return { render, playClip, sayNative, get canRender() { return ENGINE && state !== 'failed'; }, get elapsed() { return src && ctx ? ctx.currentTime - startedAt : -1; },
+    speak, cancel, warm, wordsReady, prepare, has, get loaded() { return loaded; }, get failed() { return state === 'failed'; }, ready: bundle.then(() => true), unlock: () => { tapped = true; unlock(); nativeUnlock(); }, record, get canSpeak() { return !!synth || navigator.onLine !== false; }, get native() { return !!synth && (!ENGINE || state !== 'ready'); } };
 })();
 VOICE.warm(WORDS.words);
 /* ================= Title screen: the castle from outside while the lair, music and voice load ================= */
@@ -1844,6 +1876,7 @@ $('pSave').addEventListener('click', () => {
   let saved = true;
   try { localStorage.setItem(WORDS_KEY, JSON.stringify(WORDS)); } catch (e) { saved = false; }
   closeModal(panel); onWordsChanged(); VOICE.record(WORDS.words).then(() => VOICE.warm(WORDS.words));   // new words are recorded once, then ready
+  STORY.prepare(WORDS.words);   // (on a computer, the week's story is written and recorded in George's voice for everyone)
   const n = WORDS.words.length;
   if (CLASSROOM.teaching) {
     CLASSROOM.share().then(() => true, () => false).then(ok => say(ok ? "Splendid! I've written your spelling words into my spellbook, and sent them to your classroom." : "I've written your words into my spellbook, but I couldn't reach your classroom. Press Save again when you're online."));
@@ -2045,6 +2078,184 @@ const CLASSROOM = (() => {
 document.getElementById('k-wizard').addEventListener('click', quip);
 const monday = (() => { const n = new Date(), m = new Date(n); m.setDate(n.getDate() - ((n.getDay() + 6) % 7)); return m.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
 
+/* ================= The Wizard's Tale: stories ================= */
+// One short story per word list, written by the voice service (the same for everyone with that list). George's
+// voice is made in the browser, so the first computer to open a story records it, sentence by sentence, and
+// uploads it; the service notes when each word is spoken so the spelling words can light up as they're read.
+const STORY = (() => {
+  const WORD = /^[A-Za-z][A-Za-z'’\-]{0,29}$/, MAX = 12;
+  const pick = list => [...new Set((list || []).filter(w => WORD.test(w)).map(w => w.toLowerCase()))].slice(0, MAX);
+  const decoder = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 24000);
+  const ok = t => Array.isArray(t) && t.every(x => Array.isArray(x) && x.length === 2 && x.every(Number.isFinite));
+  async function get(words) {
+    const r = await fetch(SERVICE + '/stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ words }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'no story');
+    const sentences = (Array.isArray(j.sentences) ? j.sentences : []).map(String).slice(0, 12);
+    if (!/^[0-9a-f]{20}$/.test(j.id || '') || sentences.length < 1) throw new Error('no story');
+    return { id: j.id, title: String(j.title || 'A Story').slice(0, 60), sentences, words: words, times: sentences.map((_, n) => ok((j.times || [])[n]) ? j.times[n] : null) };
+  }
+  // a recorded sentence from the service
+  async function audio(id, n) {
+    try {
+      const r = await fetch(`${SERVICE}/stories/${id}/${n}`); if (r.status !== 200) return null;
+      const b = await r.arrayBuffer();
+      return await new Promise((res, no) => decoder.decodeAudioData(b, buf => res({ pcm: buf.getChannelData(0), rate: buf.sampleRate }), no));
+    } catch (e) { return null; }
+  }
+  function wav(a) {   // 16-bit mono WAV
+    const n = a.pcm.length, out = new DataView(new ArrayBuffer(44 + n * 2)), str = (o, t) => [...t].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
+    str(0, 'RIFF'); out.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
+    out.setUint32(24, a.rate, true); out.setUint32(28, a.rate * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true); str(36, 'data'); out.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, a.pcm[i])) * 32767, true);
+    return out.buffer;
+  }
+  // George's recording of sentence n made here and shared -> its word timings (or null)
+  async function upload(id, n, a) {
+    try {
+      const r = await fetch(`${SERVICE}/stories/${id}/${n}`, { method: 'PUT', headers: { 'Content-Type': 'audio/wav' }, body: wav(a) });
+      const j = await r.json(); return ok(j.times) ? j.times : null;
+    } catch (e) { return null; }
+  }
+  // after a grown-up saves words on a computer: write the story and record it now, so every device has it ready
+  let busy = null;
+  function prepare(list) {
+    const words = pick(list); if (!words.length || !VOICE.canRender || busy === words.join()) return;
+    busy = words.join();
+    get(words).then(async st => {
+      for (let n = 0; n < st.sentences.length && busy === words.join(); n++) {
+        if (st.times[n]) continue;
+        const a = await VOICE.render(st.sentences[n]); if (a) await upload(st.id, n, a);
+      }
+    }).catch(() => {}).then(() => { if (busy === words.join()) busy = null; });
+  }
+  return { pick, get, audio, upload, prepare };
+})();
+
+/* ================= Game: The Wizard's Tale (a story read aloud) ================= */
+// The wizard reads a short story made from the week's words, a sentence at a time, with the text on the page.
+// The spelling words are bold and light up as he says them. Children just listen (and can pause, start again,
+// or tap a sentence to hear it).
+const TaleGame = (() => {
+  const PRACTICE = ['castle', 'dragon', 'friend', 'tower', 'happy', 'because'];
+  let root, st, timers = [], raf = 0, keyHandler, practice;
+  const q = s => root.querySelector(s);
+  const later = (fn, ms) => timers.push(setTimeout(() => { if (root) fn(); }, ms));
+  const norm = w => w.toLowerCase().replace(/[’‘]/g, "'").replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, '');
+  const status = t => { q('#tlStatus').textContent = t; };
+
+  function page() {
+    const box = q('#tlText'); box.innerHTML = '';
+    q('#tlTitle').textContent = st.story.title;
+    const spelled = new Set(st.story.words.map(norm));
+    st.spans = st.story.sentences.map((text, n) => {
+      const sEl = document.createElement('span'); sEl.className = 'tl-sent'; sEl.dataset.n = n;
+      const toks = text.split(/\s+/).map(w => {
+        const t = document.createElement('span');
+        if (spelled.has(norm(w))) {   // only the word itself is bold (and lights up), not the punctuation beside it
+          const m = w.match(/^([^A-Za-z0-9]*)(.*?)([^A-Za-z0-9]*)$/), b = document.createElement('b');
+          b.className = 'tl-word'; b.textContent = m[2]; t.append(m[1], b, m[3]); t.word = b;
+        } else t.textContent = w;
+        sEl.appendChild(t); sEl.appendChild(document.createTextNode(' ')); return t;
+      });
+      sEl.addEventListener('click', () => tell(n));
+      box.appendChild(sEl); return { el: sEl, toks };
+    });
+  }
+  // when each word is said: from the service, or (for a recording made just now) spread by word length
+  function guess(n, dur) {
+    const toks = st.spans[n].toks, w = toks.map(t => t.textContent.length + 2), sum = w.reduce((a, b) => a + b, 0);
+    let at = 0; return w.map(x => { const a = at; at += x / sum * dur; return [a, at]; });
+  }
+  function light(n, i) {
+    st.spans.forEach((s, m) => s.el.classList.toggle('on', m === n));
+    st.spans[n].toks.forEach((t, j) => { if (t.word) t.word.classList.toggle('lit', j === i); });
+  }
+  function follow(n, times, dur) {
+    cancelAnimationFrame(raf);
+    const step = () => {
+      if (!root || st.n !== n) return;
+      const t = VOICE.elapsed, tt = st.story.times[n] || times || guess(n, dur);
+      if (t >= 0) { let i = -1; tt.forEach(([a, b], j) => { if (t >= a - .05 && t <= b + .08) i = j; }); light(n, i); }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+  }
+  async function clip(n) {   // George's recording of sentence n: shared, or made here (and shared)
+    if (n >= st.story.sentences.length) return null;
+    if (st.clips[n]) return st.clips[n];
+    let a = st.story.times[n] ? await STORY.audio(st.story.id, n) : null;
+    if (!a && VOICE.canRender) {
+      a = await VOICE.render(st.story.sentences[n]);
+      if (a) STORY.upload(st.story.id, n, a).then(t => { if (t && root) st.story.times[n] = t; });
+    }
+    return st.clips[n] = a;
+  }
+  async function tell(n) {
+    const me = ++st.run; st.n = n; st.playing = true; VOICE.cancel(); cancelAnimationFrame(raf);
+    showPlay();
+    if (n >= st.story.sentences.length) return theEnd();
+    const s = st.spans[n]; light(n, -1);
+    const box = q('#tlText'), top = s.el.offsetTop - box.offsetTop; if (top < box.scrollTop || top + s.el.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = Math.max(0, top - 20);
+    if (!st.clips[n] && (VOICE.canRender || st.story.times[n])) status(n ? '' : 'The wizard clears his throat…');
+    const a = await clip(n);
+    if (me !== st.run || !root) return;
+    clip(n + 1);   // ready the next sentence while this one is read
+    const next = () => { if (me === st.run && root) later(() => { if (me === st.run) tell(n + 1); }, 450); };
+    if (a) { status(''); VOICE.playClip(a, next); follow(n, null, a.pcm.length / a.rate); return; }
+    // no George recording here yet: the device's own voice reads it, lighting the words as it goes
+    const toks = s.toks, starts = []; let at = 0; toks.forEach(t => { starts.push(at); at += t.textContent.length + 1; });
+    status('');
+    if (!VOICE.sayNative(st.story.sentences[n], { onword: ci => { let i = 0; starts.forEach((c, j) => { if (ci >= c) i = j; }); if (me === st.run) light(n, i); }, onend: () => { if (me === st.run) next(); } })) next();
+  }
+  function theEnd() {
+    st.playing = false; showPlay(); cancelAnimationFrame(raf);
+    st.spans.forEach(s => { s.el.classList.remove('on'); s.toks.forEach(t => { if (t.word) t.word.classList.remove('lit'); }); });
+    status('The end! Tap "Listen again" to hear the story once more, or tap any sentence.');
+    q('#tlPlay').textContent = '⟲ Listen again';
+  }
+  function pause() { st.run++; st.playing = false; VOICE.cancel(); cancelAnimationFrame(raf); showPlay(); status('Paused. Tap "Keep listening" when you\'re ready.'); }
+  function showPlay() { const b = q('#tlPlay'); b.textContent = st.playing ? '⏸ Pause' : '▶ Keep listening'; }
+
+  function mount(container, wordList) {
+    let words = STORY.pick(wordList); practice = words.length < 1; if (practice) words = PRACTICE.slice();
+    st = { run: 0, n: 0, playing: false, clips: [] };
+    root = document.createElement('div'); root.className = 'tl';
+    root.innerHTML = `
+      <div class="tl-page">
+        <h3 class="tl-title" id="tlTitle">The wizard is thinking of a story…</h3>
+        <div class="tl-text" id="tlText" aria-live="off"><span class="tl-quill" aria-hidden="true">✒️</span></div>
+      </div>
+      <p class="sq-status" id="tlStatus" aria-live="polite">Your spelling words will light up as the wizard reads them.</p>
+      <div class="sq-actions">
+        <button type="button" class="sq-btn primary" id="tlPlay" disabled>⏸ Pause</button>
+        <button type="button" class="sq-btn" id="tlAgain" disabled>⟲ Start again</button>
+      </div>
+      ${practice ? '<p class="sq-practice">This story uses practice words. Ask a grown-up to add this week\'s words with the Grown-ups lock.</p>' : ''}`;
+    container.appendChild(root);
+    q('#tlPlay').addEventListener('click', () => { if (st.playing) pause(); else tell(st.n >= st.story.sentences.length ? 0 : st.n); });
+    q('#tlAgain').addEventListener('click', () => tell(0));
+    keyHandler = e => { if (e.key === ' ' && st.story && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); q('#tlPlay').click(); } };
+    document.addEventListener('keydown', keyHandler);
+    const mine = root;
+    STORY.get(words).then(story => {
+      if (root !== mine) return;
+      st.story = story; page(); q('#tlPlay').disabled = q('#tlAgain').disabled = false;
+      later(() => tell(0), 600);
+    }).catch(e => {
+      if (root !== mine) return;
+      q('#tlTitle').textContent = 'The storybook is closed for now';
+      q('#tlText').textContent = /tomorrow/.test(e.message) ? 'The wizard has told all his new stories for today. Come back tomorrow for this one!' : "The wizard couldn't reach his storybook. Check the internet connection, then open the story again.";
+      status('');
+    });
+  }
+  function unmount() {
+    if (st) st.run++; VOICE.cancel(); cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = [];
+    if (keyHandler) document.removeEventListener('keydown', keyHandler);
+    if (root) root.remove(); root = null;
+  }
+  return { mount, unmount, practice: PRACTICE };
+})();
 /* ================= Royal Map clues ================= */
 // A grown-up's own clue wins; otherwise the voice service's (written once per word, then the same for everyone).
 // Clues already fetched are kept on this device so the scroll fills in at once next time.
@@ -6086,7 +6297,7 @@ const StableGame = (() => {
 
   return { mount, unmount, practice: PRACTICE, sortModes: SORT_MODES };
 })();
-const GAME_MODULES = { crossword: MapGame, hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame, bridge: BridgeGame, sort: StableGame };
+const GAME_MODULES = { story: TaleGame, crossword: MapGame, hangman: SquireGame, scramble: PotionGame, wordsearch: DragonGame, listen: CrierGame, missing: WallGame, spot: JesterGame, joust: JoustGame, vowels: GemGame, memory: ShieldGame, tiles: ForgeGame, bee: CourtGame, feed: FeedGame, bridge: BridgeGame, sort: StableGame };
 
 let ACTIVE_GAME = null;
 const gameScreen = document.getElementById('gameScreen');
@@ -6728,6 +6939,15 @@ const ICONS = {
     g.strokeStyle = '#f5e7bf'; g.lineWidth = 1.8; g.beginPath(); g.moveTo(14, 23); g.lineTo(28, 37); g.moveTo(28, 23); g.lineTo(14, 37); g.stroke();
     g.strokeStyle = '#3b2412'; g.lineWidth = 2; g.strokeRect(14, 23, 14, 14);
     g.strokeStyle = '#f2c35b'; g.lineWidth = 2.6; g.lineCap = 'round'; g.beginPath(); g.arc(21, 16, 4, Math.PI * .15, Math.PI * .85, true); g.stroke();
+  },
+  story(g) {
+    g.lineJoin = 'round'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.6;
+    g.fillStyle = '#7b2d3f'; g.beginPath(); g.moveTo(3, 13); g.lineTo(21, 15); g.lineTo(39, 13); g.lineTo(39, 36); g.lineTo(21, 38); g.lineTo(3, 36); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#fffaf0'; [[5, 1], [37, -1]].forEach(([x, d]) => { g.beginPath(); g.moveTo(x, 12); g.quadraticCurveTo(x + d * 8, 10, 21, 13); g.lineTo(21, 35); g.quadraticCurveTo(x + d * 8, 32, x, 34); g.closePath(); g.fill(); g.stroke(); });
+    g.strokeStyle = '#b8955a'; g.lineWidth = 1.2; [18, 22, 26, 30].forEach(y => { g.beginPath(); g.moveTo(8, y); g.lineTo(18, y + 1); g.moveTo(24, y + 1); g.lineTo(34, y); g.stroke(); });
+    g.fillStyle = '#f2c35b'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.2; g.beginPath();
+    for (let i = 0; i < 10; i++) { const r = i % 2 ? 2.4 : 5.5, an = -Math.PI / 2 + i * Math.PI / 5; g.lineTo(21 + Math.cos(an) * r, 6 + Math.sin(an) * r); }
+    g.closePath(); g.fill(); g.stroke();
   },
   crossword(g) {
     g.fillStyle = '#cfe0a0'; g.strokeStyle = '#3b2412'; g.lineWidth = 1.4; g.fillRect(4, 6, 34, 32); g.strokeRect(4, 6, 34, 32);
